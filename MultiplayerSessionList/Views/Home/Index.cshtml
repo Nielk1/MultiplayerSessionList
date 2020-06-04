@@ -2,6 +2,16 @@
     ViewData["Title"] = "Home Page";
 }
 
+<style>
+    .player_avatars {
+        text-align: center;
+    }
+
+        .player_avatars a img {
+            height: 100px;
+        }
+</style>
+
 <div class="container">
     <div class="dropdown float-left">
         <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -137,6 +147,8 @@
                     {
                         $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="6">Players</td></tr>');
 
+                        var avatars = [];
+
                         var playerTable = $('<table/>');
                         //playerTable.addClass('table-dark');
                         //playerTable.addClass('small');
@@ -167,21 +179,27 @@
                                     switch (keys[k]) {
                                         case "Slot":
                                             elem.append('<i class="icon icon-hash" aria-hidden="true"></i> ');
+                                            elem.append(session.Players[j].IDs[keys[k]].ID);
                                             break;
                                         case "BZRNet":
                                             elem.append('<i class="fa fa-gamepad" aria-hidden="true"></i> ');
+                                            elem.append(session.Players[j].IDs[keys[k]].ID);
                                             break;
                                         case "Steam":
                                             elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
+                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
+                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname });
                                             break;
                                         case "Gog":
                                             elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
+                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
+                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].UserName });
                                             break;
                                         default:
                                             elem.append(keys[k] + ": ");
+                                            elem.append(session.Players[j].IDs[keys[k]].ID);
                                             break;
                                     }
-                                    elem.append(session.Players[j].IDs[keys[k]].ID);
                                     cell.append(elem);
                                 }
                                 playerRow.append(cell);
@@ -194,12 +212,17 @@
                             playerHeaderRow.append($('<th/>').text(ColumnNames[j]));
                         }
 
+                        var playerAvatarBar = $('<div class="player_avatars" />');
+                        for (var j = 0; j < avatars.length; j++) {
+                            playerAvatarBar.append('<a href="' + avatars[j].href + '" title="' + avatars[j].name + '"><img src="' +avatars[j].src + '"/></a>');
+                        }
                         $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="6" class="p-0 pl-3 pr-3" />').append(playerTable)));
+                        $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="6" class="p-0 pl-3 pr-3" />').append(playerAvatarBar)));
                     }
 
                 }
             });
         });
-                //});
+                    //});
     </script>
 }
