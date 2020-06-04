@@ -20,6 +20,10 @@ namespace MultiplayerSessionList
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.ConfigureAppConfiguration(config =>
+                    {
+                        config.AddEnvironmentVariables("MPSessionList_");
+                    });
                     webBuilder.UseStartup<Startup>();
                 });
     }

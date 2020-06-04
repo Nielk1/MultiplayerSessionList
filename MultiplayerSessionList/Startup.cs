@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MultiplayerSessionList.Models;
-using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace MultiplayerSessionList
 {
@@ -34,7 +28,17 @@ namespace MultiplayerSessionList
 
             services.AddSingleton<GameListModuleManager>();
 
-            services.AddControllersWithViews();
+            services.AddControllersWithViews()
+                .AddNewtonsoftJson(options =>
+                {
+                    options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+                    
+                    // This options stops the JSON being camel cased
+                    options.SerializerSettings.ContractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new DefaultNamingStrategy(),
+                    };
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
