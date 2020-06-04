@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
+using MultiplayerSessionList.Services;
 
 namespace MultiplayerSessionList
 {
@@ -26,6 +27,10 @@ namespace MultiplayerSessionList
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddMemoryCache();
+
+            services.AddSingleton<GogInterface>();
+
             services.AddSingleton<GameListModuleManager>();
 
             services.AddControllersWithViews();

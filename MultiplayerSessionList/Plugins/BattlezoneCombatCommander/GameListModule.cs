@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
+using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -40,10 +41,12 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         };
 
         private string queryUrl;
+        private GogInterface gogInterface;
 
-        public GameListModule(IConfiguration configuration)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface)
         {
             queryUrl = configuration["rebellion:battlezone_combat_commander"];
+            this.gogInterface = gogInterface;
         }
 
         public async Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList()

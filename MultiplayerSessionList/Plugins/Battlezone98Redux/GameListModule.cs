@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
+using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -18,10 +19,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
 
         private string queryUrl;
+        private GogInterface gogInterface;
 
-        public GameListModule(IConfiguration configuration)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface)
         {
             queryUrl = configuration["rebellion:battlezone_98_redux"];
+            this.gogInterface = gogInterface;
         }
 
         public async Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList()
@@ -132,6 +135,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                                 //player.GetIDData("Gog").Add("LargeID", playerID);
                                                 playerID &= 0x00ffffffffffffff;
                                                 player.GetIDData("Gog").Add("ID", playerID);
+
+                                                GogUserData playerData = await gogInterface.Users(playerID);
+                                                player.GetIDData("Gog").Add("AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                player.GetIDData("Gog").Add("UserName", playerData.username);
+                                                player.GetIDData("Gog").Add("ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
                                             }
                                         }
                                         catch { }

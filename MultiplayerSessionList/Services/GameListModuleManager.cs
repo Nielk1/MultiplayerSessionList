@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
+using MultiplayerSessionList.Modules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace MultiplayerSessionList.Modules
+namespace MultiplayerSessionList.Services
 {
     public class GameListModuleManager
     {

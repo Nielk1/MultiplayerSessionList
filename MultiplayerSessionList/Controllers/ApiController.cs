@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using Newtonsoft.Json;
+using MultiplayerSessionList.Services;
 
 namespace MultiplayerSessionList.Controllers
 {
