@@ -4,6 +4,7 @@ using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Steam.Models.SteamCommunity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,11 +21,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
         private string queryUrl;
         private GogInterface gogInterface;
+        private SteamInterface steamInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface)
         {
             queryUrl = configuration["rebellion:battlezone_98_redux"];
             this.gogInterface = gogInterface;
+            this.steamInterface = steamInterface;
         }
 
         public async Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList()
@@ -119,6 +122,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                             if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                             {
                                                 player.GetIDData("Steam").Add("ID", playerID);
+
+                                                PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                player.GetIDData("Steam").Add("AvatarUrl", playerData.AvatarFullUrl);
+                                                player.GetIDData("Steam").Add("Nickname", playerData.Nickname);
+                                                player.GetIDData("Steam").Add("ProfileUrl", playerData.ProfileUrl);
                                             }
                                         }
                                         catch { }

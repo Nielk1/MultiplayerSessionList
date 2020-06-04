@@ -30,6 +30,7 @@ namespace MultiplayerSessionList
             services.AddMemoryCache();
 
             services.AddSingleton<GogInterface>();
+            services.AddSingleton<SteamInterface>();
 
             services.AddSingleton<GameListModuleManager>();
 

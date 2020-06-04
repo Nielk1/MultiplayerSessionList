@@ -4,6 +4,7 @@ using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Steam.Models.SteamCommunity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,11 +43,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
         private string queryUrl;
         private GogInterface gogInterface;
+        private SteamInterface steamInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface)
         {
             queryUrl = configuration["rebellion:battlezone_combat_commander"];
             this.gogInterface = gogInterface;
+            this.steamInterface = steamInterface;
         }
 
         public async Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList()
@@ -311,6 +314,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                             if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
                                             {
                                                 player.GetIDData("Steam").Add("ID", playerID);
+
+                                                PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                player.GetIDData("Steam").Add("AvatarUrl", playerData.AvatarFullUrl);
+                                                player.GetIDData("Steam").Add("Nickname", playerData.Nickname);
+                                                player.GetIDData("Steam").Add("ProfileUrl", playerData.ProfileUrl);
                                             }
                                         }
                                         catch { }
@@ -327,6 +335,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                 //player.GetIDData("Gog").Add("LargeID", playerID);
                                                 playerID &= 0x00ffffffffffffff;
                                                 player.GetIDData("Gog").Add("ID", playerID);
+
+                                                GogUserData playerData = await gogInterface.Users(playerID);
+                                                player.GetIDData("Gog").Add("AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                player.GetIDData("Gog").Add("UserName", playerData.username);
+                                                player.GetIDData("Gog").Add("ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
                                             }
                                         }
                                         catch { }
