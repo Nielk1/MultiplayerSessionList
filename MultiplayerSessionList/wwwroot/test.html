@@ -1,0 +1,247 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Page - MultiplayerSessionList</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="/lib/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/icomoon.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="/">MultiplayerSessionList</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/Home/Privacy">Privacy</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="dropdown float-left">
+            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Game
+            </a>
+
+            <div id="dropdownMenuContainer" class="dropdown-menu" aria-labelledby="dropdownMenuLink"></div>
+        </div>
+        <button id="btnRefresh" disabled="disabled" type="button" class="btn btn-outline-primary float-right">Refresh</button>
+
+        <div class="text-center">
+            <h1 class="display-5">Game List Test</h1>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <table id="tblGames" class="table table-dark">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Players/Spectators</th>
+                    <th scope="col">Locked</th>
+                    <th scope="col">Passworded</th>
+                    <th scope="col">State</th>
+                    <th scope="col">...</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Players/Spectators</th>
+                    <th scope="col">Locked</th>
+                    <th scope="col">Passworded</th>
+                    <th scope="col">State</th>
+                    <th scope="col">...</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2020 - MultiplayerSessionList - <a href="/Home/Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/site.js?v=4q1jwFhaPaZgr8WAUSrux6hAuh0XDg9kPS3xIVq36I0"></script>
+
+    <script>
+        //$(document).ready(function () {
+        $.ajax({ url: '/api/games' })
+            .done(function (data) {
+                $('#dropdownMenuContainer').empty();
+                for (var i = 0; i < data.length; i++) {
+                    var dat = data[i];
+                    //if (i == 0) {
+                    //    $('#dropdownMenuLink').text(dat.Name);
+                    //    $('#dropdownMenuContainer').append('<a class="dropdown-item active" href="#" data-value="' + dat.Key + '">' + dat.Name + '</a>');
+                    //} else {
+                    var sessionRow = $('<a class="dropdown-item" href="#"/>');
+                    sessionRow.text(dat.Name);
+                    sessionRow.data('value', dat.Key)
+                    $('#dropdownMenuContainer').append(sessionRow);
+                    //}
+                }
+            });
+
+        $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
+            e.preventDefault();
+            $('#dropdownMenuContainer>.dropdown-item').removeClass('active');
+            var item = $(e.target);
+            item.addClass('active')
+            $('#dropdownMenuLink').text(item.text());
+            $('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
+            $('#btnRefresh').trigger('click');
+        });
+
+        var GetGamesAjax = null;
+        $('#btnRefresh').click(function (e) {
+            e.preventDefault();
+            var key = $('#btnRefresh').data('key');
+
+            $('#tblGames>tbody').empty();
+            if (GetGamesAjax != null) {
+                GetGamesAjax.abort();
+            }
+            GetGamesAjax = $.ajax({ url: 'api/sessions?game=' + key }).done(function (data) {
+                for (var i = 0; i < data.Sessions.length; i++) {
+                    var session = $.extend({}, data.SessionDefault, data.Sessions[i]);
+                    var sessionRow = $('<tr/>');
+                    sessionRow.append($('<th scope="row"/>').text(session.Name));
+                    {
+                        var playersCount = '';
+                        playersCount += session.PlayerCount + 'P';
+                        if (session.SpectatorPossible) {
+                            playersCount += ' ' + session.SpectatorCount + 'S';
+                        }
+
+                        var playersMax = '';
+                        if (session.SpectatorPossible & session.SpectatorSeperate) {
+                            playersMax += session.PlayerMax + 'P';
+                            playersMax += session.SpectatorsMax + 'S';
+                        } else {
+                            playersMax += session.PlayerMax;
+                        }
+
+                        if (playersMax.length > 0) {
+                            sessionRow.append($('<td/>').text(playersCount + ' / ' + playersMax));
+                        } else {
+                            sessionRow.append($('<td/>').text(playersCount));
+                        }
+                    }
+                    sessionRow.append($('<td/>').text(session.Status.Locked));
+                    sessionRow.append($('<td/>').text(session.Status.Passworded));
+                    sessionRow.append($('<td/>').text(session.Status.State));
+                    sessionRow.append($('<td/>').text(''));
+                    $('#tblGames>tbody').append(sessionRow);
+
+                    // level
+                    {
+                        $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="6">Level</td></tr>');
+
+                        var levelRow = $('<div class="row"/>');
+
+                        var media = $('<div class="media"/>');
+                        media.append($('<img class="mr-3" src="https://discord.battlezone.report/resources/logos/nomap.png"/>').attr('alt', session.Level.MapFile));
+                        var mediaBody = $('<div class="media-body"/>');
+
+                        mediaBody.append('test');
+
+                        media.append(mediaBody);
+                        levelRow.append(media);
+
+                        var levelPanel = $('<div class="container-fluid bg-white text-dark"/>').append(levelRow);
+                        $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="6" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                    }
+
+                    // players
+                    {
+                        $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="6">Players</td></tr>');
+
+                        var playerTable = $('<table/>');
+                        //playerTable.addClass('table-dark');
+                        //playerTable.addClass('small');
+                        playerTable.addClass('table-sm');
+                        playerTable.addClass('table-light');
+                        playerTable.addClass('text-dark');
+                        //playerTable.addClass('border-left');
+                        //playerTable.addClass('border-right');
+                        //playerTable.addClass('border-dark');
+                        playerTable.css('width', '100%');
+                        //playerTable.css('border-width', '1em !important');
+                        var playerTableHeader = $('<thead/>');
+                        var playerTableBody = $('<tbody/>');
+                        playerTable.append(playerTableHeader)
+                        playerTable.append(playerTableBody)
+
+                        var ColumnNames = ["Name", "ID"];
+                        for (var j = 0; j < session.Players.length; j++) {
+                            var playerRow = $('<tr/>');
+                            playerRow.append($('<th/>').text(session.Players[j].Name));
+                            {
+                                var cell = $('<td/>');
+                                var keys = Object.keys(session.Players[j].IDs);
+                                for (var k = 0; k < keys.length; k++) {
+                                    var elem = $('<span/>');
+                                    if (k > 0)
+                                        cell.append('<br/>');
+                                    switch (keys[k]) {
+                                        case "Slot":
+                                            elem.append('<i class="icon icon-hash" aria-hidden="true"></i> ');
+                                            break;
+                                        case "BZRNet":
+                                            elem.append('<i class="fa fa-gamepad" aria-hidden="true"></i> ');
+                                            break;
+                                        case "Steam":
+                                            elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
+                                            break;
+                                        case "Gog":
+                                            elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
+                                            break;
+                                        default:
+                                            elem.append(keys[k] + ": ");
+                                            break;
+                                    }
+                                    elem.append(session.Players[j].IDs[keys[k]].ID);
+                                    cell.append(elem);
+                                }
+                                playerRow.append(cell);
+                            }
+                            playerTableBody.append(playerRow);
+                        }
+                        var playerHeaderRow = $('<tr/>');
+                        playerTableHeader.append(playerHeaderRow);
+                        for (var j = 0; j < ColumnNames.length; j++) {
+                            playerHeaderRow.append($('<th/>').text(ColumnNames[j]));
+                        }
+
+                        $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="6" class="p-0 pl-3 pr-3" />').append(playerTable)));
+                    }
+
+                }
+            });
+        });
+        //});
+    </script>
+
+</body>
+</html>
