@@ -62,8 +62,6 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 SessionItem DefaultSession = new SessionItem()
                 {
                     Type = "listen",
-                    SpectatorPossible = false, // unless we add special mod support
-                    //SpectatorSeperate = false,
                 };
 
                 List<SessionItem> Sessions = new List<SessionItem>();
@@ -76,11 +74,18 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     if (!string.IsNullOrWhiteSpace(raw.MOTD))
                         game.Message = raw.MOTD;
 
-                    game.PlayerCount = raw.CurPlayers;
-                    game.PlayerMax = raw.MaxPlayers;
+                    game.PlayerTypes.Add(new PlayerTypeData()
+                    {
+                        Types = new List<string>() { "Player" },
+                        Max = raw.MaxPlayers
+                    });
 
-                    game.Level.Add("MapFile", raw.MapFile);
-                    game.Level.Add("MapID", GameID + @":" + (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile);
+                    game.PlayerCount.Add("Player", raw.CurPlayers);
+
+                    game.Level = new LevelData();
+                    if (!string.IsNullOrWhiteSpace(raw.MapFile))
+                        game.Level.MapFile = raw.MapFile + @".bzn";
+                    game.Level.MapID = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile;
 
                     game.Status.Add("Locked", raw.Locked);
                     game.Status.Add("Passworded", raw.Passworded);
@@ -90,17 +95,19 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     {
                         switch (raw.ServerInfoMode)
                         {
-                            case 1:
-                                game.Status.Add("State", @"Lobby");
+                            case 0: // ServerInfoMode_Unknown
+                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.Unknown));
                                 break;
-                            case 2:
-                                game.Status.Add("State", @"Loading"); // guess
+                            case 1: // ServerInfoMode_OpenWaiting
+                            case 2: // ServerInfoMode_ClosedWaiting (full)
+                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.PreGame));
                                 break;
-                            case 3:
-                                game.Status.Add("State", @"InGame");
+                            case 3: // ServerInfoMode_OpenPlaying
+                            case 4: // ServerInfoMode_ClosedPlaying (full)
+                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.InGame));
                                 break;
-                            case 4:
-                                game.Status.Add("State", @"Over"); // guess
+                            case 5: // ServerInfoMode_Exiting
+                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.PostGame));
                                 break;
                         }
                     }
@@ -118,11 +125,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     if (raw.MaxPing.HasValue && raw.MaxPing > 0)
                         game.Attributes.Add("MaxPing", raw.MaxPing);
 
-                    if (raw.TimeLimit.HasValue && raw.TimeLimit > 0)
-                        game.Attributes.Add("TimeLimit", raw.TimeLimit);
 
+                    if (raw.TimeLimit.HasValue && raw.TimeLimit > 0)
+                        game.Level.Attributes.Add("TimeLimit", raw.TimeLimit);
                     if (raw.KillLimit.HasValue && raw.KillLimit > 0)
-                        game.Attributes.Add("KillLimit", raw.KillLimit);
+                        game.Level.Attributes.Add("KillLimit", raw.KillLimit);
 
                     if (!string.IsNullOrWhiteSpace(raw.t))
                         switch (raw.t)
@@ -156,14 +163,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 break;
                         }
 
-                    switch (raw.proxySource)
+                    if (string.IsNullOrWhiteSpace(raw.proxySource))
                     {
-                        case "Rebellion":
-                            game.Attributes.Add("List", $"Rebellion");
-                            break;
-                        default:
-                            game.Attributes.Add("List", $"IonDriver");
-                            break;
+                        game.Attributes.Add("List", $"IonDriver");
+                    }
+                    else
+                    {
+                        game.Attributes.Add("List", raw.proxySource);
                     }
 
                     bool m_TeamsOn = false;
@@ -171,7 +177,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     switch (raw.GameType)
                     {
                         case 0:
-                            game.Attributes.Add("Type", $"All");
+                            game.Level.GameMode = $"All";
                             break;
                         case 1:
                             {
@@ -179,7 +185,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 int detailed = raw.GameSubType.Value / (int)GameMode.GAMEMODE_MAX; // ivar7
                                 bool RespawnSameRace = (detailed & 256) == 256;
                                 bool RespawnAnyRace = (detailed & 512) == 512;
-                                game.Attributes.Add("Respawn", RespawnSameRace ? "Race" : RespawnAnyRace ? "Any" : "One");
+                                game.Level.Attributes.Add("Respawn", RespawnSameRace ? "Race" : RespawnAnyRace ? "Any" : "One");
                                 detailed = (detailed & 0xff);
                                 switch ((GameMode)GetGameModeOutput)
                                 {
@@ -203,31 +209,40 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                                 {
                                     case 0:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"DM");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM";
                                         break;
                                     case 1:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH";
                                         break;
                                     case 2:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF";
                                         break;
                                     case 3:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot";
                                         break;
                                     case 4:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]";
                                         break;
                                     case 5:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"Race");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race";
                                         break;
                                     case 6:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)";
                                         break;
                                     case 7:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)";
                                         break;
                                     default:
-                                        game.Level.Add("GameMode", (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]");
+                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]");
+                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]";
                                         break;
                                 }
                             }
@@ -238,28 +253,33 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 switch ((GameMode)GetGameModeOutput)
                                 {
                                     case GameMode.GAMEMODE_TEAM_STRAT:
-                                        game.Level.Add("GameMode", $"TEAM STRAT");
+                                        //game.Level.GameMode = $"TEAM STRAT");
+                                        game.Level.GameMode = $"TEAM STRAT";
                                         m_TeamsOn = true;
                                         m_OnlyOneTeam = false;
                                         break;
                                     case GameMode.GAMEMODE_STRAT:
-                                        game.Level.Add("GameMode", $"STRAT");
+                                        //game.Level.GameMode = $"STRAT");
+                                        game.Level.GameMode = $"STRAT";
                                         m_TeamsOn = false;
                                         m_OnlyOneTeam = false;
                                         break;
                                     case GameMode.GAMEMODE_MPI:
-                                        game.Level.Add("GameMode", $"MPI");
+                                        //game.Level.GameMode = $"MPI");
+                                        game.Level.GameMode = $"MPI";
                                         m_TeamsOn = true;
                                         m_OnlyOneTeam = true;
                                         break;
                                     default:
-                                        game.Level.Add("GameMode", $"STRAT [UNKNOWN {GetGameModeOutput}]");
+                                        //game.Level.GameMode = $"STRAT [UNKNOWN {GetGameModeOutput}]");
+                                        game.Level.GameMode = $"STRAT [UNKNOWN {GetGameModeOutput}]";
                                         break;
                                 }
                             }
                             break;
                         case 3: // impossible, BZCC limits to 0-2
-                            game.Attributes.Add("Type", $"MPI [Invalid]");
+                            //game.Attributes.Add("GameMode", $"MPI [Invalid]");
+                            game.Level.GameMode = $"MPI [Invalid]";
                             break;
                     }
 

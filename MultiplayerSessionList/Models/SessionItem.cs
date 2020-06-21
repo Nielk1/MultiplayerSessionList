@@ -15,32 +15,26 @@ namespace MultiplayerSessionList.Models
         public string Message { get; set; }
 
 
-        public int? PlayerCount { get; set; }
+        public List<PlayerTypeData> PlayerTypes { get; set; }
+        public bool ShouldSerializePlayerTypes() { return PlayerTypes.Count > 0; }
 
-        public int? PlayerMax { get; set; }
 
-        /// <summary>
-        /// Are spectators possible
-        /// </summary>
-        public bool? SpectatorPossible { get; set; }
+        public Dictionary<string, int?> PlayerCount { get; set; }
+        public bool ShouldSerializePlayerCount() { return PlayerCount.Count > 0; }
 
-        /// <summary>
-        /// Spectators have a seperate max count
-        /// </summary>
-        public bool? SpectatorSeperate { get; set; }
 
-        public int? SpectatorCount { get; set; }
+        //public Dictionary<string, JToken> Level { get; set; }
+        //public bool ShouldSerializeLevel() { return Level.Count > 0; }
+        public LevelData Level { get; set; }
 
-        public int? SpectatorsMax { get; set; }
-
-        public Dictionary<string, JToken> Level { get; set; }
-        public bool ShouldSerializeLevel() { return Level.Count > 0; }
 
         public Dictionary<string, JToken> Status { get; set; }
         public bool ShouldSerializeStatus() { return Status.Count > 0; }
 
+
         public List<PlayerItem> Players { get; set; }
         public bool ShouldSerializePlayers() { return Players.Count > 0; }
+
 
         public Dictionary<string, JToken> Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
@@ -48,35 +42,46 @@ namespace MultiplayerSessionList.Models
 
         public SessionItem()
         {
-            Level = new Dictionary<string, JToken>();
+            //Level = new Dictionary<string, JToken>();
             Status = new Dictionary<string, JToken>();
+            PlayerTypes = new List<PlayerTypeData>();
+            PlayerCount = new Dictionary<string, int?>();
             Players = new List<PlayerItem> ();
             Attributes = new Dictionary<string, JToken>();
+        }
+    }
+
+    public class PlayerTypeData
+    {
+        public List<string> Types { get; set; }
+        public int? Max { get; set; }
+
+        public PlayerTypeData()
+        {
+            Types = new List<string>();
         }
     }
 
     public class PlayerItem
     {
         public string Name { get; set; }
+
+
         public Dictionary<string, JToken> Stats { get; set; }
-        public bool ShouldSerializeStats()
-        {
-            return Stats.Count > 0;
-        }
+        public bool ShouldSerializeStats() { return Stats.Count > 0; }
+
 
         public PlayerTeam Team { get; set; }
+        public PlayerHero Hero { get; set; }
+
 
         public Dictionary<string, JToken> Attributes { get; set; }
-        public bool ShouldSerializeAttributes()
-        {
-            return Attributes.Count > 0;
-        }
+        public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
+
 
         public Dictionary<string, Dictionary<string, JToken>> IDs { get; set; }
-        public bool ShouldSerializeIDs()
-        {
-            return IDs.Count > 0;
-        }
+        public bool ShouldSerializeIDs() { return IDs.Count > 0; }
+
 
         public PlayerItem()
         {
@@ -98,5 +103,35 @@ namespace MultiplayerSessionList.Models
         public int? ID { get; set; }
         public bool? Leader { get; set; }
         public PlayerTeam SubTeam { get; set; }
+    }
+
+    public class PlayerHero
+    {
+        public string ID { get; set; }
+
+        public Dictionary<string, JToken> Attributes { get; set; }
+        public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
+
+        public PlayerHero()
+        {
+            Attributes = new Dictionary<string, JToken>();
+        }
+    }
+
+    public class LevelData
+    {
+        public string MapID { get; set; }
+        public string MapFile { get; set; }
+        public string GameMode { get; set; }
+
+
+        public Dictionary<string, JToken> Attributes { get; set; }
+        public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
+
+
+        public LevelData()
+        {
+            Attributes = new Dictionary<string, JToken>();
+        }
     }
 }

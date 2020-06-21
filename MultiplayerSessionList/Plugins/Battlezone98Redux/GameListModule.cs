@@ -40,8 +40,6 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 SessionItem DefaultSession = new SessionItem()
                 {
                     Type = "listen",
-                    SpectatorPossible = false, // unless we add special mod support
-                    //SpectatorSeperate = false,
                 };
 
                 List<SessionItem> Sessions = new List<SessionItem>();
@@ -57,41 +55,47 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     //if (!string.IsNullOrWhiteSpace(raw.MOTD))
                     //    game.Message = raw.MOTD;
 
-                    game.PlayerCount = raw.userCount;
-                    game.PlayerMax = raw.PlayerLimit;
+                    game.PlayerTypes.Add(new PlayerTypeData()
+                    {
+                        Types = new List<string>() { "Player" },
+                        Max = raw.PlayerLimit
+                    });
 
-                    game.Level.Add("MapFile", raw.MapFile);
-                    game.Level.Add("MapID", GameID + @":" + (raw.WorkshopID ?? @"0") + @":" + raw.MapFile);
+                    game.PlayerCount.Add("Player", raw.userCount);
+
+                    game.Level = new LevelData();
+                    game.Level.MapFile = raw.MapFile;
+                    game.Level.MapID = (raw.WorkshopID ?? @"0") + @":" + System.IO.Path.GetFileNameWithoutExtension(raw.MapFile);
 
                     game.Status.Add("Locked", raw.isLocked);
                     game.Status.Add("Passworded", raw.IsPassworded);
+                    game.Status.Add("State", Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame));
 
-                    game.Status.Add("State", raw.IsEnded ? "Over" : raw.IsLaunched ? "InGame" : "Lobby");
-
-                    if (!string.IsNullOrWhiteSpace(raw.WorkshopID))
-                        game.Attributes.Add("Mod", raw.WorkshopID);
+                    if (raw.SyncJoin.HasValue)
+                        game.Attributes.Add("SyncJoin", raw.SyncJoin.Value);
 
                     if (!string.IsNullOrWhiteSpace(raw.clientVersion))
                         game.Attributes.Add("Version", raw.clientVersion);
 
+                    if (!string.IsNullOrWhiteSpace(raw.WorkshopID))
+                        game.Attributes.Add("Mod", raw.WorkshopID);
+
                     if (raw.TimeLimit.HasValue && raw.TimeLimit > 0)
-                        game.Attributes.Add("TimeLimit", raw.TimeLimit);
+                        game.Level.Attributes.Add("TimeLimit", raw.TimeLimit);
 
                     if (raw.KillLimit.HasValue && raw.KillLimit > 0)
-                        game.Attributes.Add("KillLimit", raw.KillLimit);
+                        game.Level.Attributes.Add("KillLimit", raw.KillLimit);
 
                     if (raw.Lives.HasValue && raw.Lives.Value > 0)
-                        game.Attributes.Add("Lives", raw.Lives.Value);
-                    if (raw.SyncJoin.HasValue)
-                        game.Attributes.Add("SyncJoin", raw.SyncJoin.Value);
+                        game.Level.Attributes.Add("Lives", raw.Lives.Value);
                     if (raw.SatelliteEnabled.HasValue)
-                        game.Attributes.Add("Satellite", raw.SatelliteEnabled.Value);
+                        game.Level.Attributes.Add("Satellite", raw.SatelliteEnabled.Value);
                     if (raw.BarracksEnabled.HasValue)
-                        game.Attributes.Add("Barracks", raw.BarracksEnabled.Value);
+                        game.Level.Attributes.Add("Barracks", raw.BarracksEnabled.Value);
                     if (raw.SniperEnabled.HasValue)
-                        game.Attributes.Add("Sniper", raw.SniperEnabled.Value);
+                        game.Level.Attributes.Add("Sniper", raw.SniperEnabled.Value);
                     if (raw.SplinterEnabled.HasValue)
-                        game.Attributes.Add("Splinter", raw.SplinterEnabled.Value);
+                        game.Level.Attributes.Add("Splinter", raw.SplinterEnabled.Value);
 
                     foreach (var dr in raw.users.Values)
                     {
@@ -106,11 +110,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             player.GetIDData("Slot").Add("ID", dr.Team);
                         }
 
-                        player.Attributes.Add("Vehicle", dr.Vehicle);
+                        //player.Attributes.Add("Vehicle", dr.Vehicle);
+                        player.Hero = new PlayerHero();
+                        player.Hero.ID = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle;
+                        player.Hero.Attributes["ODF"] = dr.Vehicle;
 
                         if (!string.IsNullOrWhiteSpace(dr.id))
                         {
                             player.GetIDData("BZRNet").Add("ID", dr.id);
+                            if (dr.id == raw.owner)
+                                player.Attributes.Add("IsOwner", true);
                             switch (dr.id[0]) 
                             {
                                 case 'S': // dr.authType == "steam"

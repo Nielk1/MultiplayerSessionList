@@ -190,10 +190,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             get
             {
                 string val = ExtractGameSettings(9);
-                if (string.IsNullOrWhiteSpace(val)) return null;
-                int tmpVal = 0;
-                if (int.TryParse(val, out tmpVal)) return tmpVal;
-                return null;
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    int tmpVal = 0;
+                    if (int.TryParse(val, out tmpVal)) return tmpVal;
+                }
+                //return null;
+                return memberLimit; // memberLimit as fallback as the lobby size should be the same as the player limit
             }
         }
 
