@@ -17,7 +17,7 @@
     "Player":9,
     "Spectator":1,
     "Audience":7
-  }
+  },
   
   "Level":{
     "LevelID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
