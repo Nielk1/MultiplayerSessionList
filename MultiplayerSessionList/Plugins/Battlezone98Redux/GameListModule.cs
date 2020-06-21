@@ -65,7 +65,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                     game.Level = new LevelData();
                     game.Level.MapFile = raw.MapFile;
-                    game.Level.MapID = (raw.WorkshopID ?? @"0") + @":" + System.IO.Path.GetFileNameWithoutExtension(raw.MapFile);
+                    game.Level.MapID = (raw.WorkshopID ?? @"0") + @":" + System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
 
                     game.Status.Add("Locked", raw.isLocked);
                     game.Status.Add("Passworded", raw.IsPassworded);
@@ -112,7 +112,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                         //player.Attributes.Add("Vehicle", dr.Vehicle);
                         player.Hero = new PlayerHero();
-                        player.Hero.ID = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle;
+                        player.Hero.ID = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
                         player.Hero.Attributes["ODF"] = dr.Vehicle;
 
                         if (!string.IsNullOrWhiteSpace(dr.id))

@@ -85,7 +85,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     game.Level = new LevelData();
                     if (!string.IsNullOrWhiteSpace(raw.MapFile))
                         game.Level.MapFile = raw.MapFile + @".bzn";
-                    game.Level.MapID = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile;
+                    game.Level.MapID = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile?.ToLowerInvariant();
 
                     game.Status.Add("Locked", raw.Locked);
                     game.Status.Add("Passworded", raw.Passworded);

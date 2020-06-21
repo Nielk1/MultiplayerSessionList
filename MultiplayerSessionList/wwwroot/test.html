@@ -137,6 +137,9 @@
                 if (data.Sessions.length > 0) {
                     for (var i = 0; i < data.Sessions.length; i++) {
                         var session = $.extend({}, data.SessionDefault, data.Sessions[i]);
+
+                        $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
+
                         var sessionRow = $('<tr/>');
                         sessionRow.append($('<th scope="row"/>').text(session.Name));
                         {
@@ -167,15 +170,15 @@
 
                         // message
                         if (session.Message) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="6">Message</td></tr>');
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Message</td></tr>');
 
                             var messagePanel = $('<div class="container-fluid bg-white text-dark text-center">').append(session.Message);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="6" class="p-0 pl-3 pr-3" />').append(messagePanel)));
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(messagePanel)));
                         }
 
                         // level
                         {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="6">Level</td></tr>');
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Level</td></tr>');
 
                             //var levelRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
                             var levelRow = $('<div class="row"/>');
@@ -242,12 +245,12 @@
                             </div>*/
 
                             var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="6" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
                         }
 
                         // players
                         {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="6">Players</td></tr>');
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
 
                             var avatars = [];
 
@@ -290,17 +293,26 @@
                                             case "Steam":
                                                 elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
                                                 elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
-                                                avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname });
                                                 break;
                                             case "Gog":
                                                 elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
                                                 elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
-                                                avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].UserName });
                                                 break;
                                             default:
                                                 elem.append(keys[k] + ": ");
-                                                elem.append(session.Players[j].IDs[keys[k]].ID);
+                                                if (session.Players[j].IDs[keys[k]].ProfileUrl) {
+                                                    if (session.Players[j].IDs[keys[k]].UserName) {
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
+                                                    } else {
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].ID + '</a>');
+                                                    }
+                                                } else {
+                                                    elem.append(session.Players[j].IDs[keys[k]].ID);
+                                                }
                                                 break;
+                                        }
+                                        if (session.Players[j].IDs[keys[k]].AvatarUrl) {
+                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname });
                                         }
                                         cell.append(elem);
                                     }
@@ -316,12 +328,30 @@
 
                             var playerAvatarBar = $('<div class="player_avatars" />');
                             for (var j = 0; j < avatars.length; j++) {
-                                playerAvatarBar.append('<a href="' + avatars[j].href + '" title="' + avatars[j].name + '"><img src="' + avatars[j].src + '"/></a>');
+                                var wrapper = null;
+                                if (avatars[j].href) {
+                                    wrapper = $('<a/>');
+                                    wrapper.attr('href', avatars[j].href);
+                                    if (avatars[j].name) {
+                                        wrapper.attr('title', avatars[j].name);
+                                    }
+                                }
+                                var avatarImage = $('<img src="' + avatars[j].src + '" />');
+                                if (avatars[j].name) {
+                                    avatarImage.attr('alt', avatars[j].name);
+                                }
+                                if (wrapper != null) {
+                                    wrapper.append(avatarImage);
+                                } else {
+                                    wrapper = avatarImage;
+                                }
+                                playerAvatarBar.append(wrapper);
                             }
                             $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerAvatarBar)));
                             $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerTable)));
                         }
                     }
+                    $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
                 } else {
                     $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
                 }
