@@ -1,0 +1,93 @@
+{
+  "Type":"listen", // Possible values: "listen","dedicated"
+  "Name":"custom text",
+  "Message":"custom text", // nullable, BZCC's MOTD
+  
+  "PlayerTypes":[
+    {
+	  "Types":["Player","Spectator"], // could implement spectators from BZ98R/BZCC mods here
+      "Max":10
+	},
+    {
+	  "Types":["Audience"], // in many games, this would be Spectators as they don't count toward max
+	  "Max":null
+	}
+  ],
+  "PlayerCount":{
+    "Player":9,
+    "Spectator":1,
+    "Audience":7
+  }
+  
+  "Level":{
+    "LevelID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
+    "MapFile":"ctf1.bzn",
+	"GameMode":"MPI", // BZCC, values: "DM","KOTH","CTF","Loot","DM [RESERVED]","Race","Race (Vehicle Only)","DM (Vehicle Only)","DM [UNKNOWN 123]","TEAM DM","TEAM KOTH","TEAM CTF","TEAM Loot","TEAM DM [RESERVED]","TEAM Race","TEAM Race (Vehicle Only)","TEAM DM (Vehicle Only)","TEAM DM [UNKNOWN 123]","TEAM STRAT","STRAT","MPI","STRAT [UNKNOWN 123]","MPI [Invalid]"
+    "Attributes": {
+      "TimeLimit": 4, // BZ98R, BZCC
+      "KillLimit": 4, // BZ98R, BZCC
+      "Lives": 4, // BZ98R
+      "Satellite": true, // BZ98R
+      "Barracks": true, // BZ98R
+      "Sniper": true, // BZ98R
+      "Splinter": false, // BZ98R
+	  "Respawn": "Race" // BZCC DMs, values: "Race","Any","One"
+    }
+  },
+  "Status":{
+    "Locked":false,
+	"Passworded":true,
+	"State":"InGame", // Possible values: Unknown, PreGame, Loading, InGame, PostGame, Busy, NotResponding
+  },
+  "Players":[
+    {
+	  "Name":"Foo",
+	  "IDs":{
+	    "BZRNet":{"ID":"S76561197995400995"}, // BZ98R and BZCC both set this
+		"Steam":{"ID":76561197995400995,"Raw":"76561197995400995","AvatarUrl":"http...","ProfileUrl":"http...","Nickname":"N1elk"},
+		"Gog": {"ID":46988737810651250,"Raw":"191103925886507117","AvatarUrl":"http...","ProfileUrl":"http...","UserName":"N1elk"},
+		"Slot":{"ID":6}
+	  },
+	  "Team":{
+	    "Leader":true, // BZCC we know in 2 team mode that true-teams 1 and 6 are commanders
+	    "ID":2,
+		"SubTeam":{ // this seems stupid, in Battlezone it's the player slot which is the true-team
+	      "ID":6, // true team goes here in BZCC right now
+	    },
+	  },
+	  "Hero":{
+	    "ID":"0:svhraz", // forced lowercase
+        "Attributes": {
+          "ODF": "svhraz" //BZ98R
+        }
+	  },
+      "Stats":{
+        "Kills":0, // BZCC
+        "Deaths":0, // BZCC
+        "Score":0 // BZCC
+      },
+      "Attributes":{
+  	    "IsOwner":true //BZ98R
+      }
+	}
+  ],
+  "Team":{ // container for future team data, not needed for existing games
+    "2":{
+	  "SubTeam":{
+	    "6":{}
+	  }
+	}
+  },
+  "Attributes":{ // random guff not set sorted or not important enough
+    "Mod":"12345", // BZ98R
+	"Mods":["0"], // BZCC
+	"Version":"1.2.3", // BZ98R, BZCC
+	"SyncJoin":false, //BZ98R
+	"TPS":20, //BZCC
+	"MaxPing":720, //BZCC
+	"NAT":"NONE", // BZCC, values: "NONE","FULL CONE","ADDRESS RESTRICTED","PORT RESTRICTED","SYMMETRIC","UNKNOWN","DETECTION IN PROGRESS","SUPPORTS UPNP"
+	"List":"Rebellion", // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
+	"ModHash":"xyz", // BZCC, encoded CRC32? Base64? BZ2 holdover?
+	"GameTimeMinutes":"255+" // BZCC, currently a number from 0-254 or the text "255+"
+  }
+}
