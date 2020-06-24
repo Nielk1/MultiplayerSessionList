@@ -21,6 +21,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         /////////////////////////////////////////////
         public string clientVersion { get; set; }
 
+        [JsonIgnore]
+        public string GameVersion
+        {
+            get
+            {
+                if(metadata != null && metadata.ContainsKey("GameVersion"))
+                    return metadata["GameVersion"];
+                return null;
+            }
+        }
 
         [JsonIgnore]
         public bool IsLaunched
@@ -54,6 +64,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             Unknown
         }
 
+        /// <summary>
+        /// might this reveal mobile? or is mobile only in the version?
+        /// </summary>
+        public enum EGameType
+        {
+            Unknown,
+            Broken,
+            Valid,
+        }
+
         [JsonIgnore]
         public ELobbyType LobbyType
         {
@@ -77,6 +97,19 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 if (name == "pub") return ELobbyVisibility.Public;
                 if (name == "priv") return ELobbyVisibility.Private;
                 return ELobbyVisibility.Unknown;
+            }
+        }
+
+        [JsonIgnore]
+        public EGameType GameType
+        {
+            get
+            {
+                if (!metadata.ContainsKey("gameType"))
+                    return EGameType.Unknown;
+                if (metadata["gameType"] == "0") return EGameType.Broken;
+                if (metadata["gameType"] == "1") return EGameType.Valid;
+                return EGameType.Unknown;
             }
         }
 
@@ -283,6 +316,23 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public string[] lanAddresses { get; set; }
         /////////////////////////////////////////////
         public bool isAuth { get; set; }
+
+        [JsonIgnore]
+        public bool Launched
+        {
+            get
+            {
+                if (!metadata.ContainsKey("launched"))
+                    return false;
+
+                if (metadata["launched"] == "0")
+                    return false;
+                if (metadata["launched"] == "1")
+                    return true;
+
+                return false;
+            }
+        }
 
         [JsonIgnore]
         public int? Team

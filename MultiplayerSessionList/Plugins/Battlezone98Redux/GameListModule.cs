@@ -49,6 +49,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (raw.LobbyType != Lobby.ELobbyType.Game)
                         continue;
 
+                    if (raw.isPrivate && !(raw.IsPassworded ?? false))
+                        continue;
+
                     SessionItem game = new SessionItem();
 
                     game.Name = raw.Name;
@@ -77,6 +80,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (!string.IsNullOrWhiteSpace(raw.clientVersion))
                         game.Attributes.Add("Version", raw.clientVersion);
 
+                    if (!string.IsNullOrWhiteSpace(raw.GameVersion))
+                        game.Attributes.Add("Version2", raw.GameVersion);
+
+                    if (raw.MetaDataVersion.HasValue)
+                        game.Attributes.Add("MetaDataVersion", raw.MetaDataVersion);
+
                     if (!string.IsNullOrWhiteSpace(raw.WorkshopID))
                         game.Attributes.Add("Mod", raw.WorkshopID);
 
@@ -102,6 +111,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         PlayerItem player = new PlayerItem();
 
                         player.Name = dr.name;
+                        player.Attributes.Add("wanAddress", dr.wanAddress);
+                        player.Attributes.Add("Launched", dr.Launched);
+                        player.Attributes.Add("lanAddresses", JArray.FromObject(dr.lanAddresses));
+                        player.Attributes.Add("isAuth", dr.isAuth);
 
                         if (dr.Team.HasValue)
                         {

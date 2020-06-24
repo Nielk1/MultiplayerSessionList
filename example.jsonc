@@ -67,7 +67,11 @@
         "Score":0 // BZCC
       },
       "Attributes":{
-          "IsOwner":true //BZ98R
+          "IsOwner":true, //BZ98R
+          "wanAddress":"148.252.132.46:36010", //BZ98R
+          "Launched":true, //BZ98R
+          "lanAddresses":["127.0.0.1:57937","169.254.22.250:57937","169.254.96.180:57937","169.254.206.238:57937","169.254.235.175:57937","192.168.1.10:57937"], //BZ98R
+          "isAuth":true, //BZ98R
       }
     }
   ],
@@ -82,6 +86,7 @@
     "Mod":"12345", // BZ98R
     "Mods":["0"], // BZCC
     "Version":"1.2.3", // BZ98R, BZCC
+    "Version2":"1.2.3", // BZ98R (GameVersion as opposed to ClientVersion?)
     "SyncJoin":false, //BZ98R
     "TPS":20, //BZCC
     "MaxPing":720, //BZCC
