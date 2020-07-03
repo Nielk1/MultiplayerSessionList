@@ -1,12 +1,13 @@
 {
-  "Type":"listen", // Possible values: "listen","dedicated"
+  "Type":"listen", // Possible values: "Listen","Dedicated"
   "Name":"custom text",
   "Message":"custom text", // nullable, BZCC's MOTD
   
   "Address":{
     "NAT":"nrI7n", // BZCC
 	"Rich":"4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c", // BZCC (only if no password)  -connect-mp 4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c
-	"LobbyID":"B1107" // BZ98R  -connect-galaxy-lobby=B1054
+	"LobbyID":"B1107", // BZ98R  -connect-galaxy-lobby=B1054
+    "NAT_TYPE":"NONE" // BZCC, values: "NONE","FULL CONE","ADDRESS RESTRICTED","PORT RESTRICTED","SYMMETRIC","UNKNOWN","DETECTION IN PROGRESS","SUPPORTS UPNP"
   },
   
   "PlayerTypes":[
@@ -26,9 +27,10 @@
   },
   
   "Level":{
-    "LevelID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
+    "ID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
     "MapFile":"ctf1.bzn",
     "GameMode":"MPI", // BZCC, values: "DM","KOTH","CTF","Loot","DM [RESERVED]","Race","Race (Vehicle Only)","DM (Vehicle Only)","DM [UNKNOWN 123]","TEAM DM","TEAM KOTH","TEAM CTF","TEAM Loot","TEAM DM [RESERVED]","TEAM Race","TEAM Race (Vehicle Only)","TEAM DM (Vehicle Only)","TEAM DM [UNKNOWN 123]","TEAM STRAT","STRAT","MPI","STRAT [UNKNOWN 123]","MPI [Invalid]"
+    "Mod":"12345", // BZ98R
     "Attributes": {
       "TimeLimit": 4, // BZ98R, BZCC
       "KillLimit": 4, // BZ98R, BZCC
@@ -44,7 +46,7 @@
     "IsLocked":false,
     "HasPassword":true,
     "HasPassword.Spectator":true, // retroarch netplay
-    "State":"InGame" // Possible values: Unknown, PreGame, Loading, InGame, PostGame, Busy, NotResponding
+    "State":"InGame" // Possible values: Unknown, PreGame, Loading, InGame, PostGame, Paused, Away, Busy, NotResponding
   },
   "Players":[
     {
@@ -57,13 +59,13 @@
       },
       "Team":{
         "Leader":true, // BZCC we know in 2 team mode that true-teams 1 and 6 are commanders
-        "ID":2,
+        "ID":"2",
         "SubTeam":{ // this seems stupid, in Battlezone it's the player slot which is the true-team
-          "ID":6 // true team goes here in BZCC right now
+          "ID":"6" // true team goes here in BZCC right now
         },
       },
       "Hero":{
-        "ID":"0:svhraz", // forced lowercase
+        "ID":"0:svhraz", // forced lowercase, BZ98R
         "Attributes": {
           "ODF": "svhraz" //BZ98R
         }
@@ -82,24 +84,23 @@
       }
     }
   ],
-  "Team":{ // container for future team data, not needed for existing games
+  "Team":{ // container for future team data, not needed for existing games, doesn't exist yet
     "2":{
       "SubTeam":{
         "6":{}
       }
     }
   },
-  "Attributes":{ // random guff not set sorted or not important enough
-    "Mod":"12345", // BZ98R
-    "Mods":["0"], // BZCC
+  "Game":{
     "Version":"1.2.3", // BZ98R, BZCC
-    "Version2":"1.2.3", // BZ98R (GameVersion as opposed to ClientVersion?)
+    "Mods":["0"], // BZCC
+    "ModHash":"xyz" // BZCC, encoded CRC32? Base64? BZ2 holdover?
+  },
+  "Attributes":{ // random guff not set sorted or not important enough
     "SyncJoin":false, //BZ98R
     "TPS":20, //BZCC
     "MaxPing":720, //BZCC
-    "NAT":"NONE", // BZCC, values: "NONE","FULL CONE","ADDRESS RESTRICTED","PORT RESTRICTED","SYMMETRIC","UNKNOWN","DETECTION IN PROGRESS","SUPPORTS UPNP"
-    "List":"Rebellion", // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
-    "ModHash":"xyz", // BZCC, encoded CRC32? Base64? BZ2 holdover?
+    "ListServer":"Rebellion", // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
     "GameTimeMinutes":"255+" // BZCC, currently a number from 0-254 or the text "255+"
   }
 }

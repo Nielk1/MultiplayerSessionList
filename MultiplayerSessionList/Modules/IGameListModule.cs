@@ -14,9 +14,10 @@ namespace MultiplayerSessionList.Modules
         public const string TYPE_LISTEN = "Listen";
         public const string TYPE_DEDICATED = "Dedicated";
         
-
+        
         public const string STATUS_LOCKED = "IsLocked";
         public const string STATUS_PASSWORD = "HasPassword";
+        public const string STATUS_STATE = "State";
 
         public const string PLAYERTYPE_PLAYER = "Player";
         public const string PLAYERTYPE_SPECTATOR = "Spectator";

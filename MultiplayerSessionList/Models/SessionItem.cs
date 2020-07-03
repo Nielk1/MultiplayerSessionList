@@ -23,12 +23,11 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializePlayerCount() { return PlayerCount.Count > 0; }
 
 
-        //public Dictionary<string, JToken> Level { get; set; }
-        //public bool ShouldSerializeLevel() { return Level.Count > 0; }
-        public LevelData Level { get; set; }
+        public DataCache Level { get; set; }
+        public bool ShouldSerializeLevel() { return Level.Count > 0; }
 
 
-        public Dictionary<string, JToken> Status { get; set; }
+        public DataCache Status { get; set; }
         public bool ShouldSerializeStatus() { return Status.Count > 0; }
 
 
@@ -36,23 +35,28 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializePlayers() { return Players.Count > 0; }
 
 
-        public Dictionary<string, JToken> Attributes { get; set; }
+        public DataCache Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
 
-        public Dictionary<string, JToken> Address { get; set; }
+        public DataCache Address { get; set; }
         public bool ShouldSerializeAddress() { return Address.Count > 0; }
+
+
+        public DataCache Game { get; set; }
+        public bool ShouldSerializeGame() { return Game.Count > 0; }
 
 
         public SessionItem()
         {
-            //Level = new Dictionary<string, JToken>();
-            Status = new Dictionary<string, JToken>();
+            Level = new DataCache();
+            Status = new DataCache();
             PlayerTypes = new List<PlayerTypeData>();
             PlayerCount = new Dictionary<string, int?>();
             Players = new List<PlayerItem> ();
-            Attributes = new Dictionary<string, JToken>();
-            Address = new Dictionary<string, JToken>();
+            Attributes = new DataCache();
+            Address = new DataCache();
+            Game = new DataCache();
         }
     }
 
@@ -70,9 +74,10 @@ namespace MultiplayerSessionList.Models
     public class PlayerItem
     {
         public string Name { get; set; }
+        public string Type { get; set; }
 
 
-        public Dictionary<string, JToken> Stats { get; set; }
+        public DataCache Stats { get; set; }
         public bool ShouldSerializeStats() { return Stats.Count > 0; }
 
 
@@ -80,32 +85,33 @@ namespace MultiplayerSessionList.Models
         public PlayerHero Hero { get; set; }
 
 
-        public Dictionary<string, JToken> Attributes { get; set; }
+        public DataCache Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
 
-        public Dictionary<string, Dictionary<string, JToken>> IDs { get; set; }
+        public Dictionary<string, DataCache> IDs { get; set; }
+
         public bool ShouldSerializeIDs() { return IDs.Count > 0; }
 
 
         public PlayerItem()
         {
-            Stats = new Dictionary<string, JToken>();
-            Attributes = new Dictionary<string, JToken>();
-            IDs = new Dictionary<string, Dictionary<string, JToken>>();
+            Stats = new DataCache();
+            Attributes = new DataCache();
+            IDs = new Dictionary<string, DataCache>();
         }
 
         public Dictionary<string, JToken> GetIDData(string key)
         {
             if (!IDs.ContainsKey(key))
-                IDs[key] = new Dictionary<string, JToken>();
+                IDs[key] = new DataCache();
             return IDs[key];
         }
     }
 
     public class PlayerTeam
     {
-        public int? ID { get; set; }
+        public string ID { get; set; }
         public bool? Leader { get; set; }
         public PlayerTeam SubTeam { get; set; }
     }
@@ -114,41 +120,24 @@ namespace MultiplayerSessionList.Models
     {
         public string ID { get; set; }
 
-        public Dictionary<string, JToken> Attributes { get; set; }
+        public DataCache Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
         public PlayerHero()
         {
-            Attributes = new Dictionary<string, JToken>();
+            Attributes = new DataCache();
         }
     }
 
-    public class LevelData
+    public class DataCache : Dictionary<string, JToken>
     {
-        public string MapID { get; set; }
-        public string MapFile { get; set; }
-        public string GameMode { get; set; }
-
-
-        public Dictionary<string, JToken> Attributes { get; set; }
-        public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
-
-
-        public LevelData()
-        {
-            Attributes = new Dictionary<string, JToken>();
-        }
-    }
-
-    public class DataCache : Dictionary<string, JObject>
-    {
-        public void AddObject(string Path, JToken Value)
+        public void AddObjectPath(string Path, JToken Value)
         {
             string[] PathParts = Path.Split(':');
             if (!this.ContainsKey(PathParts[0]))
                 this[PathParts[0]] = new JObject();
 
-            JObject mrk = this[PathParts[0]];
+            JObject mrk = this[PathParts[0]] as JObject;
             for (int i = 1; i < PathParts.Length - 1; i++)
             {
                 if (!mrk.ContainsKey(PathParts[i]))
@@ -163,7 +152,7 @@ namespace MultiplayerSessionList.Models
             if (!this.ContainsKey(PathParts[0]))
                 return false;
 
-            JObject mrk = this[PathParts[0]];
+            JObject mrk = this[PathParts[0]] as JObject;
             for (int i = 1; i < PathParts.Length; i++)
             {
                 if (!mrk.ContainsKey(PathParts[i]))

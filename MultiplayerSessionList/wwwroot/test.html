@@ -97,6 +97,28 @@
     <script>
         var tableColSpan = 6;
 
+        function RichDataCheck(data, rich) {
+            //console.log({ data, rich });
+            var keys = Object.keys(data);
+            for (var i = 0; i < keys.length; i++) {
+                if (rich[keys[i]] != null && typeof (data[keys[i]]) == "object" && data[keys[i]] != null) {
+                    var dat = data[keys[i]];
+                    if (!Array.isArray(dat))
+                        dat = [dat];
+                    if (dat.length > 0 && typeof(dat[0]) == "object")
+                    for (var j = 0; j < dat.length; j++)
+                        RichDataCheck(dat[j], rich[keys[i]]);
+                }
+            }
+            if (data["ID"] != null && typeof (data["ID"]) == "string" && rich[data["ID"]] != null && typeof (rich[data["ID"]]) == "object") {
+                var keys = Object.keys(rich[data["ID"]]);
+                for (var i = 0; i < keys.length; i++) {
+                    data[keys[i]] = rich[data["ID"]][keys[i]];
+                }
+            }
+            //console.log('-------------');
+        }
+
         //$(document).ready(function () {
         $.ajax({ url: '/api/games' })
             .done(function (data) {
@@ -140,6 +162,9 @@
                 if (data.Sessions.length > 0) {
                     for (var i = 0; i < data.Sessions.length; i++) {
                         var session = $.extend({}, data.SessionDefault, data.Sessions[i]);
+
+                        if (data.DataCache != null)
+                            RichDataCheck(session, data.DataCache);
 
                         $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
 
@@ -284,17 +309,6 @@
                                     var cell = $('<td/>');
                                     var keys = Object.keys(session.Players[j].IDs);
                                     for (var k = 0; k < keys.length; k++) {
-                                        if (data.DataCache != null
-                                            && data.DataCache["Players"] != null
-                                            && data.DataCache["Players"]["IDs"] != null
-                                            && data.DataCache["Players"]["IDs"][keys[k]] != null
-                                            && data.DataCache["Players"]["IDs"][keys[k]][session.Players[j].IDs[keys[k]].ID] != null
-                                        ) {
-                                            var ID_KEYS = Object.keys(data.DataCache["Players"]["IDs"][keys[k]][session.Players[j].IDs[keys[k]].ID]);
-                                            for (var l = 0; l < ID_KEYS.length; l++) {
-                                                session.Players[j].IDs[keys[k]][ID_KEYS[l]] = data.DataCache["Players"]["IDs"][keys[k]][session.Players[j].IDs[keys[k]].ID][ID_KEYS[l]];
-                                            }
-                                        }
                                         var elem = $('<span/>');
                                         if (k > 0)
                                             cell.append('<br/>');

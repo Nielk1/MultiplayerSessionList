@@ -90,10 +90,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     game.PlayerCount.Add(GAMELIST_TERMS.PLAYERTYPE_PLAYER, raw.CurPlayers);
 
-                    game.Level = new LevelData();
                     if (!string.IsNullOrWhiteSpace(raw.MapFile))
-                        game.Level.MapFile = raw.MapFile + @".bzn";
-                    game.Level.MapID = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile?.ToLowerInvariant();
+                        game.Level["MapFile"] = raw.MapFile + @".bzn";
+                    game.Level["ID"] = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile?.ToLowerInvariant();
 
                     game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.Locked);
                     game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.Passworded);
@@ -122,10 +121,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
 
                     if ((raw.Mods?.Length ?? 0) > 0)
-                        game.Attributes.Add("Mods", JArray.FromObject(raw.Mods));
+                        game.Game.Add("Mods", JArray.FromObject(raw.Mods));
 
                     if (!string.IsNullOrWhiteSpace(raw.v))
-                        game.Attributes.Add("Version", raw.v);
+                        game.Game["Version"] = raw.v;
 
                     if (raw.TPS.HasValue && raw.TPS > 0)
                         game.Attributes.Add("TPS", raw.TPS);
@@ -135,49 +134,49 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
 
                     if (raw.TimeLimit.HasValue && raw.TimeLimit > 0)
-                        game.Level.Attributes.Add("TimeLimit", raw.TimeLimit);
+                        game.Level.AddObjectPath("Attributes:TimeLimit", raw.TimeLimit);
                     if (raw.KillLimit.HasValue && raw.KillLimit > 0)
-                        game.Level.Attributes.Add("KillLimit", raw.KillLimit);
+                        game.Level.AddObjectPath("Attributes:KillLimit", raw.KillLimit);
 
                     if (!string.IsNullOrWhiteSpace(raw.t))
                         switch (raw.t)
                         {
                             case "0":
-                                game.Attributes.Add("NAT", $"NONE"); /// Works with anyone
+                                game.Address.Add("NAT_TYPE", $"NONE"); /// Works with anyone
                                 break;
                             case "1":
-                                game.Attributes.Add("NAT", $"FULL CONE"); /// Accepts any datagrams to a port that has been previously used. Will accept the first datagram from the remote peer.
+                                game.Address.Add("NAT_TYPE", $"FULL CONE"); /// Accepts any datagrams to a port that has been previously used. Will accept the first datagram from the remote peer.
                                 break;
                             case "2":
-                                game.Attributes.Add("NAT", $"ADDRESS RESTRICTED"); /// Accepts datagrams to a port as long as the datagram source IP address is a system we have already sent to. Will accept the first datagram if both systems send simultaneously. Otherwise, will accept the first datagram after we have sent one datagram.
+                                game.Address.Add("NAT_TYPE", $"ADDRESS RESTRICTED"); /// Accepts datagrams to a port as long as the datagram source IP address is a system we have already sent to. Will accept the first datagram if both systems send simultaneously. Otherwise, will accept the first datagram after we have sent one datagram.
                                 break;
                             case "3":
-                                game.Attributes.Add("NAT", $"PORT RESTRICTED"); /// Same as address-restricted cone NAT, but we had to send to both the correct remote IP address and correct remote port. The same source address and port to a different destination uses the same mapping.
+                                game.Address.Add("NAT_TYPE", $"PORT RESTRICTED"); /// Same as address-restricted cone NAT, but we had to send to both the correct remote IP address and correct remote port. The same source address and port to a different destination uses the same mapping.
                                 break;
                             case "4":
-                                game.Attributes.Add("NAT", $"SYMMETRIC"); /// A different port is chosen for every remote destination. The same source address and port to a different destination uses a different mapping. Since the port will be different, the first external punchthrough attempt will fail. For this to work it requires port-prediction (MAX_PREDICTIVE_PORT_RANGE>1) and that the router chooses ports sequentially.
+                                game.Address.Add("NAT_TYPE", $"SYMMETRIC"); /// A different port is chosen for every remote destination. The same source address and port to a different destination uses a different mapping. Since the port will be different, the first external punchthrough attempt will fail. For this to work it requires port-prediction (MAX_PREDICTIVE_PORT_RANGE>1) and that the router chooses ports sequentially.
                                 break;
                             case "5":
-                                game.Attributes.Add("NAT", $"UNKNOWN"); /// Hasn't been determined. NATTypeDetectionClient does not use this, but other plugins might
+                                game.Address.Add("NAT_TYPE", $"UNKNOWN"); /// Hasn't been determined. NATTypeDetectionClient does not use this, but other plugins might
                                 break;
                             case "6":
-                                game.Attributes.Add("NAT", $"DETECTION IN PROGRESS"); /// In progress. NATTypeDetectionClient does not use this, but other plugins might
+                                game.Address.Add("NAT_TYPE", $"DETECTION IN PROGRESS"); /// In progress. NATTypeDetectionClient does not use this, but other plugins might
                                 break;
                             case "7":
-                                game.Attributes.Add("NAT", $"SUPPORTS UPNP"); /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
+                                game.Address.Add("NAT_TYPE", $"SUPPORTS UPNP"); /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
                                 break;
                             default:
-                                game.Attributes.Add("NAT", $"[" + raw.t + "]");
+                                game.Address.Add("NAT_TYPE", $"[" + raw.t + "]");
                                 break;
                         }
 
                     if (string.IsNullOrWhiteSpace(raw.proxySource))
                     {
-                        game.Attributes.Add("List", $"IonDriver");
+                        game.Attributes.Add("ListServer", $"IonDriver");
                     }
                     else
                     {
-                        game.Attributes.Add("List", raw.proxySource);
+                        game.Attributes.Add("ListServer", raw.proxySource);
                     }
 
                     bool m_TeamsOn = false;
@@ -185,7 +184,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     switch (raw.GameType)
                     {
                         case 0:
-                            game.Level.GameMode = $"All";
+                            game.Level["GameMode"] = $"All";
                             break;
                         case 1:
                             {
@@ -193,7 +192,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 int detailed = raw.GameSubType.Value / (int)GameMode.GAMEMODE_MAX; // ivar7
                                 bool RespawnSameRace = (detailed & 256) == 256;
                                 bool RespawnAnyRace = (detailed & 512) == 512;
-                                game.Level.Attributes.Add("Respawn", RespawnSameRace ? "Race" : RespawnAnyRace ? "Any" : "One");
+                                game.Level.AddObjectPath("Attributes:Respawn", RespawnSameRace ? "Race" : RespawnAnyRace ? "Any" : "One");
                                 detailed = (detailed & 0xff);
                                 switch ((GameMode)GetGameModeOutput)
                                 {
@@ -217,40 +216,40 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                                 {
                                     case 0:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM";
                                         break;
                                     case 1:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH";
                                         break;
                                     case 2:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF";
                                         break;
                                     case 3:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot";
                                         break;
                                     case 4:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]";
                                         break;
                                     case 5:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race";
                                         break;
                                     case 6:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)";
                                         break;
                                     case 7:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)";
                                         break;
                                     default:
-                                        //game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]");
-                                        game.Level.GameMode = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]";
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]");
+                                        game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]";
                                         break;
                                 }
                             }
@@ -261,39 +260,39 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 switch ((GameMode)GetGameModeOutput)
                                 {
                                     case GameMode.GAMEMODE_TEAM_STRAT:
-                                        //game.Level.GameMode = $"TEAM STRAT");
-                                        game.Level.GameMode = $"TEAM STRAT";
+                                        //game.Level["GameMode"] = $"TEAM STRAT");
+                                        game.Level["GameMode"] = $"TEAM STRAT";
                                         m_TeamsOn = true;
                                         m_OnlyOneTeam = false;
                                         break;
                                     case GameMode.GAMEMODE_STRAT:
-                                        //game.Level.GameMode = $"STRAT");
-                                        game.Level.GameMode = $"STRAT";
+                                        //game.Level["GameMode"] = $"STRAT");
+                                        game.Level["GameMode"] = $"STRAT";
                                         m_TeamsOn = false;
                                         m_OnlyOneTeam = false;
                                         break;
                                     case GameMode.GAMEMODE_MPI:
-                                        //game.Level.GameMode = $"MPI");
-                                        game.Level.GameMode = $"MPI";
+                                        //game.Level["GameMode"] = $"MPI");
+                                        game.Level["GameMode"] = $"MPI";
                                         m_TeamsOn = true;
                                         m_OnlyOneTeam = true;
                                         break;
                                     default:
-                                        //game.Level.GameMode = $"STRAT [UNKNOWN {GetGameModeOutput}]");
-                                        game.Level.GameMode = $"STRAT [UNKNOWN {GetGameModeOutput}]";
+                                        //game.Level["GameMode"] = $"STRAT [UNKNOWN {GetGameModeOutput}]");
+                                        game.Level["GameMode"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
                                         break;
                                 }
                             }
                             break;
                         case 3: // impossible, BZCC limits to 0-2
                             //game.Attributes.Add("GameMode", $"MPI [Invalid]");
-                            game.Level.GameMode = $"MPI [Invalid]";
+                            game.Level["GameMode"] = $"MPI [Invalid]";
                             break;
                     }
 
                     if (!string.IsNullOrWhiteSpace(raw.d))
                     {
-                        game.Attributes.Add("ModHash", raw.d); // base64 encoded CRC32
+                        game.Game.Add("ModHash", raw.d); // base64 encoded CRC32
                     }
 
                     foreach (var dr in raw.pl)
@@ -301,6 +300,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         PlayerItem player = new PlayerItem();
 
                         player.Name = dr.Name;
+                        player.Type = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
 
                         if ((dr.Team ?? 255) != 255) // 255 means not on a team yet? could be understood as -1
                         {
@@ -310,14 +310,14 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 if (!m_OnlyOneTeam)
                                 {
                                     if (dr.Team >= 1 && dr.Team <= 5)
-                                        player.Team.ID = 1;
+                                        player.Team.ID = "1";
                                     if (dr.Team >= 6 && dr.Team <= 10)
-                                        player.Team.ID = 2;
+                                        player.Team.ID = "2";
                                     if (dr.Team == 1 || dr.Team == 6)
                                         player.Team.Leader = true;
                                 }
                             }
-                            player.Team.SubTeam = new PlayerTeam() { ID = dr.Team.Value };
+                            player.Team.SubTeam = new PlayerTeam() { ID = dr.Team.Value.ToString() };
                             player.GetIDData("Slot").Add("ID", dr.Team);
                         }
 
@@ -346,9 +346,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                 if (!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
                                                 {
                                                     PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
-                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
-                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
+                                                    DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
+                                                    DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
+                                                    DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
                                                 }
                                             }
                                         }
@@ -369,9 +369,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                 if (!DataCache.ContainsPath($"Players:IDs:Gog:{playerID.ToString()}"))
                                                 {
                                                     GogUserData playerData = await gogInterface.Users(playerID);
-                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:UserName", playerData.username);
-                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                    DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                    DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:UserName", playerData.username);
+                                                    DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
                                                 }
                                             }
                                         }

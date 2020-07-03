@@ -14,6 +14,8 @@ namespace MultiplayerSessionList.Models
         InGame, // In-Game
         PostGame, // Post-Game or GameOver
         
+        Paused,
+        Away,
         Busy,
         NotResponding,
     }

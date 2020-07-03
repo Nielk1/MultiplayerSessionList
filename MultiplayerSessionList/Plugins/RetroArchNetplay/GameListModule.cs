@@ -52,26 +52,25 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                     game.Address["HostMethod"] = s.HostMethod.ToString();
                     game.Address["Country"] = s.Country;
 
-                    game.Level = new LevelData();
-                    game.Level.Attributes["Game"] = new JObject
+                    game.Level.AddObjectPath("Attributes:Game", new JObject
                     {
                         { "Name", s.GameName },
                         { "CRC", s.GameCRC },
-                    };
-                    game.Level.Attributes["Core"] = new JObject
+                    });
+                    game.Level.AddObjectPath("Attributes:Core", new JObject
                     {
                         { "Name", s.CoreName },
                         { "Version", s.CoreVersion },
-                    };
+                    });
                     //JArray MapID = new JArray(s.RetroArchVersion, s.GameCRC, s.GameName, s.CoreName, s.CoreVersion);
                     if (s.SubsystemName != "N/A")
                     {
-                        game.Level.Attributes["Core"]["SubsystemName"] = s.SubsystemName;
+                        game.Level.AddObjectPath("Attributes:Core:SubsystemName", s.SubsystemName);
                         //MapID.Add(s.SubsystemName);
                     }
-                    game.Level.Attributes["RetroArchVersion"] = s.RetroArchVersion;
-                    //game.Level.MapID = MapID.ToString(Formatting.None);
-                    game.Level.MapID = $"{s.GameCRC}:{s.GameName}";
+                    game.Level.AddObjectPath("Attributes:RetroArchVersion", s.RetroArchVersion);
+                    //game.Level.ID = MapID.ToString(Formatting.None);
+                    game.Level["ID"] = $"{s.GameCRC}:{s.GameName}";
 
                     game.Status[GAMELIST_TERMS.STATUS_PASSWORD] = s.HasPassword;
                     game.Status[$"{GAMELIST_TERMS.STATUS_PASSWORD}.{GAMELIST_TERMS.PLAYERTYPE_SPECTATOR}"] = s.HasSpectatePassword;
