@@ -40,6 +40,10 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
 
+        public Dictionary<string, JToken> Address { get; set; }
+        public bool ShouldSerializeAddress() { return Address.Count > 0; }
+
+
         public SessionItem()
         {
             //Level = new Dictionary<string, JToken>();
@@ -48,6 +52,7 @@ namespace MultiplayerSessionList.Models
             PlayerCount = new Dictionary<string, int?>();
             Players = new List<PlayerItem> ();
             Attributes = new Dictionary<string, JToken>();
+            Address = new Dictionary<string, JToken>();
         }
     }
 
@@ -132,6 +137,40 @@ namespace MultiplayerSessionList.Models
         public LevelData()
         {
             Attributes = new Dictionary<string, JToken>();
+        }
+    }
+
+    public class DataCache : Dictionary<string, JObject>
+    {
+        public void AddObject(string Path, JToken Value)
+        {
+            string[] PathParts = Path.Split(':');
+            if (!this.ContainsKey(PathParts[0]))
+                this[PathParts[0]] = new JObject();
+
+            JObject mrk = this[PathParts[0]];
+            for (int i = 1; i < PathParts.Length - 1; i++)
+            {
+                if (!mrk.ContainsKey(PathParts[i]))
+                    mrk[PathParts[i]] = new JObject();
+                mrk = mrk[PathParts[i]] as JObject;
+            }
+            mrk[PathParts.Last()] = Value;
+        }
+        public bool ContainsPath(string Path)
+        {
+            string[] PathParts = Path.Split(':');
+            if (!this.ContainsKey(PathParts[0]))
+                return false;
+
+            JObject mrk = this[PathParts[0]];
+            for (int i = 1; i < PathParts.Length; i++)
+            {
+                if (!mrk.ContainsKey(PathParts[i]))
+                    return false;
+                mrk = mrk[PathParts[i]] as JObject;
+            }
+            return true;
         }
     }
 }

@@ -20,19 +20,24 @@ namespace MultiplayerSessionList.Services
             this.memCache = memCache;
         }
 
-        public async Task<GogUserData> Users(ulong playerID)
+        public static ulong CleanGalaxyUserId(ulong GalaxyUserId)
         {
-            GogUserData data = memCache.Get<GogUserData>($"https://users.gog.com/users/{playerID}");
+            return GalaxyUserId & 0x00ffffffffffffff;
+        }
+
+        public async Task<GogUserData> Users(ulong GalaxyUserId)
+        {
+            GogUserData data = memCache.Get<GogUserData>($"https://users.gog.com/users/{GalaxyUserId}");
             if (data != null)
                 return data;
 
             try
             {
-                string rawJson = await httpClient.GetStringAsync($"https://users.gog.com/users/{playerID}");
+                string rawJson = await httpClient.GetStringAsync($"https://users.gog.com/users/{GalaxyUserId}");
                 data = JsonConvert.DeserializeObject<GogUserData>(rawJson);
                 if (data == null)
                     return data;
-                memCache.Set($"https://users.gog.com/users/{playerID}", data, TimeSpan.FromHours(1));
+                memCache.Set($"https://users.gog.com/users/{GalaxyUserId}", data, TimeSpan.FromHours(1));
                 return data;
             }
             catch { }

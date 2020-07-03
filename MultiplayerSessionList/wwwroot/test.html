@@ -32,6 +32,9 @@
     </header>
 
     <style>
+        .pre {
+            white-space: pre;
+        }
         .player_avatars {
             text-align: center;
         }
@@ -61,8 +64,8 @@
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Players</th>
-                    <th scope="col">Locked</th>
-                    <th scope="col">Passworded</th>
+                    <th scope="col">IsLocked</th>
+                    <th scope="col">HasPassword</th>
                     <th scope="col">State</th>
                     <th scope="col">...</th>
                 </tr>
@@ -72,8 +75,8 @@
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Players</th>
-                    <th scope="col">Locked</th>
-                    <th scope="col">Passworded</th>
+                    <th scope="col">IsLocked</th>
+                    <th scope="col">HasPassword</th>
                     <th scope="col">State</th>
                     <th scope="col">...</th>
                 </tr>
@@ -141,29 +144,31 @@
                         $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
 
                         var sessionRow = $('<tr/>');
-                        sessionRow.append($('<th scope="row"/>').text(session.Name));
+                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
                         {
                             var cell = $('<td/>');
-                            for (var k = 0; k < session.PlayerTypes.length; k++) {
-                                var elem = $('<span/>');
-                                if (k > 0)
-                                    cell.append('<br/>');
+                            if (session.PlayerTypes != null) {
+                                for (var k = 0; k < session.PlayerTypes.length; k++) {
+                                    var elem = $('<span/>');
+                                    if (k > 0)
+                                        cell.append('<br/>');
 
-                                for (var L = 0; L < session.PlayerTypes[k].Types.length; L++) {
-                                    var playerType = session.PlayerTypes[k].Types[L];
-                                    if (L > 0)
-                                        cell.append(' ');
-                                    elem.append((session.PlayerCount[playerType] + 0) + ' ' + playerType);
+                                    for (var L = 0; L < session.PlayerTypes[k].Types.length; L++) {
+                                        var playerType = session.PlayerTypes[k].Types[L];
+                                        if (L > 0)
+                                            cell.append(' ');
+                                        elem.append((session.PlayerCount[playerType] + 0) + ' ' + playerType);
+                                    }
+                                    if (session.PlayerTypes[k].Max) {
+                                        elem.append(' / ' + session.PlayerTypes[k].Max);
+                                    }
+                                    cell.append(elem);
                                 }
-                                if (session.PlayerTypes[k].Max) {
-                                    elem.append(' / ' + session.PlayerTypes[k].Max);
-                                }
-                                cell.append(elem);
                             }
                             sessionRow.append(cell);
                         }
-                        sessionRow.append($('<td/>').text(session.Status.Locked));
-                        sessionRow.append($('<td/>').text(session.Status.Passworded));
+                        sessionRow.append($('<td/>').text(session.Status.IsLocked));
+                        sessionRow.append($('<td/>').text(session.Status.HasPassword));
                         sessionRow.append($('<td/>').text(session.Status.State));
                         sessionRow.append($('<td/>').text(''));
                         $('#tblGames>tbody').append(sessionRow);
@@ -195,19 +200,20 @@
                                 var wrapper = $('<div class="col row" />');
 
                                 {
-                                    var col = $('<div class="col-md-6 col-lg-4" />');
+                                    //var col = $('<div class="col-md-6 col-lg-4" />');
+                                    var col = $('<div class="col-12" />');
                                     col.append("MapID: " + session.Level.MapID);
                                     wrapper.append(col);
                                 }
 
                                 {
-                                    var col = $('<div class="col-md-6 col-lg-4" />');
+                                    var col = $('<div class="col-12" />');
                                     col.append("MapFile: " + session.Level.MapFile);
                                     wrapper.append(col);
                                 }
 
                                 {
-                                    var col = $('<div class="col-md-6 col-lg-4" />');
+                                    var col = $('<div class="col-12" />');
                                     col.append("GameMode: " + session.Level.GameMode);
                                     wrapper.append(col);
                                 }
@@ -215,7 +221,7 @@
                                 if (session.Level.Attributes) {
                                     var keys = Object.keys(session.Level.Attributes);
                                     for (var k = 0; k < keys.length; k++) {
-                                        var col = $('<div class="col-md-6 col-lg-4" />');
+                                        var col = $('<div class="col-12" />');
 
                                         col.append("Attribute: " + keys[k] + ": ");
                                         var val = session.Level.Attributes[keys[k]];
@@ -249,7 +255,7 @@
                         }
 
                         // players
-                        {
+                        if (session.PlayerTypes != null) {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
 
                             var avatars = [];
@@ -278,6 +284,17 @@
                                     var cell = $('<td/>');
                                     var keys = Object.keys(session.Players[j].IDs);
                                     for (var k = 0; k < keys.length; k++) {
+                                        if (data.DataCache != null
+                                            && data.DataCache["Players"] != null
+                                            && data.DataCache["Players"]["IDs"] != null
+                                            && data.DataCache["Players"]["IDs"][keys[k]] != null
+                                            && data.DataCache["Players"]["IDs"][keys[k]][session.Players[j].IDs[keys[k]].ID] != null
+                                        ) {
+                                            var ID_KEYS = Object.keys(data.DataCache["Players"]["IDs"][keys[k]][session.Players[j].IDs[keys[k]].ID]);
+                                            for (var l = 0; l < ID_KEYS.length; l++) {
+                                                session.Players[j].IDs[keys[k]][ID_KEYS[l]] = data.DataCache["Players"]["IDs"][keys[k]][session.Players[j].IDs[keys[k]].ID][ID_KEYS[l]];
+                                            }
+                                        }
                                         var elem = $('<span/>');
                                         if (k > 0)
                                             cell.append('<br/>');

@@ -24,8 +24,8 @@ namespace MultiplayerSessionList.Controllers
             if (!_gameListModuleManager.GameListPlugins.ContainsKey(game))
                 return NotFound();
 
-            var (sessionItem, sessionItems, jToken) = await _gameListModuleManager.GameListPlugins[game].GetGameList();
-            return Ok(new { SessionDefault = sessionItem, Sessions = sessionItems, Raw = raw ? jToken : null });
+            var (sessionItem, dataCache, sessionItems, jToken) = await _gameListModuleManager.GameListPlugins[game].GetGameList();
+            return Ok(new { SessionDefault = sessionItem, DataCache = dataCache, Sessions = sessionItems, Raw = raw ? jToken : null });
         }
 
         [Route("api/games")]

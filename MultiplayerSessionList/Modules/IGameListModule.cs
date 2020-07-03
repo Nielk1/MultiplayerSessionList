@@ -9,12 +9,25 @@ using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Modules
 {
+    public static class GAMELIST_TERMS
+    {
+        public const string TYPE_LISTEN = "Listen";
+        public const string TYPE_DEDICATED = "Dedicated";
+        
+
+        public const string STATUS_LOCKED = "IsLocked";
+        public const string STATUS_PASSWORD = "HasPassword";
+
+        public const string PLAYERTYPE_PLAYER = "Player";
+        public const string PLAYERTYPE_SPECTATOR = "Spectator";
+    }
+
     public interface IGameListModule
     {
         string GameID { get; }
         string Title { get; }
 
-        Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList();
+        Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList();
 
         /// <summary>
         /// Change to alter QueryString values.

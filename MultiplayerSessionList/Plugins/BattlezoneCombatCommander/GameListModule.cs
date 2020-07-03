@@ -52,7 +52,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             this.steamInterface = steamInterface;
         }
 
-        public async Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
         {
             using (var http = new HttpClient())
             {
@@ -61,8 +61,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                 SessionItem DefaultSession = new SessionItem()
                 {
-                    Type = "listen",
+                    Type = GAMELIST_TERMS.TYPE_LISTEN,
                 };
+
+                DataCache DataCache = new DataCache();
 
                 List<SessionItem> Sessions = new List<SessionItem>();
 
@@ -70,25 +72,31 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 {
                     SessionItem game = new SessionItem();
 
+                    game.Address["NAT"] = raw.d;
+                    if (!raw.Passworded)
+                    {
+                        game.Address["Rich"] = string.Join(null, $"N,{raw.Name.Length},{raw.Name},{raw.mm.Length},{raw.mm},{raw.g},0,".Select(dr => $"{((int)dr):x2}"));
+                    }
+
                     game.Name = raw.Name;
                     if (!string.IsNullOrWhiteSpace(raw.MOTD))
                         game.Message = raw.MOTD;
 
                     game.PlayerTypes.Add(new PlayerTypeData()
                     {
-                        Types = new List<string>() { "Player" },
+                        Types = new List<string>() { GAMELIST_TERMS.PLAYERTYPE_PLAYER },
                         Max = raw.MaxPlayers
                     });
 
-                    game.PlayerCount.Add("Player", raw.CurPlayers);
+                    game.PlayerCount.Add(GAMELIST_TERMS.PLAYERTYPE_PLAYER, raw.CurPlayers);
 
                     game.Level = new LevelData();
                     if (!string.IsNullOrWhiteSpace(raw.MapFile))
                         game.Level.MapFile = raw.MapFile + @".bzn";
                     game.Level.MapID = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile?.ToLowerInvariant();
 
-                    game.Status.Add("Locked", raw.Locked);
-                    game.Status.Add("Passworded", raw.Passworded);
+                    game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.Locked);
+                    game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.Passworded);
 
 
                     if (raw.ServerInfoMode.HasValue)
@@ -333,12 +341,15 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                             ulong playerID = 0;
                                             if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
                                             {
-                                                player.GetIDData("Steam").Add("ID", playerID);
+                                                player.GetIDData("Steam").Add("ID", playerID.ToString());
 
-                                                PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                player.GetIDData("Steam").Add("AvatarUrl", playerData.AvatarFullUrl);
-                                                player.GetIDData("Steam").Add("Nickname", playerData.Nickname);
-                                                player.GetIDData("Steam").Add("ProfileUrl", playerData.ProfileUrl);
+                                                if (!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
+                                                {
+                                                    PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
+                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
+                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
+                                                }
                                             }
                                         }
                                         catch { }
@@ -352,14 +363,16 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                             ulong playerID = 0;
                                             if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
                                             {
-                                                //player.GetIDData("Gog").Add("LargeID", playerID);
-                                                playerID &= 0x00ffffffffffffff;
-                                                player.GetIDData("Gog").Add("ID", playerID);
+                                                playerID = GogInterface.CleanGalaxyUserId(playerID);
+                                                player.GetIDData("Gog").Add("ID", playerID.ToString());
 
-                                                GogUserData playerData = await gogInterface.Users(playerID);
-                                                player.GetIDData("Gog").Add("AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                player.GetIDData("Gog").Add("UserName", playerData.username);
-                                                player.GetIDData("Gog").Add("ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                if (!DataCache.ContainsPath($"Players:IDs:Gog:{playerID.ToString()}"))
+                                                {
+                                                    GogUserData playerData = await gogInterface.Users(playerID);
+                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:UserName", playerData.username);
+                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                }
                                             }
                                         }
                                         catch { }
@@ -386,7 +399,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     Sessions.Add(game);
                 }
 
-                return (DefaultSession, Sessions, JObject.Parse(res));
+                return (DefaultSession, DataCache, Sessions, JObject.Parse(res));
             }
         }
     }

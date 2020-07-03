@@ -30,7 +30,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.steamInterface = steamInterface;
         }
 
-        public async Task<(SessionItem, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
         {
             using (var http = new HttpClient())
             {
@@ -39,8 +39,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                 SessionItem DefaultSession = new SessionItem()
                 {
-                    Type = "listen",
+                    Type = GAMELIST_TERMS.TYPE_LISTEN,
                 };
+
+                DataCache DataCache = new DataCache();
 
                 List<SessionItem> Sessions = new List<SessionItem>();
 
@@ -54,24 +56,25 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                     SessionItem game = new SessionItem();
 
+                    game.Address["LobbyID"] = $"B{raw.id}";
                     game.Name = raw.Name;
                     //if (!string.IsNullOrWhiteSpace(raw.MOTD))
                     //    game.Message = raw.MOTD;
 
                     game.PlayerTypes.Add(new PlayerTypeData()
                     {
-                        Types = new List<string>() { "Player" },
+                        Types = new List<string>() { GAMELIST_TERMS.PLAYERTYPE_PLAYER },
                         Max = raw.PlayerLimit
                     });
 
-                    game.PlayerCount.Add("Player", raw.userCount);
+                    game.PlayerCount.Add(GAMELIST_TERMS.PLAYERTYPE_PLAYER, raw.userCount);
 
                     game.Level = new LevelData();
                     game.Level.MapFile = raw.MapFile;
                     game.Level.MapID = (raw.WorkshopID ?? @"0") + @":" + System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
 
-                    game.Status.Add("Locked", raw.isLocked);
-                    game.Status.Add("Passworded", raw.IsPassworded);
+                    game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.isLocked);
+                    game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.IsPassworded);
                     game.Status.Add("State", Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame));
 
                     if (raw.SyncJoin.HasValue)
@@ -143,12 +146,15 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                             ulong playerID = 0;
                                             if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                             {
-                                                player.GetIDData("Steam").Add("ID", playerID);
+                                                player.GetIDData("Steam").Add("ID", playerID.ToString());
 
-                                                PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                player.GetIDData("Steam").Add("AvatarUrl", playerData.AvatarFullUrl);
-                                                player.GetIDData("Steam").Add("Nickname", playerData.Nickname);
-                                                player.GetIDData("Steam").Add("ProfileUrl", playerData.ProfileUrl);
+                                                if(!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
+                                                {
+                                                    PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
+                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
+                                                    DataCache.AddObject($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
+                                                }
                                             }
                                         }
                                         catch { }
@@ -162,14 +168,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                             ulong playerID = 0;
                                             if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                             {
-                                                //player.GetIDData("Gog").Add("LargeID", playerID);
-                                                playerID &= 0x00ffffffffffffff;
-                                                player.GetIDData("Gog").Add("ID", playerID);
+                                                playerID = GogInterface.CleanGalaxyUserId(playerID);
+                                                player.GetIDData("Gog").Add("ID", playerID.ToString());
 
-                                                GogUserData playerData = await gogInterface.Users(playerID);
-                                                player.GetIDData("Gog").Add("AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                player.GetIDData("Gog").Add("UserName", playerData.username);
-                                                player.GetIDData("Gog").Add("ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                if (!DataCache.ContainsPath($"Players:IDs:Gog:{playerID.ToString()}"))
+                                                {
+                                                    GogUserData playerData = await gogInterface.Users(playerID);
+                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:UserName", playerData.username);
+                                                    DataCache.AddObject($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                }
                                             }
                                         }
                                         catch { }
@@ -184,7 +192,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     Sessions.Add(game);
                 }
 
-                return (DefaultSession, Sessions, JObject.Parse(res));
+                return (DefaultSession, DataCache, Sessions, JObject.Parse(res));
             }
         }
     }

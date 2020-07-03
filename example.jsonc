@@ -3,6 +3,12 @@
   "Name":"custom text",
   "Message":"custom text", // nullable, BZCC's MOTD
   
+  "Address":{
+    "NAT":"nrI7n", // BZCC
+	"Rich":"4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c", // BZCC (only if no password)  -connect-mp 4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c
+	"LobbyID":"B1107" // BZ98R  -connect-galaxy-lobby=B1054
+  },
+  
   "PlayerTypes":[
     {
       "Types":["Player","Spectator"], // could implement spectators from BZ98R/BZCC mods here
@@ -35,8 +41,9 @@
     }
   },
   "Status":{
-    "Locked":false,
-    "Passworded":true,
+    "IsLocked":false,
+    "HasPassword":true,
+    "HasPassword.Spectator":true, // retroarch netplay
     "State":"InGame" // Possible values: Unknown, PreGame, Loading, InGame, PostGame, Busy, NotResponding
   },
   "Players":[
