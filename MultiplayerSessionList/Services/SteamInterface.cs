@@ -46,7 +46,6 @@ namespace MultiplayerSessionList.Services
             {
                 ISteamWebResponse<PlayerSummaryModel> wrappedData = await steamInterface.GetPlayerSummaryAsync(playerID);
                 data = wrappedData.Data;
-                
                 if (data == null)
                     return data;
                 memCache.Set($"SteamInterface.GetPlayerSummaryAsync({playerID})", data, TimeSpan.FromHours(1));
