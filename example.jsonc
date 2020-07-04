@@ -96,11 +96,16 @@
     "Mods":["0"], // BZCC
     "ModHash":"xyz" // BZCC, encoded CRC32? Base64? BZ2 holdover?
   },
+  "Time": {
+    "Seconds": 660, // BZCC, RetroArch, time in state in seconds
+    "Resolution": 60, // BZCC, time resolution possible, 60 means minute resolution
+    "Max": false, // BZCC, timer is at max possible value
+    "Context": "InGame" // BZCC, state the timer is in, as for some games the timer resets with a state change, can be null
+  },
   "Attributes":{ // random guff not set sorted or not important enough
     "SyncJoin":false, //BZ98R
     "TPS":20, //BZCC
     "MaxPing":720, //BZCC
-    "ListServer":"Rebellion", // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
-    "GameTimeMinutes":"255+" // BZCC, currently a number from 0-254 or the text "255+"
+    "ListServer":"Rebellion" // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
   }
 }

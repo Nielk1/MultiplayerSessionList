@@ -97,27 +97,29 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.Locked);
                     game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.Passworded);
 
-
+                    string ServerState = null;
                     if (raw.ServerInfoMode.HasValue)
                     {
                         switch (raw.ServerInfoMode)
                         {
                             case 0: // ServerInfoMode_Unknown
-                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.Unknown));
+                                ServerState =  Enum.GetName(typeof(ESessionState), ESessionState.Unknown);
                                 break;
                             case 1: // ServerInfoMode_OpenWaiting
                             case 2: // ServerInfoMode_ClosedWaiting (full)
-                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.PreGame));
+                                ServerState =  Enum.GetName(typeof(ESessionState), ESessionState.PreGame);
                                 break;
                             case 3: // ServerInfoMode_OpenPlaying
                             case 4: // ServerInfoMode_ClosedPlaying (full)
-                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.InGame));
+                                ServerState =  Enum.GetName(typeof(ESessionState), ESessionState.InGame);
                                 break;
                             case 5: // ServerInfoMode_Exiting
-                                game.Status.Add("State", Enum.GetName(typeof(ESessionState), ESessionState.PostGame));
+                                ServerState =  Enum.GetName(typeof(ESessionState), ESessionState.PostGame);
                                 break;
                         }
                     }
+                    if (!string.IsNullOrWhiteSpace(ServerState))
+                        game.Status.Add("State", ServerState);
 
 
                     if ((raw.Mods?.Length ?? 0) > 0)
@@ -386,14 +388,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     if (raw.GameTimeMinutes.HasValue)
                     {
-                        if (raw.GameTimeMinutes.Value == 255) // 255 appears to mean it maxed out?  Does for currently playing.
-                        {
-                            game.Attributes.Add("GameTimeMinutes", "255+");
-                        }
-                        else
-                        {
-                            game.Attributes.Add("GameTimeMinutes", raw.GameTimeMinutes);
-                        }
+                        game.Time.AddObjectPath("Seconds", raw.GameTimeMinutes * 60);
+                        game.Time.AddObjectPath("Resolution", 60);
+                        game.Time.AddObjectPath("Max", raw.GameTimeMinutes.Value == 255); // 255 appears to mean it maxed out?  Does for currently playing.
+                        if (!string.IsNullOrWhiteSpace(ServerState))
+                            game.Time.AddObjectPath("Context", ServerState);
                     }
 
                     Sessions.Add(game);

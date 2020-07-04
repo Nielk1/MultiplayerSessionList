@@ -105,15 +105,17 @@
                     var dat = data[keys[i]];
                     if (!Array.isArray(dat))
                         dat = [dat];
-                    if (dat.length > 0 && typeof(dat[0]) == "object")
-                    for (var j = 0; j < dat.length; j++)
-                        RichDataCheck(dat[j], rich[keys[i]]);
+                    if (dat.length > 0 && typeof (dat[0]) == "object")
+                        for (var j = 0; j < dat.length; j++)
+                            RichDataCheck(dat[j], rich[keys[i]]);
                 }
             }
             if (data["ID"] != null && typeof (data["ID"]) == "string" && rich[data["ID"]] != null && typeof (rich[data["ID"]]) == "object") {
                 var keys = Object.keys(rich[data["ID"]]);
                 for (var i = 0; i < keys.length; i++) {
-                    data[keys[i]] = rich[data["ID"]][keys[i]];
+                    if (data[keys[i]] == null) {
+                        data[keys[i]] = rich[data["ID"]][keys[i]];
+                    }
                 }
             }
             //console.log('-------------');
@@ -141,10 +143,12 @@
             e.preventDefault();
             $('#dropdownMenuContainer>.dropdown-item').removeClass('active');
             var item = $(e.target);
-            item.addClass('active')
-            $('#dropdownMenuLink').text(item.text());
-            $('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
-            $('#btnRefresh').trigger('click');
+            if (item.hasClass('dropdown-item')) {
+                item.addClass('active')
+                $('#dropdownMenuLink').text(item.text());
+                $('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
+                $('#btnRefresh').trigger('click');
+            }
         });
 
         var GetGamesAjax = null;
@@ -227,20 +231,24 @@
                                 {
                                     //var col = $('<div class="col-md-6 col-lg-4" />');
                                     var col = $('<div class="col-12" />');
-                                    col.append("MapID: " + session.Level.MapID);
+                                    col.append("ID: " + session.Level.ID);
                                     wrapper.append(col);
                                 }
 
                                 {
-                                    var col = $('<div class="col-12" />');
-                                    col.append("MapFile: " + session.Level.MapFile);
-                                    wrapper.append(col);
-                                }
+                                    var keys = Object.keys(session.Level);
+                                    for (var k = 0; k < keys.length; k++) {
+                                        if (keys[k] == "ID") continue;
+                                        if (keys[k] == "Attributes") continue;
 
-                                {
-                                    var col = $('<div class="col-12" />');
-                                    col.append("GameMode: " + session.Level.GameMode);
-                                    wrapper.append(col);
+                                        var col = $('<div class="col-12" />');
+
+                                        col.append(keys[k] + ": ");
+                                        var val = session.Level[keys[k]];
+                                        col.append(JSON.stringify(val));
+
+                                        wrapper.append(col);
+                                    }
                                 }
 
                                 if (session.Level.Attributes) {
@@ -250,11 +258,6 @@
 
                                         col.append("Attribute: " + keys[k] + ": ");
                                         var val = session.Level.Attributes[keys[k]];
-                                        //if (val != null) {
-                                        //    col.append(val.toString());
-                                        //} else {
-                                        //    col.append("null");
-                                        //}
                                         col.append(JSON.stringify(val));
 
                                         wrapper.append(col);
@@ -301,10 +304,14 @@
                             playerTable.append(playerTableHeader)
                             playerTable.append(playerTableBody)
 
-                            var ColumnNames = ["Name", "ID"];
+                            var ColumnNames = ["Name", "ID", "Hero"];
                             for (var j = 0; j < session.Players.length; j++) {
                                 var playerRow = $('<tr/>');
+
+                                // name
                                 playerRow.append($('<th/>').text(session.Players[j].Name));
+
+                                // ids
                                 {
                                     var cell = $('<td/>');
                                     var keys = Object.keys(session.Players[j].IDs);
@@ -349,6 +356,16 @@
                                     }
                                     playerRow.append(cell);
                                 }
+
+                                // hero
+                                {
+                                    var cell = $('<td/>');
+                                    if (session.Players[j].Hero != null) {
+                                        cell.text(session.Players[j].Hero.ID);
+                                    }
+                                    playerRow.append(cell);
+                                }
+
                                 playerTableBody.append(playerRow);
                             }
                             var playerHeaderRow = $('<tr/>');

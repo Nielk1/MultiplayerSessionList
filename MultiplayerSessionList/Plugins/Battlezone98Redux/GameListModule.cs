@@ -113,9 +113,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         }
 
                         //player.Attributes.Add("Vehicle", dr.Vehicle);
-                        player.Hero = new PlayerHero();
-                        player.Hero.ID = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
-                        player.Hero.Attributes["ODF"] = dr.Vehicle;
+                        if (dr.Vehicle != null)
+                        {
+                            player.Hero = new PlayerHero();
+                            player.Hero.ID = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
+                            player.Hero.Attributes["ODF"] = dr.Vehicle;
+                        }
 
                         if (!string.IsNullOrWhiteSpace(dr.id))
                         {

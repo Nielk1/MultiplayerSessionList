@@ -47,6 +47,10 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializeGame() { return Game.Count > 0; }
 
 
+        public DataCache Time { get; set; }
+        public bool ShouldSerializeTime() { return Time.Count > 0; }
+
+
         public SessionItem()
         {
             Level = new DataCache();
@@ -57,6 +61,7 @@ namespace MultiplayerSessionList.Models
             Attributes = new DataCache();
             Address = new DataCache();
             Game = new DataCache();
+            Time = new DataCache();
         }
     }
 
@@ -134,6 +139,13 @@ namespace MultiplayerSessionList.Models
         public void AddObjectPath(string Path, JToken Value)
         {
             string[] PathParts = Path.Split(':');
+
+            if (PathParts.Length == 1)
+            {
+                this[PathParts[0]] = Value;
+                return;
+            }
+
             if (!this.ContainsKey(PathParts[0]))
                 this[PathParts[0]] = new JObject();
 
