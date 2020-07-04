@@ -143,7 +143,7 @@
                 $('#tblGames>tbody').empty();
                 if (data.Sessions.length > 0) {
                     for (var i = 0; i < data.Sessions.length; i++) {
-                        var session = $.extend({}, data.SessionDefault, data.Sessions[i]);
+                        var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
 
                         if (data.DataCache != null)
                             RichDataCheck(session, data.DataCache);

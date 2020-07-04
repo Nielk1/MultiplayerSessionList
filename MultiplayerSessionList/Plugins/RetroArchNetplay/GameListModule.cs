@@ -24,6 +24,15 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
         public GameListModule(IConfiguration configuration)
         {
             queryUrl = configuration["retroarch:netplay"];
+
+            //IConfigurationSection myArraySection = configuration.GetSection("MyArray");
+            //var itemArray = myArraySection.AsEnumerable();
+
+            //"Clients": [ {..}, {..} ]
+            //configuration.GetSection("Clients").GetChildren();
+            
+            //"Clients": [ "", "", "" ]
+            //configuration.GetSection("Clients").GetChildren().ToArray().Select(c => c.Value).ToArray();
         }
 
         public async Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
