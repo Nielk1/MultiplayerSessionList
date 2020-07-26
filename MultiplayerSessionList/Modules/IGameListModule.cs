@@ -14,6 +14,7 @@ namespace MultiplayerSessionList.Modules
         public const string TYPE_LISTEN = "Listen";
         public const string TYPE_DEDICATED = "Dedicated";
         
+        public const string ATTRIBUTE_LISTSERVER = "ListServer";
         
         public const string STATUS_LOCKED = "IsLocked";
         public const string STATUS_PASSWORD = "HasPassword";
@@ -28,7 +29,7 @@ namespace MultiplayerSessionList.Modules
         string GameID { get; }
         string Title { get; }
 
-        Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList();
+        Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList();
 
         /// <summary>
         /// Change to alter QueryString values.

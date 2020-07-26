@@ -31,17 +31,21 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.steamInterface = steamInterface;
         }
 
-        public async Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
         {
             using (var http = new HttpClient())
             {
-                var res = await http.GetStringAsync(queryUrl).ConfigureAwait(false);
+                var res_raw = await http.GetAsync(queryUrl).ConfigureAwait(false);
+                var res = await res_raw.Content.ReadAsStringAsync();
                 var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
 
-                SessionItem DefaultSession = new SessionItem()
-                {
-                    Type = GAMELIST_TERMS.TYPE_LISTEN,
-                };
+                SessionItem DefaultSession = new SessionItem();
+                DefaultSession.Type = GAMELIST_TERMS.TYPE_LISTEN;
+                DefaultSession.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, $"Rebellion");
+
+                DataCache Metadata = new DataCache();
+                if (res_raw.Content.Headers.LastModified.HasValue)
+                    Metadata.AddObjectPath($"{GAMELIST_TERMS.ATTRIBUTE_LISTSERVER}:Rebellion:Timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime);
 
                 DataCache DataCache = new DataCache();
 
@@ -192,7 +196,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     Sessions.Add(game);
                 }
 
-                return (DefaultSession, DataCache, Sessions, JObject.Parse(res));
+                return (Metadata, DefaultSession, DataCache, Sessions, JObject.Parse(res));
             }
         }
     }

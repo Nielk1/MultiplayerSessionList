@@ -53,17 +53,15 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             this.steamInterface = steamInterface;
         }
 
-        public async Task<(SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
         {
             using (var http = new HttpClient())
             {
                 var res = await http.GetStringAsync(queryUrl).ConfigureAwait(false);
                 var gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(res);
 
-                SessionItem DefaultSession = new SessionItem()
-                {
-                    Type = GAMELIST_TERMS.TYPE_LISTEN,
-                };
+                SessionItem DefaultSession = new SessionItem();
+                DefaultSession.Type = GAMELIST_TERMS.TYPE_LISTEN;
 
                 DataCache DataCache = new DataCache();
 
@@ -175,11 +173,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     if (string.IsNullOrWhiteSpace(raw.proxySource))
                     {
-                        game.Attributes.Add("ListServer", $"IonDriver");
+                        game.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, $"IonDriver");
                     }
                     else
                     {
-                        game.Attributes.Add("ListServer", raw.proxySource);
+                        game.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, raw.proxySource);
                     }
 
                     bool m_TeamsOn = false;
@@ -399,7 +397,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     Sessions.Add(game);
                 }
 
-                return (DefaultSession, DataCache, Sessions, JObject.Parse(res));
+                return (null, DefaultSession, DataCache, Sessions, JObject.Parse(res));
             }
         }
     }
