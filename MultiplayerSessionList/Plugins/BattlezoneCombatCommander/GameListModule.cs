@@ -17,7 +17,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
     public class GameListModule : IGameListModule
     {
         public string GameID => "rebellion:battlezone_combat_commander";
-        public string Title => "Battlezone Combat Commander";
+        public string Title => "Battlezone: Combat Commander";
 
 
 
