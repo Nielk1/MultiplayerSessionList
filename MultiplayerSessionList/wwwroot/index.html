@@ -1,0 +1,468 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Page - MultiplayerSessionList</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="/lib/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/icomoon.css" />
+</head>
+<body>
+    <style>
+        .pre {
+            white-space: pre;
+        }
+        .player_avatars {
+            text-align: center;
+        }
+        .player_avatars a img {
+            height: 100px;
+        }
+    </style>
+
+    <div class="container pt-2">
+        <div class="dropdown float-left">
+            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Game
+            </a>
+
+            <div id="dropdownMenuContainer" class="dropdown-menu" aria-labelledby="dropdownMenuLink"></div>
+        </div>
+        <button id="btnRefresh" disabled="disabled" type="button" class="btn btn-outline-primary float-right">Refresh</button>
+
+        <div class="text-center">
+            <h1 class="display-5">Game List Test</h1>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <table id="tblGames" class="table table-dark">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Players</th>
+                    <th scope="col">IsLocked</th>
+                    <th scope="col">HasPassword</th>
+                    <th scope="col">State</th>
+                    <th scope="col">...</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Players</th>
+                    <th scope="col">IsLocked</th>
+                    <th scope="col">HasPassword</th>
+                    <th scope="col">State</th>
+                    <th scope="col">...</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2020 - MultiplayerSessionList
+        </div>
+    </footer>
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        var tableColSpan = 6;
+
+        function RichDataCheck(data, rich) {
+            //console.log({ data, rich });
+            var keys = Object.keys(data);
+            for (var i = 0; i < keys.length; i++) {
+                if (rich[keys[i]] != null && typeof (data[keys[i]]) == "object" && data[keys[i]] != null) {
+                    var dat = data[keys[i]];
+                    if (!Array.isArray(dat))
+                        dat = [dat];
+                    if (dat.length > 0 && typeof (dat[0]) == "object")
+                        for (var j = 0; j < dat.length; j++)
+                            RichDataCheck(dat[j], rich[keys[i]]);
+                }
+            }
+            if (data["ID"] != null && typeof (data["ID"]) == "string" && rich[data["ID"]] != null && typeof (rich[data["ID"]]) == "object") {
+                var keys = Object.keys(rich[data["ID"]]);
+                for (var i = 0; i < keys.length; i++) {
+                    if (data[keys[i]] == null) {
+                        data[keys[i]] = rich[data["ID"]][keys[i]];
+                    }
+                }
+            }
+            //console.log('-------------');
+        }
+
+        //$(document).ready(function () {
+        $.ajax({ url: '/api/games' })
+            .done(function (data) {
+                $('#dropdownMenuContainer').empty();
+                for (var i = 0; i < data.length; i++) {
+                    var dat = data[i];
+                    //if (i == 0) {
+                    //    $('#dropdownMenuLink').text(dat.Name);
+                    //    $('#dropdownMenuContainer').append('<a class="dropdown-item active" href="#" data-value="' + dat.Key + '">' + dat.Name + '</a>');
+                    //} else {
+                    var sessionRow = $('<a class="dropdown-item" href="#"/>');
+                    sessionRow.text(dat.Name);
+                    sessionRow.data('value', dat.Key)
+                    $('#dropdownMenuContainer').append(sessionRow);
+                    //}
+                }
+            });
+
+        $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
+            e.preventDefault();
+            $('#dropdownMenuContainer>.dropdown-item').removeClass('active');
+            var item = $(e.target);
+            if (item.hasClass('dropdown-item')) {
+                item.addClass('active')
+                $('#dropdownMenuLink').text(item.text());
+                $('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
+                $('#btnRefresh').trigger('click');
+            }
+        });
+
+        var GetGamesAjax = null;
+        $('#btnRefresh').click(function (e) {
+            e.preventDefault();
+            var key = $('#btnRefresh').data('key');
+
+            $('#tblGames>tbody').empty();
+            $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-refresh fa-spin"></i> Loading <i class="fa fa-refresh fa-spin"></i></td></tr>');
+            if (GetGamesAjax != null) {
+                GetGamesAjax.abort();
+            }
+            GetGamesAjax = $.ajax({ url: 'api/sessions?game=' + key }).done(function (data) {
+                $('#tblGames>tbody').empty();
+                if (data.Sessions.length > 0) {
+                    for (var i = 0; i < data.Sessions.length; i++) {
+                        var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
+
+                        if (data.DataCache != null)
+                            RichDataCheck(session, data.DataCache);
+
+                        $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
+
+                        var sessionRow = $('<tr/>');
+                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
+                        {
+                            var cell = $('<td/>');
+                            if (session.PlayerTypes != null) {
+                                for (var k = 0; k < session.PlayerTypes.length; k++) {
+                                    var elem = $('<span/>');
+                                    if (k > 0)
+                                        cell.append('<br/>');
+
+                                    for (var L = 0; L < session.PlayerTypes[k].Types.length; L++) {
+                                        var playerType = session.PlayerTypes[k].Types[L];
+                                        if (L > 0)
+                                            cell.append(' ');
+                                        elem.append((session.PlayerCount[playerType] + 0) + ' ' + playerType);
+                                    }
+                                    if (session.PlayerTypes[k].Max) {
+                                        elem.append(' / ' + session.PlayerTypes[k].Max);
+                                    }
+                                    cell.append(elem);
+                                }
+                            }
+                            sessionRow.append(cell);
+                        }
+                        sessionRow.append($('<td/>').text(session.Status.IsLocked));
+                        sessionRow.append($('<td/>').text(session.Status.HasPassword));
+                        sessionRow.append($('<td/>').text(session.Status.State));
+                        sessionRow.append($('<td/>').text(''));
+                        $('#tblGames>tbody').append(sessionRow);
+
+                        // message
+                        if (session.Message) {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Message</td></tr>');
+
+                            var messagePanel = $('<div class="container-fluid bg-white text-dark text-center">').append(session.Message);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(messagePanel)));
+                        }
+
+                        // level
+                        {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Level</td></tr>');
+
+                            //var levelRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
+                            var levelRow = $('<div class="row"/>');
+
+                            {
+                                var col = $('<div class="col-xs-4" />');
+                                var card = $('<div class="card" />');
+                                var img = $('<img src="https://discord.battlezone.report/resources/logos/nomap.png" class="card-img" />').attr('alt', session.Level.MapFile);
+                                card.append(img);
+                                col.append(card);
+                                levelRow.append(col);
+                            }
+                            {
+                                var wrapper = $('<div class="col row" />');
+
+                                {
+                                    //var col = $('<div class="col-md-6 col-lg-4" />');
+                                    var col = $('<div class="col-12" />');
+                                    col.append("ID: " + session.Level.ID);
+                                    wrapper.append(col);
+                                }
+
+                                {
+                                    var keys = Object.keys(session.Level);
+                                    for (var k = 0; k < keys.length; k++) {
+                                        if (keys[k] == "ID") continue; // omit ID as we printed it above
+                                        if (keys[k] == "Attributes") continue; // omit attributes as we print them below
+
+                                        var col = $('<div class="col-12" />');
+
+                                        col.append(keys[k] + ": ");
+                                        var val = session.Level[keys[k]];
+                                        col.append(JSON.stringify(val));
+
+                                        wrapper.append(col);
+                                    }
+                                }
+
+                                if (session.Level.Attributes) {
+                                    var keys = Object.keys(session.Level.Attributes);
+                                    for (var k = 0; k < keys.length; k++) {
+                                        var col = $('<div class="col-12" />');
+
+                                        col.append("Attribute: " + keys[k] + ": ");
+                                        var val = session.Level.Attributes[keys[k]];
+                                        col.append(JSON.stringify(val));
+
+                                        wrapper.append(col);
+                                    }
+                                }
+
+                                levelRow.append(wrapper);
+                            }
+
+
+                            /*<div class="col mb-4">
+                              <div class="card">
+                                <img src="..." class="card-img-top" alt="...">
+                                <div class="card-body">
+                                  <h5 class="card-title">Card title</h5>
+                                  <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                                </div>
+                              </div>
+                            </div>*/
+
+                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                        }
+
+                        // players
+                        if (session.PlayerTypes != null) {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
+
+                            var avatars = [];
+
+                            var playerTable = $('<table/>');
+                            //playerTable.addClass('table-dark');
+                            //playerTable.addClass('small');
+                            playerTable.addClass('table-sm');
+                            playerTable.addClass('table-light');
+                            playerTable.addClass('text-dark');
+                            //playerTable.addClass('border-left');
+                            //playerTable.addClass('border-right');
+                            //playerTable.addClass('border-dark');
+                            playerTable.css('width', '100%');
+                            //playerTable.css('border-width', '1em !important');
+                            var playerTableHeader = $('<thead/>');
+                            var playerTableBody = $('<tbody/>');
+                            playerTable.append(playerTableHeader)
+                            playerTable.append(playerTableBody)
+
+                            var ColumnNames = ["Name", "ID", "Hero"];
+                            for (var j = 0; j < session.Players.length; j++) {
+                                var playerRow = $('<tr/>');
+
+                                // name
+                                playerRow.append($('<th/>').text(session.Players[j].Name));
+
+                                // ids
+                                {
+                                    var cell = $('<td/>');
+                                    var keys = Object.keys(session.Players[j].IDs);
+                                    for (var k = 0; k < keys.length; k++) {
+                                        var elem = $('<span/>');
+                                        if (k > 0)
+                                            cell.append('<br/>');
+                                        switch (keys[k]) {
+                                            case "Slot":
+                                                elem.append('<i class="icon icon-hash" aria-hidden="true"></i> ');
+                                                elem.append(session.Players[j].IDs[keys[k]].ID);
+                                                break;
+                                            case "BZRNet":
+                                                elem.append('<i class="fa fa-gamepad" aria-hidden="true"></i> ');
+                                                elem.append(session.Players[j].IDs[keys[k]].ID);
+                                                break;
+                                            case "Steam":
+                                                elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
+                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
+                                                break;
+                                            case "Gog":
+                                                elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
+                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
+                                                break;
+                                            default:
+                                                elem.append(keys[k] + ": ");
+                                                if (session.Players[j].IDs[keys[k]].ProfileUrl) {
+                                                    if (session.Players[j].IDs[keys[k]].UserName) {
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
+                                                    } else {
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].ID + '</a>');
+                                                    }
+                                                } else {
+                                                    elem.append(session.Players[j].IDs[keys[k]].ID);
+                                                }
+                                                break;
+                                        }
+                                        if (session.Players[j].IDs[keys[k]].AvatarUrl) {
+                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname });
+                                        }
+                                        cell.append(elem);
+                                    }
+                                    playerRow.append(cell);
+                                }
+
+                                // hero
+                                {
+                                    var cell = $('<td/>');
+                                    if (session.Players[j].Hero != null) {
+                                        cell.text(session.Players[j].Hero.ID);
+                                    }
+                                    playerRow.append(cell);
+                                }
+
+                                playerTableBody.append(playerRow);
+                            }
+                            var playerHeaderRow = $('<tr/>');
+                            playerTableHeader.append(playerHeaderRow);
+                            for (var j = 0; j < ColumnNames.length; j++) {
+                                playerHeaderRow.append($('<th/>').text(ColumnNames[j]));
+                            }
+
+                            var playerAvatarBar = $('<div class="player_avatars" />');
+                            for (var j = 0; j < avatars.length; j++) {
+                                var wrapper = null;
+                                if (avatars[j].href) {
+                                    wrapper = $('<a/>');
+                                    wrapper.attr('href', avatars[j].href);
+                                    if (avatars[j].name) {
+                                        wrapper.attr('title', avatars[j].name);
+                                    }
+                                }
+                                var avatarImage = $('<img src="' + avatars[j].src + '" />');
+                                if (avatars[j].name) {
+                                    avatarImage.attr('alt', avatars[j].name);
+                                }
+                                if (wrapper != null) {
+                                    wrapper.append(avatarImage);
+                                } else {
+                                    wrapper = avatarImage;
+                                }
+                                playerAvatarBar.append(wrapper);
+                            }
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerAvatarBar)));
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerTable)));
+                        }
+
+                        // game
+                        if (session.Game != null) {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Game</td></tr>');
+
+                            var levelRow = $('<div class="row"/>');
+
+                            {
+                                var keys = Object.keys(session.Game);
+                                for (var k = 0; k < keys.length; k++) {
+                                    //if (keys[k] == "ID") continue;
+                                    //if (keys[k] == "Attributes") continue;
+
+                                    var col = $('<div class="col-12" />');
+
+                                    col.append(keys[k] + ": ");
+                                    var val = session.Game[keys[k]];
+                                    col.append(JSON.stringify(val));
+
+                                    levelRow.append(col);
+                                }
+                            }
+
+                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                        }
+
+                        // time
+                        if (session.Time != null) {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Time</td></tr>');
+
+                            var levelRow = $('<div class="row"/>');
+
+                            {
+                                var keys = Object.keys(session.Time);
+                                for (var k = 0; k < keys.length; k++) {
+                                    //if (keys[k] == "ID") continue;
+
+                                    var col = $('<div class="col-12" />');
+
+                                    col.append(keys[k] + ": ");
+                                    var val = session.Time[keys[k]];
+                                    col.append(JSON.stringify(val));
+
+                                    levelRow.append(col);
+                                }
+                            }
+
+                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                        }
+
+                        // attributes
+                        if (session.Attributes != null) {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Attributes</td></tr>');
+
+                            var levelRow = $('<div class="row"/>');
+
+                            {
+                                var keys = Object.keys(session.Attributes);
+                                for (var k = 0; k < keys.length; k++) {
+                                    //if (keys[k] == "ID") continue;
+
+                                    var col = $('<div class="col-12" />');
+
+                                    col.append(keys[k] + ": ");
+                                    var val = session.Attributes[keys[k]];
+                                    col.append(JSON.stringify(val));
+
+                                    levelRow.append(col);
+                                }
+                            }
+
+                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                        }
+
+                        $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">-</td></tr>');
+                    }
+                    $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
+                } else {
+                    $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
+                }
+            });
+        });
+        //});
+    </script>
+
+</body>
+</html>

@@ -127,6 +127,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         [JsonIgnore]
         public string Name { get { return ExtractName(4); } }
 
+        /// <summary>
+        /// Increments with every metadata change
+        /// </summary>
         [JsonIgnore]
         public int? MetaDataVersion
         {
@@ -147,7 +150,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public string MapFile { get { return ExtractGameSettings(1); } }
 
         [JsonIgnore]
-        public string InternalID { get { return ExtractGameSettings(2); } }
+        public string CRC32 { get { return ExtractGameSettings(2); } }
 
         [JsonIgnore]
         public string WorkshopID { get { return ExtractGameSettings(3); } }

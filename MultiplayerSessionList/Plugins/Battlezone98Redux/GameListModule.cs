@@ -16,7 +16,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
     public class GameListModule : IGameListModule
     {
-        public string GameID => "bzrnet:bz98r";
+        public string GameID => "rebellion:battlezone_98_redux";
         public string Title => "Battlezone 98 Redux";
 
 
@@ -31,7 +31,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.steamInterface = steamInterface;
         }
 
-        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin)
         {
             using (var http = new HttpClient())
             {
@@ -105,9 +105,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                         player.Name = dr.name;
                         player.Type = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
-                        player.Attributes.Add("wanAddress", dr.wanAddress);
+                        if(admin) player.Attributes.Add("wanAddress", dr.wanAddress);
                         player.Attributes.Add("Launched", dr.Launched);
-                        player.Attributes.Add("lanAddresses", JArray.FromObject(dr.lanAddresses));
+                        if (admin) player.Attributes.Add("lanAddresses", JArray.FromObject(dr.lanAddresses));
                         player.Attributes.Add("isAuth", dr.isAuth);
 
                         if (dr.Team.HasValue)

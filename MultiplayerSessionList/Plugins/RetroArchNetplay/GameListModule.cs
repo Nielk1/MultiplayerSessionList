@@ -35,7 +35,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
             //configuration.GetSection("Clients").GetChildren().ToArray().Select(c => c.Value).ToArray();
         }
 
-        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin)
         {
             using (var http = new HttpClient())
             {

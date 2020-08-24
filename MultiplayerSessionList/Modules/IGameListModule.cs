@@ -29,7 +29,7 @@ namespace MultiplayerSessionList.Modules
         string GameID { get; }
         string Title { get; }
 
-        Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList();
+        Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin);
 
         /// <summary>
         /// Change to alter QueryString values.

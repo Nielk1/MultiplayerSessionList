@@ -16,7 +16,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
     public class GameListModule : IGameListModule
     {
-        public string GameID => "iondriver:raknetmaster2:bzcc";
+        public string GameID => "rebellion:battlezone_combat_commander";
         public string Title => "Battlezone Combat Commander";
 
 
@@ -53,7 +53,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             this.steamInterface = steamInterface;
         }
 
-        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList()
+        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin)
         {
             using (var http = new HttpClient())
             {
