@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace MultiplayerSessionList.Models
 {
@@ -136,9 +137,12 @@ namespace MultiplayerSessionList.Models
 
     public class DataCache : Dictionary<string, JToken>
     {
+        static Regex KeySplit = new Regex("(?<!\\\\):");
+
         public void AddObjectPath(string Path, JToken Value)
         {
-            string[] PathParts = Path.Split(':');
+            //string[] PathParts = Path.Split(':');
+            string[] PathParts = KeySplit.Split(Path).Select(dr => dr.Replace("\\:", ":")).ToArray();
 
             if (PathParts.Length == 1)
             {
@@ -160,7 +164,8 @@ namespace MultiplayerSessionList.Models
         }
         public bool ContainsPath(string Path)
         {
-            string[] PathParts = Path.Split(':');
+            //string[] PathParts = Path.Split(':');
+            string[] PathParts = KeySplit.Split(Path).Select(dr => dr.Replace("\\:", ":")).ToArray();
             if (!this.ContainsKey(PathParts[0]))
                 return false;
 

@@ -1,4 +1,5 @@
 ﻿using MultiplayerSessionList.Models;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -29,7 +30,7 @@ namespace MultiplayerSessionList.Modules
         string GameID { get; }
         string Title { get; }
 
-        Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin);
+        Task<GameListData> GetGameList(bool admin);
 
         /// <summary>
         /// Change to alter QueryString values.
@@ -52,5 +53,15 @@ namespace MultiplayerSessionList.Modules
         //event EventHandler OnExecute;
 
         //void ExceptionTest(string input);
+    }
+
+    public class GameListData
+    {
+        public DataCache Metadata { get; set; }
+        public SessionItem SessionDefault { get; set; }
+        public DataCache DataCache { get; set; }
+        public DataCache Heroes { get; set; }
+        public IEnumerable<SessionItem> Sessions { get; set; }
+        public string Raw { get; set; }
     }
 }

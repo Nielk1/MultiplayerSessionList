@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Steam.Models.SteamCommunity;
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -16,22 +17,26 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
     public class GameListModule : IGameListModule
     {
-        public string GameID => "rebellion:battlezone_98_redux";
+        public string GameID => "bigboat:battlezone_98_redux";
         public string Title => "Battlezone 98 Redux";
 
 
         private string queryUrl;
+        private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
+        private CachedWebClient<MapData> mapDataInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedWebClient<MapData> mapDataInterface)
         {
-            queryUrl = configuration["rebellion:battlezone_98_redux"];
+            queryUrl = configuration["bigboat:battlezone_98_redux:sessions"];
+            mapUrl = configuration["bigboat:battlezone_98_redux:maps"];
             this.gogInterface = gogInterface;
             this.steamInterface = steamInterface;
+            this.mapDataInterface = mapDataInterface;
         }
 
-        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin)
+        public async Task<GameListData> GetGameList(bool admin)
         {
             using (var http = new HttpClient())
             {
@@ -48,6 +53,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     Metadata.AddObjectPath($"{GAMELIST_TERMS.ATTRIBUTE_LISTSERVER}:Rebellion:Timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime);
 
                 DataCache DataCache = new DataCache();
+                DataCache Heroes = new DataCache();
 
                 List<SessionItem> Sessions = new List<SessionItem>();
 
@@ -73,9 +79,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                     game.PlayerCount.Add(GAMELIST_TERMS.PLAYERTYPE_PLAYER, raw.userCount);
 
-                    game.Level["ID"] = (raw.WorkshopID ?? @"0") + @":" + System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
+                    string modID = (raw.WorkshopID ?? @"0");
+                    string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
+                    game.Level["ID"] = $"{modID}:{mapID}";
                     
                     game.Level["MapFile"] = raw.MapFile;
+
+                    Task<MapData> mapDataTask = mapDataInterface.GetJson($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
 
                     if (!string.IsNullOrWhiteSpace(raw.WorkshopID)) game.Level.Add("Mod", raw.WorkshopID);
 
@@ -193,10 +203,48 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (raw.MetaDataVersion.HasValue)
                         game.Attributes.Add("MetaDataVersion", raw.MetaDataVersion);
 
+                    MapData mapData = null;
+                    if (mapDataTask != null)
+                        mapData = await mapDataTask;
+                    if (mapData != null)
+                    {
+                        game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
+                        game.Level["Name"] = mapData?.map?.title;
+                        game.Level["Type"] = mapData?.map?.type;
+                        game.Level["TypeCustom"] = mapData?.map?.custom_type;
+                        game.Level.AddObjectPath("Attributes:Vehicles", new JArray(mapData.map.vehicles.Select(dr => $"{modID}:{dr}").ToArray()));
+                        foreach (var vehicle in mapData.vehicles)
+                        {
+                            if (!Heroes.ContainsPath($"{modID}\\:{vehicle.Key}"))
+                            {
+                                Heroes.AddObjectPath($"{modID}\\:{vehicle.Key}:Name", vehicle.Value.name);
+                                if (vehicle.Value.description != null)
+                                {
+                                    if (vehicle.Value.description.ContainsKey("en"))
+                                    {
+                                        Heroes.AddObjectPath($"{modID}\\:{vehicle.Key}:Description", vehicle.Value.description["en"].content);
+                                    }
+                                    else if (vehicle.Value.description.ContainsKey("default"))
+                                    {
+                                        Heroes.AddObjectPath($"{modID}\\:{vehicle.Key}:Description", vehicle.Value.description["default"].content);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Sessions.Add(game);
                 }
 
-                return (Metadata, DefaultSession, DataCache, Sessions, JObject.Parse(res));
+                return new GameListData()
+                {
+                    Metadata = Metadata,
+                    SessionDefault = DefaultSession,
+                    DataCache = DataCache,
+                    Sessions = Sessions,
+                    Heroes = Heroes,
+                    Raw = admin ? res : null,
+                };
             }
         }
     }

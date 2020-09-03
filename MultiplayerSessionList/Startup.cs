@@ -25,6 +25,8 @@ namespace MultiplayerSessionList
 
             services.AddSingleton<GogInterface>();
             services.AddSingleton<SteamInterface>();
+            services.AddSingleton<CachedWebClient<Plugins.BattlezoneCombatCommander.MapData>>();
+            services.AddSingleton<CachedWebClient<Plugins.Battlezone98Redux.MapData>>();
 
             services.AddSingleton<GameListModuleManager>();
 
@@ -32,7 +34,7 @@ namespace MultiplayerSessionList
                 .AddNewtonsoftJson(options =>
                 {
                     options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
-                    
+
                     // This options stops the JSON being camel cased
                     options.SerializerSettings.ContractResolver = new DefaultContractResolver
                     {

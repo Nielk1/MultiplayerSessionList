@@ -117,4 +117,19 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             return proxySource == null;
         }
     }
+
+    public class MapData
+    {
+        public Dictionary<string, MapData_Mods> mods { get; set; }
+        public string title { get; set; }
+        public string image { get; set; }
+        public string description { get; set; }
+    }
+
+    public class MapData_Mods
+    {
+        public string name { get; set; }
+        public string type { get; set; }
+        public List<string> dependencies { get; set; }
+    }
 }

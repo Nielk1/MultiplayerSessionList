@@ -16,7 +16,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
     public class GameListModule : IGameListModule
     {
-        public string GameID => "rebellion:battlezone_combat_commander";
+        public string GameID => "bigboat:battlezone_combat_commander";
         public string Title => "Battlezone: Combat Commander";
 
 
@@ -43,17 +43,21 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         };
 
         private string queryUrl;
+        private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
+        private CachedWebClient<MapData> mapDataInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedWebClient<MapData> mapDataInterface)
         {
-            queryUrl = configuration["rebellion:battlezone_combat_commander"];
+            queryUrl = configuration["bigboat:battlezone_combat_commander:sessions"];
+            mapUrl = configuration["bigboat:battlezone_combat_commander:maps"];
             this.gogInterface = gogInterface;
             this.steamInterface = steamInterface;
+            this.mapDataInterface = mapDataInterface;
         }
 
-        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin)
+        public async Task<GameListData> GetGameList(bool admin)
         {
             using (var http = new HttpClient())
             {
@@ -91,7 +95,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     if (!string.IsNullOrWhiteSpace(raw.MapFile))
                         game.Level["MapFile"] = raw.MapFile + @".bzn";
-                    game.Level["ID"] = (raw.Mods?.FirstOrDefault() ?? @"0") + @":" + raw.MapFile?.ToLowerInvariant();
+                    string modID = (raw.Mods?.FirstOrDefault() ?? @"0");
+                    string mapID = raw.MapFile?.ToLowerInvariant();
+                    game.Level["ID"] = $"{modID}:{mapID}";
+
+                    Task<MapData> mapDataTask = null;
+                    if (!string.IsNullOrWhiteSpace(raw.MapFile))
+                        mapDataTask = mapDataInterface.GetJson($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
 
                     game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.Locked);
                     game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.Passworded);
@@ -394,10 +404,27 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             game.Time.AddObjectPath("Context", ServerState);
                     }
 
+                    MapData mapData = null;
+                    if (mapDataTask != null)
+                        mapData = await mapDataTask;
+                    if (mapData != null)
+                    {
+                        game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
+                        game.Level["Name"] = mapData?.title;
+                        game.Level["Description"] = mapData?.description;
+                        //game.Level.AddObjectPath("Attributes:Vehicles", new JArray(mapData.map.vehicles.Select(dr => $"{modID}:{dr}").ToArray()));
+                    }
+
                     Sessions.Add(game);
                 }
 
-                return (null, DefaultSession, DataCache, Sessions, JObject.Parse(res));
+                return new GameListData()
+                {
+                    SessionDefault = DefaultSession,
+                    DataCache = DataCache,
+                    Sessions = Sessions,
+                    Raw = admin ? res : null,
+                };
             }
         }
     }

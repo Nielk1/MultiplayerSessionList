@@ -13,7 +13,7 @@ namespace MultiplayerSessionList.Services
 {
     public class SteamInterface
     {
-        private HttpClient httpClient;
+        //private HttpClient httpClient;
         private IMemoryCache memCache;
 
         private string SteamApiKey;
@@ -27,7 +27,7 @@ namespace MultiplayerSessionList.Services
 
         public SteamInterface(IConfiguration configuration, IMemoryCache memCache)
         {
-            this.httpClient = new HttpClient();
+            //this.httpClient = new HttpClient();
 
             SteamApiKey = configuration["Steam:ApiKey"];
 

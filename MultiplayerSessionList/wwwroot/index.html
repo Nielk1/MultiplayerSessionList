@@ -195,10 +195,11 @@
                             //var levelRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
                             var levelRow = $('<div class="row"/>');
 
-                            {
+                            if (session.Level.Image) {
                                 var col = $('<div class="col-xs-4" />');
                                 var card = $('<div class="card" />');
-                                var img = $('<img src="https://discord.battlezone.report/resources/logos/nomap.png" class="card-img" />').attr('alt', session.Level.MapFile);
+                                //var img = $('<img src="https://discord.battlezone.report/resources/logos/nomap.png" class="card-img" />').attr('alt', session.Level.MapFile);
+                                var img = $('<img src="' + session.Level.Image + '" class="card-img" style="height:auto;width:100px;" />').attr('alt', session.Level.MapFile);
                                 card.append(img);
                                 col.append(card);
                                 levelRow.append(col);
@@ -232,7 +233,7 @@
                                 if (session.Level.Attributes) {
                                     var keys = Object.keys(session.Level.Attributes);
                                     for (var k = 0; k < keys.length; k++) {
-                                        var col = $('<div class="col-12" />');
+                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
                                         col.append("Attribute: " + keys[k] + ": ");
                                         var val = session.Level.Attributes[keys[k]];
@@ -389,7 +390,7 @@
                                     //if (keys[k] == "ID") continue;
                                     //if (keys[k] == "Attributes") continue;
 
-                                    var col = $('<div class="col-12" />');
+                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
                                     col.append(keys[k] + ": ");
                                     var val = session.Game[keys[k]];
@@ -414,7 +415,7 @@
                                 for (var k = 0; k < keys.length; k++) {
                                     //if (keys[k] == "ID") continue;
 
-                                    var col = $('<div class="col-12" />');
+                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
                                     col.append(keys[k] + ": ");
                                     var val = session.Time[keys[k]];
@@ -439,7 +440,7 @@
                                 for (var k = 0; k < keys.length; k++) {
                                     //if (keys[k] == "ID") continue;
 
-                                    var col = $('<div class="col-12" />');
+                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
                                     col.append(keys[k] + ": ");
                                     var val = session.Attributes[keys[k]];

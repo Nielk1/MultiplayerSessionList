@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
 
 namespace MultiplayerSessionList.Controllers
@@ -29,8 +30,8 @@ namespace MultiplayerSessionList.Controllers
 
             string AdminDataPassword = _configuration["AdminDataPassword"];
 
-            var (metadata, defaultSessionItem, dataCache, sessionItems, jToken) = await _gameListModuleManager.GameListPlugins[game].GetGameList(AdminDataPassword == admin_password);
-            return Ok(new { Metadata = metadata, SessionDefault = defaultSessionItem, DataCache = dataCache, Sessions = sessionItems, Raw = raw ? jToken : null });
+            GameListData data = await _gameListModuleManager.GameListPlugins[game].GetGameList(AdminDataPassword == admin_password);
+            return Ok(data);
         }
 
         [Route("api/games")]

@@ -35,7 +35,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
             //configuration.GetSection("Clients").GetChildren().ToArray().Select(c => c.Value).ToArray();
         }
 
-        public async Task<(DataCache, SessionItem, DataCache, IEnumerable<SessionItem>, JToken)> GetGameList(bool admin)
+        public async Task<GameListData> GetGameList(bool admin)
         {
             using (var http = new HttpClient())
             {
@@ -93,7 +93,12 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                     Sessions.Add(game);
                 }
 
-                return (null, DefaultSession, null, Sessions, JArray.Parse(res));
+                return new GameListData()
+                {
+                    SessionDefault = DefaultSession,
+                    Sessions = Sessions,
+                    Raw = admin ? res : null,
+                };
             }
         }
     }
