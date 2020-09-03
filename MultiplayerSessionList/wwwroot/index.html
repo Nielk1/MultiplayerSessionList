@@ -144,9 +144,14 @@
                 if (data.Sessions.length > 0) {
                     for (var i = 0; i < data.Sessions.length; i++) {
                         var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
+                        var heroes = data.Heroes;
 
-                        if (data.DataCache != null)
+                        if (data.DataCache != null) {
                             RichDataCheck(session, data.DataCache);
+                            if (heroes) {
+                                RichDataCheck(heroes, data.DataCache);
+                            }
+                        }
 
                         $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
 
@@ -220,7 +225,7 @@
                                         if (keys[k] == "ID") continue; // omit ID as we printed it above
                                         if (keys[k] == "Attributes") continue; // omit attributes as we print them below
 
-                                        var col = $('<div class="col-12" />');
+                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
                                         col.append(keys[k] + ": ");
                                         var val = session.Level[keys[k]];
@@ -340,7 +345,25 @@
                                 {
                                     var cell = $('<td/>');
                                     if (session.Players[j].Hero != null) {
-                                        cell.text(session.Players[j].Hero.ID);
+                                        {
+                                            var elem = $('<span/>');
+                                            elem.text(session.Players[j].Hero.ID);
+                                            cell.append(elem);
+                                        }
+                                        if (heroes[session.Players[j].Hero.ID] != null) {
+                                            if (heroes[session.Players[j].Hero.ID].Name) {
+                                                var elem = $('<span/>');
+                                                elem.text(heroes[session.Players[j].Hero.ID].Name);
+                                                cell.append('<br/>');
+                                                cell.append(elem);
+                                            }
+                                            if (heroes[session.Players[j].Hero.ID].Description) {
+                                                var elem = $('<div class="p-1 border border-dark" style="white-space:pre;display:inline-block;"/>');
+                                                elem.text(heroes[session.Players[j].Hero.ID].Description);
+                                                cell.append('<br/>');
+                                                cell.append(elem);
+                                            }
+                                        }
                                     }
                                     playerRow.append(cell);
                                 }

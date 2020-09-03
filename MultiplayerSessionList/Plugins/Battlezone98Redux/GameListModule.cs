@@ -212,7 +212,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         game.Level["Name"] = mapData?.map?.title;
                         game.Level["Type"] = mapData?.map?.type;
                         game.Level["TypeCustom"] = mapData?.map?.custom_type;
-                        game.Level.AddObjectPath("Attributes:Vehicles", new JArray(mapData.map.vehicles.Select(dr => $"{modID}:{dr}").ToArray()));
+                        game.Level["AllowedHeroes"] = new JArray(mapData.map.vehicles.Select(dr => $"{modID}:{dr}").ToArray());
                         foreach (var vehicle in mapData.vehicles)
                         {
                             if (!Heroes.ContainsPath($"{modID}\\:{vehicle.Key}"))
