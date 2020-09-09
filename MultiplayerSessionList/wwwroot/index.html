@@ -142,16 +142,17 @@
             GetGamesAjax = $.ajax({ url: 'api/sessions?game=' + key }).done(function (data) {
                 $('#tblGames>tbody').empty();
                 if (data.Sessions.length > 0) {
+                    var heroes = data.Heroes;
+                    if (data.DataCache != null) {
+                        if (heroes) {
+                            RichDataCheck(heroes, data.DataCache);
+                        }
+                    }
                     for (var i = 0; i < data.Sessions.length; i++) {
                         var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
-                        var heroes = data.Heroes;
 
-                        if (data.DataCache != null) {
+                        if (data.DataCache != null)
                             RichDataCheck(session, data.DataCache);
-                            if (heroes) {
-                                RichDataCheck(heroes, data.DataCache);
-                            }
-                        }
 
                         $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
 
