@@ -38,7 +38,7 @@ namespace MultiplayerSessionList.Services
 
         public async Task<PlayerSummaryModel> Users(ulong playerID)
         {
-            PlayerSummaryModel data = memCache.Get<PlayerSummaryModel>($"SteamInterface.GetPlayerSummaryAsync({playerID})");
+            PlayerSummaryModel data = memCache.Get<PlayerSummaryModel>($"SteamInterface.GetPlayerSummary({playerID})");
             if (data != null)
                 return data;
 
@@ -48,7 +48,7 @@ namespace MultiplayerSessionList.Services
                 data = wrappedData.Data;
                 if (data == null)
                     return data;
-                memCache.Set($"SteamInterface.GetPlayerSummaryAsync({playerID})", data, TimeSpan.FromHours(1));
+                memCache.Set($"SteamInterface.GetPlayerSummary({playerID})", data, TimeSpan.FromHours(1));
                 return data;
             }
             catch { }
