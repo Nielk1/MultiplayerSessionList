@@ -235,8 +235,35 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         {
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
                             game.Level["Name"] = mapData?.map?.title;
-                            game.Level["Type"] = mapData?.map?.type;
-                            game.Level["TypeCustom"] = mapData?.map?.custom_type;
+                            game.Level["GameType"] = mapData?.map?.type;
+                            if(string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
+                            {
+                                if (!string.IsNullOrWhiteSpace(mapData?.map?.type))
+                                {
+                                    switch (mapData?.map?.type)
+                                    {
+                                        case "D":
+                                            game.Level["GameMode"] = "Deathmatch";
+                                            break;
+                                        case "S":
+                                            game.Level["GameMode"] = "Strategy";
+                                            break;
+                                        case "K":
+                                            game.Level["GameMode"] = "King of the Hill";
+                                            break;
+                                        case "M":
+                                            game.Level["GameMode"] = "Mission MPI";
+                                            break;
+                                        case "A":
+                                            game.Level["GameMode"] = "Action MPI";
+                                            break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                game.Level["GameMode"] = mapData?.map?.custom_type;
+                            }
                             game.Level["AllowedHeroes"] = new JArray(mapData.map.vehicles.Select(dr => $"{dr}").ToArray());
                             foreach (var vehicle in mapData.vehicles)
                             {

@@ -208,7 +208,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         switch (raw.GameType)
                         {
                             case 0:
-                                game.Level["Type"] = $"All";
+                                game.Level["GameType"] = $"All";
                                 break;
                             case 1:
                                 {
@@ -240,40 +240,41 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                                     {
                                         case 0:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM";
+                                            game.Level["GameType"] = "DM";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Deathmatch";
                                             break;
                                         case 1:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"KOTH";
+                                            game.Level["GameType"] = "KOTH";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "King of the Hill";
                                             break;
                                         case 2:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"CTF";
+                                            game.Level["GameType"] = "CTF";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Capture the Flag";
                                             break;
                                         case 3:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Loot";
+                                            game.Level["GameType"] = "Loot";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Loot";
                                             break;
-                                        case 4:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [RESERVED]";
+                                        case 4: // DM [RESERVED]
+                                            game.Level["GameType"] = "DM";
                                             break;
                                         case 5:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race";
+                                            game.Level["GameType"] = "Race";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Race";
                                             break;
-                                        case 6:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"Race (Vehicle Only)";
+                                        case 6: // Race (Vehicle Only)
+                                            game.Level["GameType"] = "Race";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Race";
+                                            game.Level.AddObjectPath("Attributes:VehicleOnly", true);
                                             break;
-                                        case 7:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM (Vehicle Only)";
+                                        case 7: // DM (Vehicle Only)
+                                            game.Level["GameType"] = "DM";
+                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Deathmatch";
+                                            game.Level.AddObjectPath("Attributes:VehicleOnly", true);
                                             break;
                                         default:
-                                            //game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]");
-                                            game.Level["Type"] = (m_TeamsOn ? "TEAM " : String.Empty) + $"DM [UNKNOWN {raw.GameSubType}]";
+                                            game.Level["GameType"] = "DM";
+                                            //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + "DM [UNKNOWN {raw.GameSubType}]";
                                             break;
                                     }
                                 }
@@ -284,33 +285,33 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     switch ((GameMode)GetGameModeOutput)
                                     {
                                         case GameMode.GAMEMODE_TEAM_STRAT:
-                                            //game.Level["Type"] = $"TEAM STRAT");
-                                            game.Level["Type"] = $"TEAM STRAT";
+                                            game.Level["GameType"] = "STRAT";
+                                            game.Level["GameMode"] = "STRAT";
                                             m_TeamsOn = true;
                                             m_OnlyOneTeam = false;
                                             break;
                                         case GameMode.GAMEMODE_STRAT:
-                                            //game.Level["Type"] = $"STRAT");
-                                            game.Level["Type"] = $"STRAT";
+                                            game.Level["GameType"] = "STRAT";
+                                            game.Level["GameMode"] = "FFA";
                                             m_TeamsOn = false;
                                             m_OnlyOneTeam = false;
                                             break;
                                         case GameMode.GAMEMODE_MPI:
-                                            //game.Level["Type"] = $"MPI");
-                                            game.Level["Type"] = $"MPI";
+                                            game.Level["GameType"] = "MPI";
+                                            game.Level["GameMode"] = "MPI";
                                             m_TeamsOn = true;
                                             m_OnlyOneTeam = true;
                                             break;
                                         default:
-                                            //game.Level["Type"] = $"STRAT [UNKNOWN {GetGameModeOutput}]");
-                                            game.Level["Type"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
+                                            //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
+                                            game.Level["GameType"] = "STRAT";
+                                            //game.Level["GameMode"] = null;
                                             break;
                                     }
                                 }
                                 break;
                             case 3: // impossible, BZCC limits to 0-2
-                                    //game.Attributes.Add("Type", $"MPI [Invalid]");
-                                game.Level["Type"] = $"MPI [Invalid]";
+                                game.Level["GameType"] = "MPI"; //  "MPI [Invalid]";
                                 break;
                         }
 

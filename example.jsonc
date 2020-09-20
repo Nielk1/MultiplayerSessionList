@@ -49,8 +49,29 @@
 			"ID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
 			"MapFile":"ctf1.bzn", // BZ98R, BZCC
 			"CRC32":"ABCD1234", // BZ98R
-			"Type":"MPI", // BZ98R, BZCC // values: "DM","KOTH","CTF","Loot","DM [RESERVED]","Race","Race (Vehicle Only)","DM (Vehicle Only)","DM [UNKNOWN 123]","TEAM DM","TEAM KOTH","TEAM CTF","TEAM Loot","TEAM DM [RESERVED]","TEAM Race","TEAM Race (Vehicle Only)","TEAM DM (Vehicle Only)","TEAM DM [UNKNOWN 123]","TEAM STRAT","STRAT","MPI","STRAT [UNKNOWN 123]","MPI [Invalid]"
-			"TypeCustom":null, // BZ98R // derived from custom map file fields
+			
+			// Game   GameType  GameMode
+			// BZ98R  D         Deathmatch
+			// BZ98R  S         Strategy
+			// BZ98R  K         King of the Hill
+			// BZ98R  M         Mission MPI
+			// BZ98R  A         Action MPI
+			// BZCC   DM        Deathmatch
+			// BZCC   DM        Team Death Match
+			// BZCC   KOTH      King of the Hill
+			// BZCC   KOTH      Team King of the Hill
+			// BZCC   CTF       Capture the Flag
+			// BZCC   CTF       Team Capture the Flag
+			// BZCC   Loot      Loot
+			// BZCC   Loot      Team Loot
+			// BZCC   Race      Race
+			// BZCC   Race      Team Race
+			// BZCC   STRAT     Free for All
+			// BZCC   STRAT     Strategy
+			// BZCC   MPI       MPI
+			"GameType":"DM", // BZ98R, BZCC // Set within the confines of the game itself
+			"GameMode":"Deathmatch", // BZ98R, BZCC // Derived from the GameType or set custom
+			
 			"Mod":"12345", // BZ98R
 			"Attributes": { // game specific, no universal logic
 			  "TimeLimit": 4, // BZ98R, BZCC
