@@ -55,5 +55,41 @@ namespace MultiplayerSessionList.Services
 
             return null;
         }
+
+        public async Task<string> GetSteamWorkshopName(string workshopId)
+        {
+            if (string.IsNullOrWhiteSpace(workshopId)) return null;
+
+            string WorkshopName = memCache.Get<string>($"SteamInterface.GetSteamWorkshopName({workshopId})");
+            if (WorkshopName != null)
+                if (string.IsNullOrWhiteSpace(WorkshopName))
+                    return null; // if we stored an empty string then return null
+                else
+                    return WorkshopName; // if we stored a value then return it
+
+            try
+            {
+                using (var http = new HttpClient())
+                {
+                    var reqString = $"http://steamcommunity.com/sharedfiles/filedetails/?id={workshopId}";
+                    var rawText = (await http.GetStringAsync(reqString).ConfigureAwait(false));
+
+                    var matches = System.Text.RegularExpressions.Regex.Matches(rawText, "<\\s*div\\s+class\\s*=\\s*\"workshopItemTitle\"\\s*>(.*)<\\s*/\\s*div\\s*>");
+                    string found = null;
+                    if (matches.Count > 0)
+                    {
+                        if (matches[0].Groups.Count > 1)
+                        {
+                            found = matches[0].Groups[1].Value.Trim();
+                        }
+                    }
+
+                    memCache.Set($"SteamInterface.GetSteamWorkshopName({workshopId})", found ?? string.Empty, TimeSpan.FromHours(24));
+                }
+            }
+            catch { }
+
+            return null;
+        }
     }
 }
