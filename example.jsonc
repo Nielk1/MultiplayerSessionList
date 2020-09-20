@@ -56,6 +56,7 @@
 		  "Level":{
 			"ID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
 			"MapFile":"ctf1.bzn", // BZ98R, BZCC
+			"Name":"A Bridge Too Far", // BZ98R, BZCC
 			"CRC32":"ABCD1234", // BZ98R
 			
 			// Game   GameType  GameMode
@@ -103,7 +104,7 @@
 			  "IDs":{
 				"BZRNet":{"ID":"S76561197995400995"}, // BZ98R and BZCC both set this
 				"Steam":{"ID":76561197995400995,"Raw":"76561197995400995","AvatarUrl":"http...","ProfileUrl":"http...","Nickname":"N1elk"},
-				"Gog": {"ID":46988737810651250,"Raw":"191103925886507117","AvatarUrl":"http...","ProfileUrl":"http...","UserName":"N1elk"},
+				"Gog": {"ID":46988737810651250,"Raw":"191103925886507117","AvatarUrl":"http...","ProfileUrl":"http...","Username":"N1elk"},
 				"Slot":{"ID":6}
 			  },
 			  "Team":{

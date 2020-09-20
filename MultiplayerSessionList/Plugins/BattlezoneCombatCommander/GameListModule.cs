@@ -410,7 +410,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                         {
                                                             GogUserData playerData = await gogInterface.Users(playerID);
                                                             DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:UserName", playerData.username);
+                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:Username", playerData.username);
                                                             DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
                                                         }
                                                     }
