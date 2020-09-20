@@ -100,7 +100,7 @@
         }
 
         //$(document).ready(function () {
-        $.ajax({ url: '/api/games' })
+        $.ajax({ url: '/api/1.0/games' })
             .done(function (data) {
                 $('#dropdownMenuContainer').empty();
                 for (var i = 0; i < data.length; i++) {
@@ -139,7 +139,7 @@
             if (GetGamesAjax != null) {
                 GetGamesAjax.abort();
             }
-            GetGamesAjax = $.ajax({ url: 'api/sessions?game=' + key }).done(function (data) {
+            GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key }).done(function (data) {
                 $('#tblGames>tbody').empty();
                 if (data.Sessions.length > 0) {
                     var heroes = data.Heroes;

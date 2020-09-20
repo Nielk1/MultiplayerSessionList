@@ -22,7 +22,7 @@ namespace MultiplayerSessionList.Controllers
             _configuration = configuration;
         }
 
-        [Route("api/sessions")]
+        [Route("api/1.0/sessions")]
         public async Task<IActionResult> Sessions(string game, bool raw, string admin_password)
         {
             if (!_gameListModuleManager.GameListPlugins.ContainsKey(game))
@@ -34,7 +34,7 @@ namespace MultiplayerSessionList.Controllers
             return Ok(data);
         }
 
-        [Route("api/games")]
+        [Route("api/1.0/games")]
         public IActionResult Games()
         {
             return Ok(_gameListModuleManager
