@@ -17,6 +17,13 @@
 			"Description": "HULL: 1500\r\nAMMO: 2000\r\nMinigun x4" // BZ98R
 		}
 	},
+	"Mods"{ // BZ98R, BZCC
+		"1234567890":{
+			"Name":"ModName",
+			"ID":"1234567890", // superfluous
+			"Url":,"http://steamcommunity.com/sharedfiles/filedetails/?id=1234567890"
+		}
+	},
 	"Sessions":[
 		{
 		  "Type":"Listen", // Possible values: "Listen","Dedicated"
