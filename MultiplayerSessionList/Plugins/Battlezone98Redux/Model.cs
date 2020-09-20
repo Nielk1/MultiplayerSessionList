@@ -369,6 +369,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
     {
         public MapData_Map map { get; set; }
         public Dictionary<string, MapData_Vehicle> vehicles { get; set; }
+        public Dictionary<string, MapData_Mods> mods { get; set; }
         public string image { get; set; }
     }
 
@@ -391,5 +392,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
     {
         public string file { get; set; }
         public string content { get; set; }
+    }
+    public class MapData_Mods
+    {
+        public string name { get; set; }
+        public string workshop_name { get; set; }
     }
 }

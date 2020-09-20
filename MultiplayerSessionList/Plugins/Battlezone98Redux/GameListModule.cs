@@ -54,12 +54,14 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     Metadata.AddObjectPath($"{GAMELIST_TERMS.ATTRIBUTE_LISTSERVER}:Rebellion:Timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime);
 
                 DataCache DataCache = new DataCache();
+                DataCache Mods = new DataCache();
                 DataCache Heroes = new DataCache();
 
                 List<SessionItem> Sessions = new List<SessionItem>();
 
                 List<Task> Tasks = new List<Task>();
                 SemaphoreSlim DataCacheLock = new SemaphoreSlim(1);
+                SemaphoreSlim ModsLock = new SemaphoreSlim(1);
                 SemaphoreSlim HeroesLock = new SemaphoreSlim(1);
                 SemaphoreSlim SessionsLock = new SemaphoreSlim(1);
 
@@ -264,6 +266,25 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             {
                                 game.Level["GameMode"] = mapData?.map?.custom_type;
                             }
+
+                            await ModsLock.WaitAsync();
+                            if (mapData?.mods != null)
+                            {
+                                foreach (var mod in mapData.mods)
+                                {
+                                    if (!Mods.ContainsKey(mod.Key))
+                                    {
+                                        Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
+                                        Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
+                                        if (UInt64.TryParse(mod.Key, out _))
+                                        {
+                                            Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");
+                                        }
+                                    }
+                                }
+                            }
+                            ModsLock.Release();
+
                             game.Level["AllowedHeroes"] = new JArray(mapData.map.vehicles.Select(dr => $"{dr}").ToArray());
                             foreach (var vehicle in mapData.vehicles)
                             {
@@ -337,6 +358,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     SessionDefault = DefaultSession,
                     DataCache = DataCache,
                     Sessions = Sessions,
+                    Mods = Mods,
                     Heroes = Heroes,
                     Raw = admin ? res : null,
                 };

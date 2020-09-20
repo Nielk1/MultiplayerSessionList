@@ -75,11 +75,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 }
 
                 DataCache DataCache = new DataCache();
+                DataCache Mods = new DataCache();
 
                 List<SessionItem> Sessions = new List<SessionItem>();
 
                 List<Task> Tasks = new List<Task>();
                 SemaphoreSlim DataCacheLock = new SemaphoreSlim(1);
+                SemaphoreSlim ModsLock = new SemaphoreSlim(1);
                 SemaphoreSlim SessionsLock = new SemaphoreSlim(1);
 
                 foreach (var raw in gamelist.GET)
@@ -443,6 +445,24 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             game.Level["Name"] = mapData?.title;
                             game.Level["Description"] = mapData?.description;
                             //game.Level.AddObjectPath("Attributes:Vehicles", new JArray(mapData.map.vehicles.Select(dr => $"{modID}:{dr}").ToArray()));
+
+                            await ModsLock.WaitAsync();
+                            if (mapData?.mods != null)
+                            {
+                                foreach (var mod in mapData.mods)
+                                {
+                                    if (!Mods.ContainsKey(mod.Key))
+                                    {
+                                        Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
+                                        Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
+                                        if (UInt64.TryParse(mod.Key, out _))
+                                        {
+                                            Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");
+                                        }
+                                    }
+                                }
+                            }
+                            ModsLock.Release();
                         }
 
                         await SessionsLock.WaitAsync();
@@ -465,6 +485,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     SessionDefault = DefaultSession,
                     DataCache = DataCache,
                     Sessions = Sessions,
+                    Mods = Mods,
                     Raw = admin ? res : null,
                 };
             }

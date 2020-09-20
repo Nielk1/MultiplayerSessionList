@@ -61,6 +61,7 @@ namespace MultiplayerSessionList.Modules
         public SessionItem SessionDefault { get; set; }
         public DataCache DataCache { get; set; }
         public DataCache Heroes { get; set; }
+        public DataCache Mods { get; set; }
         public IEnumerable<SessionItem> Sessions { get; set; }
         public string Raw { get; set; }
     }

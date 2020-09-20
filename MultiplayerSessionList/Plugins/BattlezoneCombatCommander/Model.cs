@@ -129,6 +129,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
     public class MapData_Mods
     {
         public string name { get; set; }
+        public string workshop_name { get; set; }
         public string type { get; set; }
         public List<string> dependencies { get; set; }
     }
