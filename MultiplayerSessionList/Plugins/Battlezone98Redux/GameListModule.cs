@@ -98,7 +98,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                         Task<MapData> mapDataTask = mapDataInterface.GetJson($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
 
-                        if (!string.IsNullOrWhiteSpace(raw.WorkshopID)) game.Level.Add("Mod", raw.WorkshopID);
+                        if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0") game.Level.Add("Mod", raw.WorkshopID);
 
                         if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) game.Level.AddObjectPath("Attributes:TimeLimit", raw.TimeLimit);
                         if (raw.KillLimit.HasValue && raw.KillLimit > 0) game.Level.AddObjectPath("Attributes:KillLimit", raw.KillLimit);

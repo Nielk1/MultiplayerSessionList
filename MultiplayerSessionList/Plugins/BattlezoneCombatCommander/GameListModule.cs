@@ -145,9 +145,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         if (!string.IsNullOrWhiteSpace(ServerState))
                             game.Status.Add("State", ServerState);
 
-
-                        if ((raw.Mods?.Length ?? 0) > 0)
-                            game.Game.Add("Mods", JArray.FromObject(raw.Mods));
+                        int ModsLen = (raw.Mods?.Length ?? 0);
+                        if (ModsLen > 0 && raw.Mods[0] != "0")
+                            game.Game.Add("Mod", raw.Mods[0]);
+                        if (ModsLen > 1)
+                            game.Game.Add("Mods", JArray.FromObject(raw.Mods.Skip(1)));
 
                         if (!string.IsNullOrWhiteSpace(raw.v))
                             game.Game["Version"] = raw.v;

@@ -139,7 +139,8 @@
 		  },
 		  "Game":{
 			"Version":"1.2.3", // BZ98R, BZCC
-			"Mods":["0"], // BZCC
+			"Mod":"1234567890", // BZCC
+			"Mods":["1234567891",1234567892"], // BZCC
 			"ModHash":"xyz" // BZCC, encoded CRC32? Base64? BZ2 holdover?
 		  },
 		  "Time": {
