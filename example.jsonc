@@ -8,8 +8,9 @@
 			}
 		}
 	},
-	"SessionDefault":{},
-	"DataCache":{}.
+	"SessionDefault":{}, // All sessions are based on this object
+	"DataCache":{}, // Paths here match inside common objects, for example Players>IDs>Steam>12345678901234567 here will copy into a session member with the path Players>IDs>Steam and the key/value "ID:"12345678901234567"
+
 	"Heroes":{ // BZ98R
 		"0:cvturr": {
 			"Name": "Adder", // BZ98R
