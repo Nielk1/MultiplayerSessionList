@@ -1,111 +1,131 @@
 {
-  "Type":"listen", // Possible values: "Listen","Dedicated"
-  "Name":"custom text",
-  "Message":"custom text", // nullable, BZCC's MOTD
-  
-  "Address":{
-    "NAT":"nrI7n", // BZCC
-	"Rich":"4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c", // BZCC (only if no password)  -connect-mp 4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c
-	"LobbyID":"B1107", // BZ98R  -connect-galaxy-lobby=B1054
-    "NAT_TYPE":"NONE" // BZCC, values: "NONE","FULL CONE","ADDRESS RESTRICTED","PORT RESTRICTED","SYMMETRIC","UNKNOWN","DETECTION IN PROGRESS","SUPPORTS UPNP"
-  },
-  
-  "PlayerTypes":[
-    {
-      "Types":["Player","Spectator"], // could implement spectators from BZ98R/BZCC mods here
-      "Max":10
-    },
-    {
-      "Types":["Audience"], // in many games, this would be Spectators as they don't count toward max
-      "Max":null
-    }
-  ],
-  "PlayerCount":{
-    "Player":9,
-    "Spectator":1,
-    "Audience":7
-  },
-  
-  "Level":{
-    "ID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
-    "MapFile":"ctf1.bzn",
-    "GameMode":"MPI", // BZCC, values: "DM","KOTH","CTF","Loot","DM [RESERVED]","Race","Race (Vehicle Only)","DM (Vehicle Only)","DM [UNKNOWN 123]","TEAM DM","TEAM KOTH","TEAM CTF","TEAM Loot","TEAM DM [RESERVED]","TEAM Race","TEAM Race (Vehicle Only)","TEAM DM (Vehicle Only)","TEAM DM [UNKNOWN 123]","TEAM STRAT","STRAT","MPI","STRAT [UNKNOWN 123]","MPI [Invalid]"
-    "Mod":"12345", // BZ98R
-    "Attributes": {
-      "TimeLimit": 4, // BZ98R, BZCC
-      "KillLimit": 4, // BZ98R, BZCC
-      "Lives": 4, // BZ98R
-      "Satellite": true, // BZ98R
-      "Barracks": true, // BZ98R
-      "Sniper": true, // BZ98R
-      "Splinter": false, // BZ98R
-      "Respawn": "Race" // BZCC DMs, values: "Race","Any","One"
-    }
-  },
-  "Status":{
-    "IsLocked":false,
-    "HasPassword":true,
-    "HasPassword.Spectator":true, // retroarch netplay
-    "State":"InGame" // Possible values: Unknown, PreGame, Loading, InGame, PostGame, Paused, Away, Busy, NotResponding
-  },
-  "Players":[
-    {
-      "Name":"Foo",
-      "IDs":{
-        "BZRNet":{"ID":"S76561197995400995"}, // BZ98R and BZCC both set this
-        "Steam":{"ID":76561197995400995,"Raw":"76561197995400995","AvatarUrl":"http...","ProfileUrl":"http...","Nickname":"N1elk"},
-        "Gog": {"ID":46988737810651250,"Raw":"191103925886507117","AvatarUrl":"http...","ProfileUrl":"http...","UserName":"N1elk"},
-        "Slot":{"ID":6}
-      },
-      "Team":{
-        "Leader":true, // BZCC we know in 2 team mode that true-teams 1 and 6 are commanders
-        "ID":"2",
-        "SubTeam":{ // this seems stupid, in Battlezone it's the player slot which is the true-team
-          "ID":"6" // true team goes here in BZCC right now
-        },
-      },
-      "Hero":{
-        "ID":"0:svhraz", // forced lowercase, BZ98R
-        "Attributes": {
-          "ODF": "svhraz" //BZ98R
-        }
-      },
-      "Stats":{
-        "Kills":0, // BZCC
-        "Deaths":0, // BZCC
-        "Score":0 // BZCC
-      },
-      "Attributes":{
-          "IsOwner":true, //BZ98R
-          "wanAddress":"148.252.132.46:36010", //BZ98R
-          "Launched":true, //BZ98R
-          "lanAddresses":["127.0.0.1:57937","169.254.22.250:57937","169.254.96.180:57937","169.254.206.238:57937","169.254.235.175:57937","192.168.1.10:57937"], //BZ98R
-          "isAuth":true, //BZ98R
-      }
-    }
-  ],
-  "Team":{ // container for future team data, not needed for existing games, doesn't exist yet
-    "2":{
-      "SubTeam":{
-        "6":{}
-      }
-    }
-  },
-  "Game":{
-    "Version":"1.2.3", // BZ98R, BZCC
-    "Mods":["0"], // BZCC
-    "ModHash":"xyz" // BZCC, encoded CRC32? Base64? BZ2 holdover?
-  },
-  "Time": {
-    "Seconds": 660, // BZCC, RetroArch, time in state in seconds
-    "Resolution": 60, // BZCC, time resolution possible, 60 means minute resolution
-    "Max": false, // BZCC, timer is at max possible value
-    "Context": "InGame" // BZCC, state the timer is in, as for some games the timer resets with a state change, can be null
-  },
-  "Attributes":{ // random guff not set sorted or not important enough
-    "SyncJoin":false, //BZ98R
-    "TPS":20, //BZCC
-    "MaxPing":720, //BZCC
-    "ListServer":"Rebellion" // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
-  }
+	"Metadata":{
+		"ListServer":{
+			"Rebellion":{
+				"Status":"new", // BZCC // echoed from original gamelist
+				"Success": true, // BZCC 
+				"Timestamp":"2020-09-20T01:13:46Z" // BZ98R, BZCC
+			}
+		}
+	},
+	"SessionDefault":{},
+	"DataCache":{}.
+	"Heroes":{ // BZ98R
+		"0:cvturr": {
+			"Name": "Adder", // BZ98R
+			"Description": "HULL: 1500\r\nAMMO: 2000\r\nMinigun x4" // BZ98R
+		}
+	},
+	"Sessions":[
+		{
+		  "Type":"Listen", // Possible values: "Listen","Dedicated"
+		  "Name":"custom text",
+		  "Message":"custom text", // BZCC // MOTD text
+
+		  "Address":{
+			"NAT":"nrI7n", // BZCC
+			"Rich":"4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c", // (removed, can be generated from known data) BZCC (only if no password)  -connect-mp 4e2c32392c43616e6e6f6e20466f64646572204d50492047656e65736973204246352c31302c323130373338313433372c316753404e2d3440474b2c302c
+			"LobbyID":"B1107", // BZ98R  -connect-galaxy-lobby=B1054
+			"NAT_TYPE":"NONE" // BZCC // values: "NONE","FULL CONE","ADDRESS RESTRICTED","PORT RESTRICTED","SYMMETRIC","UNKNOWN","DETECTION IN PROGRESS","SUPPORTS UPNP"
+		  },
+		  
+		  "PlayerTypes":[
+			{
+			  "Types":["Player","Spectator"], // could implement spectators from BZ98R/BZCC mods here
+			  "Max":10
+			},
+			{
+			  "Types":["Audience"], // in many games, this would be Spectators as they don't count toward max
+			  "Max":null
+			}
+		  ],
+		  "PlayerCount":{
+			"Player":9,
+			"Spectator":1,
+			"Audience":7
+		  },
+		  
+		  "Level":{
+			"ID":"0:ctf1", // for BZCC and BZR we prefix active config mod # after gameid, we also force lowercase
+			"MapFile":"ctf1.bzn", // BZ98R, BZCC
+			"CRC32":"ABCD1234", // BZ98R
+			"Type":"MPI", // BZ98R, BZCC // values: "DM","KOTH","CTF","Loot","DM [RESERVED]","Race","Race (Vehicle Only)","DM (Vehicle Only)","DM [UNKNOWN 123]","TEAM DM","TEAM KOTH","TEAM CTF","TEAM Loot","TEAM DM [RESERVED]","TEAM Race","TEAM Race (Vehicle Only)","TEAM DM (Vehicle Only)","TEAM DM [UNKNOWN 123]","TEAM STRAT","STRAT","MPI","STRAT [UNKNOWN 123]","MPI [Invalid]"
+			"TypeCustom":null, // BZ98R // derived from custom map file fields
+			"Mod":"12345", // BZ98R
+			"Attributes": { // game specific, no universal logic
+			  "TimeLimit": 4, // BZ98R, BZCC
+			  "KillLimit": 4, // BZ98R, BZCC
+			  "Lives": 4, // BZ98R
+			  "Satellite": true, // BZ98R
+			  "Barracks": true, // BZ98R
+			  "Sniper": true, // BZ98R
+			  "Splinter": false, // BZ98R
+			  "Respawn": "Race" // BZCC DMs, values: "Race","Any","One"
+			}
+		  },
+		  "Status":{
+			"IsLocked":false,
+			"HasPassword":true,
+			"State":"InGame" // Possible values: Unknown, PreGame, Loading, InGame, PostGame, Paused, Away, Busy, NotResponding
+		  },
+		  "Players":[
+			{
+			  "Name":"Foo",
+			  "IDs":{
+				"BZRNet":{"ID":"S76561197995400995"}, // BZ98R and BZCC both set this
+				"Steam":{"ID":76561197995400995,"Raw":"76561197995400995","AvatarUrl":"http...","ProfileUrl":"http...","Nickname":"N1elk"},
+				"Gog": {"ID":46988737810651250,"Raw":"191103925886507117","AvatarUrl":"http...","ProfileUrl":"http...","UserName":"N1elk"},
+				"Slot":{"ID":6}
+			  },
+			  "Team":{
+				"Leader":true, // BZCC we know in 2 team mode that true-teams 1 and 6 are commanders
+				"ID":"2",
+				"SubTeam":{ // this seems stupid, in Battlezone it's the player slot which is the true-team
+				  "ID":"6" // true team goes here in BZCC right now
+				},
+			  },
+			  "Hero":{
+				"ID":"0:svhraz" // forced lowercase, BZ98R
+			  },
+			  "Stats":{
+				"Kills":0, // BZCC
+				"Deaths":0, // BZCC
+				"Score":0 // BZCC
+			  },
+			  "Attributes":{
+				  "IsOwner":true, // BZ98R
+				  "wanAddress":"148.252.132.46:36010", // ADMIN Only // BZ98R
+				  "Launched":true, // BZ98R
+				  "lanAddresses":["127.0.0.1:57937","169.254.22.250:57937","169.254.96.180:57937","169.254.206.238:57937","169.254.235.175:57937","192.168.1.10:57937"], //  ADMIN Only // BZ98R
+				  "isAuth":true, // BZ98R
+			  }
+			}
+		  ],
+		  "Team":{ // Conceptual, not implemented for any game yet
+			"2":{
+			  "SubTeam":{
+				"6":{}
+			  }
+			}
+		  },
+		  "Game":{
+			"Version":"1.2.3", // BZ98R, BZCC
+			"Mods":["0"], // BZCC
+			"ModHash":"xyz" // BZCC, encoded CRC32? Base64? BZ2 holdover?
+		  },
+		  "Time": {
+			"Seconds": 660, // BZCC, RetroArch, time in state in seconds
+			"Resolution": 60, // BZCC, time resolution possible, 60 means minute resolution
+			"Max": false, // BZCC, timer is at max possible value
+			"Context": "InGame" // BZCC, state the timer is in, as for some games the timer resets with a state change, can be null
+		  },
+		  "Attributes":{ // random guff not set sorted or not important enough
+			"SyncJoin":false, //BZ98R
+			"TPS":20, //BZCC
+			"MaxPing":720, //BZCC
+			"ListServer":"Rebellion" // BZCC, gamelist of origin, "Rebellion" and "IonDriver" are current possible values
+		  }
+		}
+	],
+	"Raw": null // Admin mode only data showing raw data this request was generated from
 }

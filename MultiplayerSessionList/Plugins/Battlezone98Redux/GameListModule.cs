@@ -92,6 +92,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         game.Level["ID"] = $"{modID}:{mapID}";
 
                         game.Level["MapFile"] = raw.MapFile;
+                        game.Level["CRC32"] = raw.CRC32;
 
                         Task<MapData> mapDataTask = mapDataInterface.GetJson($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
 
