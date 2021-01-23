@@ -90,7 +90,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     {
                         SessionItem game = new SessionItem();
 
-                        game.Address["NAT"] = raw.d;
+                        game.Address["NAT"] = raw.g;
                         //if (!raw.Passworded)
                         //{
                         //    game.Address["Rich"] = string.Join(null, $"N,{raw.Name.Length},{raw.Name},{raw.mm.Length},{raw.mm},{raw.g},0,".Select(dr => $"{((int)dr):x2}"));
