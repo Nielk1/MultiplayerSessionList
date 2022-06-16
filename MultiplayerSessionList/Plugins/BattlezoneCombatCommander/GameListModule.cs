@@ -131,7 +131,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     break;
                                 case 1: // ServerInfoMode_OpenWaiting
                                 case 2: // ServerInfoMode_ClosedWaiting (full)
-                                    ServerState = Enum.GetName(typeof(ESessionState), ESessionState.PreGame);
+                                    if (raw.pl.Any(dr => dr != null && ((dr.Score ?? 0) != 0 || (dr.Deaths ?? 0) != 0 || (dr.Kills ?? 0) != 0)))
+                                        // PreGame status applied in error, players have in-game sourced data
+                                        ServerState = Enum.GetName(typeof(ESessionState), ESessionState.InGame);
+                                    else
+                                        ServerState = Enum.GetName(typeof(ESessionState), ESessionState.PreGame);
                                     break;
                                 case 3: // ServerInfoMode_OpenPlaying
                                 case 4: // ServerInfoMode_ClosedPlaying (full)

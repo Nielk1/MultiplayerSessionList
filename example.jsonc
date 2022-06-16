@@ -59,6 +59,8 @@
 			"Name":"A Bridge Too Far", // BZ98R, BZCC
 			"CRC32":"ABCD1234", // BZ98R
 			
+			"Image":"http://imagePath", // BZ98R, BZCC
+			
 			// Game   GameType  GameMode
 			// BZ98R  D         Deathmatch
 			// BZ98R  S         Strategy
