@@ -192,8 +192,8 @@
                                             break;
                                         case "Gog":
                                             elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
-                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
-                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].UserName });
+                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Username + '</a>');
+                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Username });
                                             break;
                                         default:
                                             elem.append(keys[k] + ": ");
