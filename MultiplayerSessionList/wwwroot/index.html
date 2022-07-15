@@ -83,7 +83,7 @@
                     var dat = data[keys[i]];
                     if (!Array.isArray(dat))
                         dat = [dat];
-                    if (dat.length > 0 && typeof (dat[0]) == "object")
+                    if (dat.length > 0 && typeof (dat[0]) == "object") // if the first item in the array is an object, assume they all are
                         for (var j = 0; j < dat.length; j++)
                             RichDataCheck(dat[j], rich[keys[i]]);
                 }
@@ -319,13 +319,13 @@
                                                 break;
                                             case "Gog":
                                                 elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
-                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
+                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Username + '</a>');
                                                 break;
                                             default:
                                                 elem.append(keys[k] + ": ");
                                                 if (session.Players[j].IDs[keys[k]].ProfileUrl) {
-                                                    if (session.Players[j].IDs[keys[k]].UserName) {
-                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].UserName + '</a>');
+                                                    if (session.Players[j].IDs[keys[k]].Username) {
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Username + '</a>');
                                                     } else {
                                                         elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].ID + '</a>');
                                                     }
