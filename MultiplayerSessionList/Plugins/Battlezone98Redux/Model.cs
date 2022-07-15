@@ -378,6 +378,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public string title { get; set; }
         public string type { get; set; }
         public string custom_type { get; set; }
+        public string custom_type_name { get; set; }
         public int min { get; set; }
         public int max { get; set; }
         public List<string> vehicles { get; set; }

@@ -65,6 +65,28 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 SemaphoreSlim HeroesLock = new SemaphoreSlim(1);
                 SemaphoreSlim SessionsLock = new SemaphoreSlim(1);
 
+                /*
+                Tasks.Add(Task.Run(async () =>
+                {
+                    await DataCacheLock.WaitAsync();
+                    try
+                    {
+                        DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                        DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+
+                        DataCache.AddObjectPath($"Level:GameMode:DM:Name", "Deathmatch");
+                        DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
+                        DataCache.AddObjectPath($"Level:GameMode:KOTH:Name", "King of the Hill");
+                        DataCache.AddObjectPath($"Level:GameMode:M_MPI:Name", "Mission MPI");
+                        DataCache.AddObjectPath($"Level:GameMode:A_MPI:Name", "Action MPI");
+                    }
+                    finally
+                    {
+                        DataCacheLock.Release();
+                    }
+                }));
+                */
+
                 foreach (var raw in gamelist.Values)
                 {
                     if (raw.LobbyType != Lobby.ELobbyType.Game)
@@ -238,33 +260,111 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
                             game.Level["Name"] = mapData?.map?.title;
                             game.Level["GameType"] = mapData?.map?.type;
-                            if(string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
+                            game.Level["GameMode"] = "Unknown";
+                            if (!string.IsNullOrWhiteSpace(mapData?.map?.type))
                             {
-                                if (!string.IsNullOrWhiteSpace(mapData?.map?.type))
+                                switch (mapData?.map?.type)
                                 {
-                                    switch (mapData?.map?.type)
-                                    {
-                                        case "D":
-                                            game.Level["GameMode"] = "Deathmatch";
-                                            break;
-                                        case "S":
-                                            game.Level["GameMode"] = "Strategy";
-                                            break;
-                                        case "K":
-                                            game.Level["GameMode"] = "King of the Hill";
-                                            break;
-                                        case "M":
-                                            game.Level["GameMode"] = "Mission MPI";
-                                            break;
-                                        case "A":
-                                            game.Level["GameMode"] = "Action MPI";
-                                            break;
-                                    }
+                                    case "D": // Deathmatch
+                                        game.Level.AddObjectPath("GameType:ID", "DM");
+                                        game.Level.AddObjectPath("GameMode:ID", "DM");
+                                        await DataCacheLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                            if (!DataCache.ContainsPath($"Level:GameMode:DM"))
+                                                DataCache.AddObjectPath($"Level:GameMode:DM:Name", "Deathmatch");
+                                        }
+                                        finally
+                                        {
+                                            DataCacheLock.Release();
+                                        }
+                                        break;
+                                    case "S": // Strategy
+                                        game.Level.AddObjectPath("GameType:ID", "STRAT");
+                                        game.Level.AddObjectPath("GameMode:ID", "STRAT");
+                                        await DataCacheLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                            if (!DataCache.ContainsPath($"Level:GameMode:STRAT"))
+                                                DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
+                                        }
+                                        finally
+                                        {
+                                            DataCacheLock.Release();
+                                        }
+                                        break;
+                                    case "K": // King of the Hill
+                                        game.Level.AddObjectPath("GameType:ID", "DM");
+                                        game.Level.AddObjectPath("GameMode:ID", "KOTH");
+                                        await DataCacheLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                            if (!DataCache.ContainsPath($"Level:GameMode:KOTH"))
+                                                DataCache.AddObjectPath($"Level:GameMode:KOTH:Name", "King of the Hill");
+                                        }
+                                        finally
+                                        {
+                                            DataCacheLock.Release();
+                                        }
+                                        break;
+                                    case "M": // Mission MPI
+                                        game.Level.AddObjectPath("GameType:ID", "STRAT");
+                                        game.Level.AddObjectPath("GameMode:ID", "M_MPI");
+                                        await DataCacheLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                            if (!DataCache.ContainsPath($"Level:GameMode:M_MPI"))
+                                                DataCache.AddObjectPath($"Level:GameMode:M_MPI:Name", "Mission MPI");
+                                        }
+                                        finally
+                                        {
+                                            DataCacheLock.Release();
+                                        }
+                                        break;
+                                    case "A": // Action MPI
+                                        game.Level.AddObjectPath("GameType:ID", "DM");
+                                        game.Level.AddObjectPath("GameMode:ID", "A_MPI");
+                                        await DataCacheLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                            if (!DataCache.ContainsPath($"Level:GameMode:A_MPI"))
+                                                DataCache.AddObjectPath($"Level:GameMode:A_MPI:Name", "Action MPI");
+                                        }
+                                        finally
+                                        {
+                                            DataCacheLock.Release();
+                                        }
+                                        break;
                                 }
                             }
-                            else
+                            if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
                             {
-                                game.Level["GameMode"] = mapData?.map?.custom_type;
+                                game.Level["GameMode"] = $"{mapData.map.custom_type}";
+                                if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type_name))
+                                {
+                                    //DataCache.AddObjectPath($"Level:GameMode:{mapData.map.custom_type}", mapData.map.custom_type_name);
+
+                                    await DataCacheLock.WaitAsync();
+                                    try
+                                    {
+                                        if (!DataCache.ContainsPath($"Level:GameMode:{mapData.map.custom_type}"))
+                                            DataCache.AddObjectPath($"Level:GameMode:{mapData.map.custom_type}:Name", mapData.map.custom_type_name); // TODO: consider localization
+                                    }
+                                    finally
+                                    {
+                                        DataCacheLock.Release();
+                                    }
+                                }
                             }
 
                             await ModsLock.WaitAsync();

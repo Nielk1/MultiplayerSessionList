@@ -84,6 +84,38 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 SemaphoreSlim ModsLock = new SemaphoreSlim(1);
                 SemaphoreSlim SessionsLock = new SemaphoreSlim(1);
 
+                /*
+                Tasks.Add(Task.Run(async () =>
+                {
+                    await DataCacheLock.WaitAsync();
+                    try
+                    {
+                        DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                        DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+
+                        DataCache.AddObjectPath($"Level:GameMode:DM:Name", "Deathmatch");
+                        DataCache.AddObjectPath($"Level:GameMode:KOTH:Name", "King of the Hill");
+                        DataCache.AddObjectPath($"Level:GameMode:CTF:Name", "Capture the Flag");
+                        DataCache.AddObjectPath($"Level:GameMode:LOOT:Name", "Loot");
+                        DataCache.AddObjectPath($"Level:GameMode:RACE:Name", "Race");
+
+                        DataCache.AddObjectPath($"Level:GameMode:TEAM_DM:Name", "Team Deathmatch");
+                        DataCache.AddObjectPath($"Level:GameMode:TEAM_KOTH:Name", "Team King of the Hill");
+                        DataCache.AddObjectPath($"Level:GameMode:TEAM_CTF:Name", "Team Capture the Flag");
+                        DataCache.AddObjectPath($"Level:GameMode:TEAM_LOOT:Name", "Team Loot");
+                        DataCache.AddObjectPath($"Level:GameMode:TEAM_RACE:Name", "Team Race");
+
+                        DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
+                        DataCache.AddObjectPath($"Level:GameMode:FFA:Name", "Free for All");
+                        DataCache.AddObjectPath($"Level:GameMode:MPI:Name", "MPI");
+                    }
+                    finally
+                    {
+                        DataCacheLock.Release();
+                    }
+                }));
+                */
+
                 foreach (var raw in gamelist.GET)
                 {
                     Tasks.Add(Task.Run(async () =>
@@ -247,42 +279,146 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                                     switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                                     {
-                                        case 0:
-                                            game.Level["GameType"] = "DM";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Deathmatch";
+                                        case 0: // Deathmatch
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "DM");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM:Name", "Deathmatch");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
-                                        case 1:
-                                            game.Level["GameType"] = "KOTH";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "King of the Hill";
+                                        case 1: // King of the Hill
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "KOTH");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}KOTH"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}KOTH:Name", "King of the Hill");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
-                                        case 2:
-                                            game.Level["GameType"] = "CTF";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Capture the Flag";
+                                        case 2: // Capture the Flag
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "CTF");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}CTF"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}CTF:Name", "Capture the Flag");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
-                                        case 3:
-                                            game.Level["GameType"] = "Loot";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Loot";
+                                        case 3: // Loot
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "LOOT");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}LOOT"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}LOOT:Name", "Loot");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                         case 4: // DM [RESERVED]
-                                            game.Level["GameType"] = "DM";
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
-                                        case 5:
-                                            game.Level["GameType"] = "Race";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Race";
+                                        case 5: // Race
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "RACE");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE:Name", "Race");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                         case 6: // Race (Vehicle Only)
-                                            game.Level["GameType"] = "Race";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Race";
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "RACE");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE:Name", "Race");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             game.Level.AddObjectPath("Attributes:VehicleOnly", true);
                                             break;
                                         case 7: // DM (Vehicle Only)
-                                            game.Level["GameType"] = "DM";
-                                            game.Level["GameMode"] = (m_TeamsOn ? "Team " : String.Empty) + "Deathmatch";
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
+                                            game.Level.AddObjectPath("GameMode:ID", (m_TeamsOn ? "TEAM_" : String.Empty) + "DM");
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM:Name", "Deathmatch");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             game.Level.AddObjectPath("Attributes:VehicleOnly", true);
                                             break;
                                         default:
-                                            game.Level["GameType"] = "DM";
+                                            game.Level.AddObjectPath("GameType:ID", "DM");
                                             //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + "DM [UNKNOWN {raw.GameSubType}]";
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                     }
                                 }
@@ -293,33 +429,89 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     switch ((GameMode)GetGameModeOutput)
                                     {
                                         case GameMode.GAMEMODE_TEAM_STRAT:
-                                            game.Level["GameType"] = "STRAT";
-                                            game.Level["GameMode"] = "STRAT";
+                                            game.Level.AddObjectPath("GameType:ID", "STRAT");
+                                            game.Level.AddObjectPath("GameMode:ID", "STRAT");
                                             m_TeamsOn = true;
                                             m_OnlyOneTeam = false;
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                         case GameMode.GAMEMODE_STRAT:
-                                            game.Level["GameType"] = "STRAT";
-                                            game.Level["GameMode"] = "FFA";
+                                            game.Level.AddObjectPath("GameType:ID", "STRAT");
+                                            game.Level.AddObjectPath("GameMode:ID", "FFA");
                                             m_TeamsOn = false;
                                             m_OnlyOneTeam = false;
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:FFA"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:FFA:Name", "Free for All");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                         case GameMode.GAMEMODE_MPI:
-                                            game.Level["GameType"] = "MPI";
-                                            game.Level["GameMode"] = "MPI";
+                                            game.Level.AddObjectPath("GameType:ID", "STRAT");
+                                            game.Level.AddObjectPath("GameMode:ID", "MPI");
                                             m_TeamsOn = true;
                                             m_OnlyOneTeam = true;
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:MPI"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:MPI:Name", "MPI");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                         default:
                                             //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
-                                            game.Level["GameType"] = "STRAT";
+                                            game.Level.AddObjectPath("GameType:ID", "STRAT");
                                             //game.Level["GameMode"] = null;
+                                            await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }
                                             break;
                                     }
                                 }
                                 break;
                             case 3: // impossible, BZCC limits to 0-2
-                                game.Level["GameType"] = "MPI"; //  "MPI [Invalid]";
+                                game.Level.AddObjectPath("GameType:ID", "MPI"); //  "MPI [Invalid]";
+                                await DataCacheLock.WaitAsync();
+                                try
+                                {
+                                    if (!DataCache.ContainsPath($"Level:GameType:MPI"))
+                                        DataCache.AddObjectPath($"Level:GameType:MPI:Name", "MPI");
+                                }
+                                finally
+                                {
+                                    DataCacheLock.Release();
+                                }
                                 break;
                         }
 
