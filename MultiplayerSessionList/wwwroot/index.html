@@ -7,18 +7,22 @@
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link href="/lib/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/icomoon.css" />
+    <link rel="stylesheet"
+          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
 </head>
 <body>
     <style>
         .pre {
             white-space: pre;
         }
+
         .player_avatars {
             text-align: center;
         }
-        .player_avatars a img {
-            height: 100px;
-        }
+
+            .player_avatars a img {
+                height: 100px;
+            }
     </style>
 
     <div class="container pt-2">
@@ -62,7 +66,7 @@
         </table>
     </div>
 
-
+    <div class="container-fluid"><pre><code class="language-json small" id="codeRawJson"></code></pre></div>
 
     <footer class="border-top footer text-muted">
         <div class="container">
@@ -71,6 +75,7 @@
     </footer>
     <script src="/lib/jquery/dist/jquery.min.js"></script>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 
     <script>
         var tableColSpan = 6;
@@ -97,6 +102,29 @@
                 }
             }
             //console.log('-------------');
+        }
+
+        function DrawModNode(Mod) {
+            if (Mod.Url != null) {
+                var elem = $('<a/>');
+                elem.attr('href', Mod.Url);
+                elem.data('id', Mod.ID);
+                if (Mod.Name != null) {
+                    elem.text(Mod.Name);
+                } else {
+                    elem.text(Mod.ID);
+                }
+                return elem;
+            } else {
+                var elem = $('<span/>');
+                elem.data('id', Mod.ID);
+                if (Mod.Name != null) {
+                    elem.text(Mod.Name);
+                } else {
+                    elem.text(Mod.ID);
+                }
+                return elem;
+            }
         }
 
         //$(document).ready(function () {
@@ -141,6 +169,7 @@
             }
             GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key }).done(function (data) {
                 $('#tblGames>tbody').empty();
+                $('#codeRawJson').empty();
                 if (data.Sessions.length > 0) {
                     var heroes = data.Heroes;
                     if (data.DataCache != null) {
@@ -225,6 +254,37 @@
                                     for (var k = 0; k < keys.length; k++) {
                                         if (keys[k] == "ID") continue; // omit ID as we printed it above
                                         if (keys[k] == "Attributes") continue; // omit attributes as we print them below
+
+                                        if (keys[k] == "Mod") {
+                                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
+                                            col.append("Mod: ");
+                                            if (data.Mods != null && data.Mods[session.Level[keys[k]]] != null) {
+                                                var Mod = data.Mods[session.Level[keys[k]]];
+                                                col.append(DrawModNode(Mod));
+                                            } else {
+                                                col.append(JSON.stringify(session.Level[keys[k]]))
+                                            }
+                                            wrapper.append(col);
+                                            continue;
+                                        }
+                                        if (keys[k] == "Mods") {
+                                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
+                                            col.append("Mods: [");
+                                            var mod_collection = session.Level[keys[k]];
+                                            for (var i = 0; i < mod_collection.length; i++) {
+                                                if (i != 0)
+                                                    col.append(",");
+                                                if (data.Mods != null && data.Mods[mod_collection[i]] != null) {
+                                                    var Mod = data.Mods[mod_collection[i]];
+                                                    col.append(DrawModNode(Mod));
+                                                } else {
+                                                    col.append(JSON.stringify(session.Level[keys[k]]));
+                                                }
+                                            }
+                                            col.append("]");
+                                            wrapper.append(col);
+                                            continue;
+                                        }
 
                                         var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
@@ -414,6 +474,37 @@
                                     //if (keys[k] == "ID") continue;
                                     //if (keys[k] == "Attributes") continue;
 
+                                    if (keys[k] == "Mod") {
+                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
+                                        col.append("Mod: ");
+                                        if (data.Mods != null && data.Mods[session.Game[keys[k]]] != null) {
+                                            var Mod = data.Mods[session.Game[keys[k]]];
+                                            col.append(DrawModNode(Mod));
+                                        } else {
+                                            col.append(JSON.stringify(session.Game[keys[k]]))
+                                        }
+                                        levelRow.append(col);
+                                        continue;
+                                    }
+                                    if (keys[k] == "Mods") {
+                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
+                                        col.append("Mods: [");
+                                        var mod_collection = session.Game[keys[k]];
+                                        for (var i = 0; i < mod_collection.length; i++) {
+                                            if (i != 0)
+                                                col.append(",");
+                                            if (data.Mods != null && data.Mods[mod_collection[i]] != null) {
+                                                var Mod = data.Mods[mod_collection[i]];
+                                                col.append(DrawModNode(Mod));
+                                            } else {
+                                                col.append(JSON.stringify(session.Game[keys[k]]));
+                                            }
+                                        }
+                                        col.append("]");
+                                        levelRow.append(col);
+                                        continue;
+                                    }
+
                                     var col = $('<div class="col-12" style="line-break:anywhere;" />');
 
                                     col.append(keys[k] + ": ");
@@ -484,9 +575,13 @@
                 } else {
                     $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
                 }
+                {
+                    $('#codeRawJson').text(JSON.stringify(data, null, 2));
+                    hljs.highlightAll();
+                }
             });
         });
-        //});
+                                                                //});
     </script>
 
 </body>
