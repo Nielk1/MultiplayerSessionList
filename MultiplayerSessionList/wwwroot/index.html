@@ -513,14 +513,14 @@
                                         var col = $('<div class="col-12" style="line-break:anywhere;" />');
                                         col.append("Mods: [");
                                         var mod_collection = session.Game[keys[k]];
-                                        for (var i = 0; i < mod_collection.length; i++) {
-                                            if (i != 0)
+                                        for (var l = 0; l < mod_collection.length; l++) {
+                                            if (l != 0)
                                                 col.append(",");
-                                            if (data.Mods != null && data.Mods[mod_collection[i]] != null) {
-                                                var Mod = data.Mods[mod_collection[i]];
+                                            if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
+                                                var Mod = data.Mods[mod_collection[l]];
                                                 col.append(DrawModNode(Mod));
                                             } else {
-                                                col.append(JSON.stringify(mod_collection[i]));
+                                                col.append(JSON.stringify(mod_collection[l]));
                                             }
                                         }
                                         col.append("]");
