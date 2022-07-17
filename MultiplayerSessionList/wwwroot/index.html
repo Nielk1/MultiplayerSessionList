@@ -272,14 +272,14 @@
                                             var col = $('<div class="col-12" style="line-break:anywhere;" />');
                                             col.append("Mods: [");
                                             var mod_collection = session.Level[keys[k]];
-                                            for (var i = 0; i < mod_collection.length; i++) {
-                                                if (i != 0)
+                                            for (var l = 0; l < mod_collection.length; l++) {
+                                                if (l != 0)
                                                     col.append(",");
-                                                if (data.Mods != null && data.Mods[mod_collection[i]] != null) {
-                                                    var Mod = data.Mods[mod_collection[i]];
+                                                if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
+                                                    var Mod = data.Mods[mod_collection[l]];
                                                     col.append(DrawModNode(Mod));
                                                 } else {
-                                                    col.append(JSON.stringify(mod_collection[i]));
+                                                    col.append(JSON.stringify(mod_collection[l]));
                                                 }
                                             }
                                             col.append("]");
@@ -350,7 +350,7 @@
                             playerTable.append(playerTableHeader)
                             playerTable.append(playerTableBody)
 
-                            var ColumnNames = ["Name", "ID", "Hero"];
+                            var ColumnNames = ["Name", "ID", "Hero", "Attributes"];
                             for (var j = 0; j < session.Players.length; j++) {
                                 var playerRow = $('<tr/>');
 
@@ -424,6 +424,28 @@
                                                 elem.text(heroes[session.Players[j].Hero.ID].Description);
                                                 cell.append('<br/>');
                                                 cell.append(elem);
+                                            }
+                                        }
+                                    }
+                                    playerRow.append(cell);
+                                }
+
+                                // attributes
+                                {
+                                    var cell = $('<td/>');
+                                    if (session.Players[j].Attributes != null) {
+                                        {
+                                            var keys = Object.keys(session.Players[j].Attributes);
+                                            for (var k = 0; k < keys.length; k++) {
+                                                //if (keys[k] == "ID") continue;
+
+                                                var col = $('<div style="line-break:anywhere;" />');
+
+                                                col.append(keys[k] + ": ");
+                                                var val = session.Players[j].Attributes[keys[k]];
+                                                col.append(JSON.stringify(val));
+
+                                                cell.append(col);
                                             }
                                         }
                                     }
@@ -582,7 +604,7 @@
                 }
             });
         });
-                                                                //});
+                                                                            //});
     </script>
 
 </body>
