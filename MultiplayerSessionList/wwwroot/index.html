@@ -279,7 +279,7 @@
                                                     var Mod = data.Mods[mod_collection[i]];
                                                     col.append(DrawModNode(Mod));
                                                 } else {
-                                                    col.append(JSON.stringify(session.Level[keys[k]]));
+                                                    col.append(JSON.stringify(mod_collection[i]));
                                                 }
                                             }
                                             col.append("]");
@@ -498,7 +498,7 @@
                                                 var Mod = data.Mods[mod_collection[i]];
                                                 col.append(DrawModNode(Mod));
                                             } else {
-                                                col.append(JSON.stringify(session.Game[keys[k]]));
+                                                col.append(JSON.stringify(mod_collection[i]));
                                             }
                                         }
                                         col.append("]");
