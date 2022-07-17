@@ -163,6 +163,7 @@
             var key = $('#btnRefresh').data('key');
 
             $('#tblGames>tbody').empty();
+            $('#codeRawJson').empty();
             $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-refresh fa-spin"></i> Loading <i class="fa fa-refresh fa-spin"></i></td></tr>');
             if (GetGamesAjax != null) {
                 GetGamesAjax.abort();
