@@ -259,8 +259,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         {
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
                             game.Level["Name"] = mapData?.map?.title;
-                            game.Level["GameType"] = mapData?.map?.type;
-                            game.Level["GameMode"] = "Unknown";
+                            //game.Level["GameType"] = mapData?.map?.type;
+                            game.Level.AddObjectPath("GameType:ID", mapData?.map?.type);
+                            //game.Level["GameMode"] = "Unknown";
                             if (!string.IsNullOrWhiteSpace(mapData?.map?.type))
                             {
                                 switch (mapData?.map?.type)
