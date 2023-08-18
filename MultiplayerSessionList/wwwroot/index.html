@@ -329,7 +329,7 @@
                         }
 
                         // players
-                        if (session.PlayerTypes != null) {
+                        if (session.PlayerTypes != null && session.Players != null) {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
 
                             var avatars = [];

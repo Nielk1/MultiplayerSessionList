@@ -122,6 +122,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     {
                         SessionItem game = new SessionItem();
 
+                        if (raw.g == "XXXXXXX@XX")
+                            return;
+
                         game.Address["NAT"] = raw.g;
                         //if (!raw.Passworded)
                         //{
@@ -520,110 +523,111 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             game.Game.Add("ModHash", raw.d); // base64 encoded CRC32
                         }
 
-                        foreach (var dr in raw.pl)
-                        {
-                            PlayerItem player = new PlayerItem();
-
-                            player.Name = dr.Name;
-                            player.Type = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
-
-                            if ((dr.Team ?? 255) != 255) // 255 means not on a team yet? could be understood as -1
+                        if (raw.pl != null)
+                            foreach (var dr in raw.pl)
                             {
-                                player.Team = new PlayerTeam();
-                                if (m_TeamsOn)
+                                PlayerItem player = new PlayerItem();
+
+                                player.Name = dr.Name;
+                                player.Type = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
+
+                                if ((dr.Team ?? 255) != 255) // 255 means not on a team yet? could be understood as -1
                                 {
-                                    if (!m_OnlyOneTeam)
+                                    player.Team = new PlayerTeam();
+                                    if (m_TeamsOn)
                                     {
-                                        if (dr.Team >= 1 && dr.Team <= 5)
-                                            player.Team.ID = "1";
-                                        if (dr.Team >= 6 && dr.Team <= 10)
-                                            player.Team.ID = "2";
-                                        if (dr.Team == 1 || dr.Team == 6)
-                                            player.Team.Leader = true;
+                                        if (!m_OnlyOneTeam)
+                                        {
+                                            if (dr.Team >= 1 && dr.Team <= 5)
+                                                player.Team.ID = "1";
+                                            if (dr.Team >= 6 && dr.Team <= 10)
+                                                player.Team.ID = "2";
+                                            if (dr.Team == 1 || dr.Team == 6)
+                                                player.Team.Leader = true;
+                                        }
+                                    }
+                                    player.Team.SubTeam = new PlayerTeam() { ID = dr.Team.Value.ToString() };
+                                    player.GetIDData("Slot").Add("ID", dr.Team);
+                                }
+
+                                if (dr.Kills.HasValue)
+                                    player.Stats.Add("Kills", dr.Kills);
+                                if (dr.Deaths.HasValue)
+                                    player.Stats.Add("Deaths", dr.Deaths);
+                                if (dr.Score.HasValue)
+                                    player.Stats.Add("Score", dr.Score);
+
+                                if (!string.IsNullOrWhiteSpace(dr.PlayerID))
+                                {
+                                    player.GetIDData("BZRNet").Add("ID", dr.PlayerID);
+                                    switch (dr.PlayerID[0])
+                                    {
+                                        case 'S':
+                                            {
+                                                player.GetIDData("Steam").Add("Raw", dr.PlayerID.Substring(1));
+                                                try
+                                                {
+                                                    ulong playerID = 0;
+                                                    if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
+                                                    {
+                                                        player.GetIDData("Steam").Add("ID", playerID.ToString());
+
+                                                        await DataCacheLock.WaitAsync();
+                                                        try
+                                                        {
+                                                            if (!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
+                                                            {
+                                                                PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                                DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
+                                                                DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
+                                                                DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+                                                            DataCacheLock.Release();
+                                                        }
+                                                    }
+                                                }
+                                                catch { }
+                                            }
+                                            break;
+                                        case 'G':
+                                            {
+                                                player.GetIDData("Gog").Add("Raw", dr.PlayerID.Substring(1));
+                                                try
+                                                {
+                                                    ulong playerID = 0;
+                                                    if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
+                                                    {
+                                                        playerID = GogInterface.CleanGalaxyUserId(playerID);
+                                                        player.GetIDData("Gog").Add("ID", playerID.ToString());
+
+                                                        await DataCacheLock.WaitAsync();
+                                                        try
+                                                        {
+                                                            if (!DataCache.ContainsPath($"Players:IDs:Gog:{playerID.ToString()}"))
+                                                            {
+                                                                GogUserData playerData = await gogInterface.Users(playerID);
+                                                                DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                                DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:Username", playerData.username);
+                                                                DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+                                                            DataCacheLock.Release();
+                                                        }
+                                                    }
+                                                }
+                                                catch { }
+                                            }
+                                            break;
                                     }
                                 }
-                                player.Team.SubTeam = new PlayerTeam() { ID = dr.Team.Value.ToString() };
-                                player.GetIDData("Slot").Add("ID", dr.Team);
+
+                                game.Players.Add(player);
                             }
-
-                            if (dr.Kills.HasValue)
-                                player.Stats.Add("Kills", dr.Kills);
-                            if (dr.Deaths.HasValue)
-                                player.Stats.Add("Deaths", dr.Deaths);
-                            if (dr.Score.HasValue)
-                                player.Stats.Add("Score", dr.Score);
-
-                            if (!string.IsNullOrWhiteSpace(dr.PlayerID))
-                            {
-                                player.GetIDData("BZRNet").Add("ID", dr.PlayerID);
-                                switch (dr.PlayerID[0])
-                                {
-                                    case 'S':
-                                        {
-                                            player.GetIDData("Steam").Add("Raw", dr.PlayerID.Substring(1));
-                                            try
-                                            {
-                                                ulong playerID = 0;
-                                                if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
-                                                {
-                                                    player.GetIDData("Steam").Add("ID", playerID.ToString());
-
-                                                    await DataCacheLock.WaitAsync();
-                                                    try
-                                                    {
-                                                        if (!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
-                                                        {
-                                                            PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-                                                        DataCacheLock.Release();
-                                                    }
-                                                }
-                                            }
-                                            catch { }
-                                        }
-                                        break;
-                                    case 'G':
-                                        {
-                                            player.GetIDData("Gog").Add("Raw", dr.PlayerID.Substring(1));
-                                            try
-                                            {
-                                                ulong playerID = 0;
-                                                if (ulong.TryParse(dr.PlayerID.Substring(1), out playerID))
-                                                {
-                                                    playerID = GogInterface.CleanGalaxyUserId(playerID);
-                                                    player.GetIDData("Gog").Add("ID", playerID.ToString());
-
-                                                    await DataCacheLock.WaitAsync();
-                                                    try
-                                                    {
-                                                        if (!DataCache.ContainsPath($"Players:IDs:Gog:{playerID.ToString()}"))
-                                                        {
-                                                            GogUserData playerData = await gogInterface.Users(playerID);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:Username", playerData.username);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-                                                        DataCacheLock.Release();
-                                                    }
-                                                }
-                                            }
-                                            catch { }
-                                        }
-                                        break;
-                                }
-                            }
-
-                            game.Players.Add(player);
-                        }
 
                         if (raw.GameTimeMinutes.HasValue)
                         {

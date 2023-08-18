@@ -207,24 +207,24 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                         break;
                                     case 'G':
                                         {
-                                            player.GetIDData("Gog").Add("Raw", dr.id.Substring(1));
+                                            player.GetIDData("GOG").Add("Raw", dr.id.Substring(1));
                                             try
                                             {
                                                 ulong playerID = 0;
                                                 if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                                 {
                                                     playerID = GogInterface.CleanGalaxyUserId(playerID);
-                                                    player.GetIDData("Gog").Add("ID", playerID.ToString());
+                                                    player.GetIDData("GOG").Add("ID", playerID.ToString());
 
                                                     await DataCacheLock.WaitAsync();
                                                     try
                                                     {
-                                                        if (!DataCache.ContainsPath($"Players:IDs:Gog:{playerID.ToString()}"))
+                                                        if (!DataCache.ContainsPath($"Players:IDs:GOG:{playerID.ToString()}"))
                                                         {
                                                             GogUserData playerData = await gogInterface.Users(playerID);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:Username", playerData.username);
-                                                            DataCache.AddObjectPath($"Players:IDs:Gog:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
+                                                            DataCache.AddObjectPath($"Players:IDs:GOG:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
+                                                            DataCache.AddObjectPath($"Players:IDs:GOG:{playerID.ToString()}:Username", playerData.username);
+                                                            DataCache.AddObjectPath($"Players:IDs:GOG:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
                                                         }
                                                     }
                                                     finally
