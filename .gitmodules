@@ -1,0 +1,3 @@
+[submodule "Deps/SteamWebAPI2"]
+	path = Deps/SteamWebAPI2
+	url = https://github.com/Nielk1/SteamWebAPI2.git
