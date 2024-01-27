@@ -5,7 +5,11 @@ VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MultiplayerSessionList", "MultiplayerSessionList\MultiplayerSessionList.csproj", "{8B642F39-C253-4CB7-B459-A82CA7CBDA02}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication2", "WebApplication2\WebApplication2.csproj", "{B51EB381-A9D3-40A0-B7AA-FD72ED149F3B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deps", "Deps", "{2A840C94-12C4-40E2-88A6-6E2B8822F59A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SteamWebAPI2", "Deps\SteamWebAPI2\src\SteamWebAPI2\SteamWebAPI2.csproj", "{7F9A1553-2534-4E24-9596-3A14C5FB3D7B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Steam.Models", "Deps\SteamWebAPI2\src\Steam.Models\Steam.Models.csproj", "{BB16101D-C348-4C68-B7F8-4CFFA2F8C8AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,13 +21,21 @@ Global
 		{8B642F39-C253-4CB7-B459-A82CA7CBDA02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B642F39-C253-4CB7-B459-A82CA7CBDA02}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B642F39-C253-4CB7-B459-A82CA7CBDA02}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B51EB381-A9D3-40A0-B7AA-FD72ED149F3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B51EB381-A9D3-40A0-B7AA-FD72ED149F3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B51EB381-A9D3-40A0-B7AA-FD72ED149F3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B51EB381-A9D3-40A0-B7AA-FD72ED149F3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F9A1553-2534-4E24-9596-3A14C5FB3D7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F9A1553-2534-4E24-9596-3A14C5FB3D7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F9A1553-2534-4E24-9596-3A14C5FB3D7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F9A1553-2534-4E24-9596-3A14C5FB3D7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB16101D-C348-4C68-B7F8-4CFFA2F8C8AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB16101D-C348-4C68-B7F8-4CFFA2F8C8AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB16101D-C348-4C68-B7F8-4CFFA2F8C8AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB16101D-C348-4C68-B7F8-4CFFA2F8C8AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7F9A1553-2534-4E24-9596-3A14C5FB3D7B} = {2A840C94-12C4-40E2-88A6-6E2B8822F59A}
+		{BB16101D-C348-4C68-B7F8-4CFFA2F8C8AE} = {2A840C94-12C4-40E2-88A6-6E2B8822F59A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DE48A3AD-AC09-471F-BC12-93B8B63F157C}

@@ -26,9 +26,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
-        private CachedWebClient<MapData> mapDataInterface;
+        private CachedJsonWebClient mapDataInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedWebClient<MapData> mapDataInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedJsonWebClient mapDataInterface)
         {
             queryUrl = configuration["bigboat:battlezone_98_redux:sessions"];
             mapUrl = configuration["bigboat:battlezone_98_redux:maps"];
@@ -118,7 +118,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         game.Level["MapFile"] = raw.MapFile;
                         game.Level["CRC32"] = raw.CRC32;
 
-                        Task<MapData> mapDataTask = mapDataInterface.GetJson($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
+                        Task<MapData> mapDataTask = mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
 
                         if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0") game.Level.Add("Mod", raw.WorkshopID);
 
@@ -377,6 +377,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                     {
                                         Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
                                         Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
+                                        if (mod.Value?.image != null)
+                                            Mods.AddObjectPath($"{mod.Key}:Image", mod.Value?.image);
                                         if (UInt64.TryParse(mod.Key, out _))
                                         {
                                             Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");

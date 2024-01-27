@@ -4,7 +4,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.4" />
-    <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.26" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Deps\SteamWebAPI2\src\Steam.Models\Steam.Models.csproj" />
+    <ProjectReference Include="..\Deps\SteamWebAPI2\src\SteamWebAPI2\SteamWebAPI2.csproj" />
   </ItemGroup>
 </Project>

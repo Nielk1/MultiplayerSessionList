@@ -8,6 +8,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Steam.Models.SteamCommunity;
+using Steam.Models.GameServers;
+using SteamWebAPI2.Models.GameServers;
 
 namespace MultiplayerSessionList.Services
 {
@@ -16,6 +18,8 @@ namespace MultiplayerSessionList.Services
         //private HttpClient httpClient;
         private IMemoryCache memCache;
 
+        private HttpClient httpClient;
+
         private string SteamApiKey;
         private SteamWebInterfaceFactory steamFactory;
 
@@ -23,17 +27,25 @@ namespace MultiplayerSessionList.Services
         /// SteamUser WebAPI Interface
         /// </summary>
         private SteamUser steamInterface;
+        private GameServersService steamGameServersInterface;
 
 
         public SteamInterface(IConfiguration configuration, IMemoryCache memCache)
         {
-            //this.httpClient = new HttpClient();
-
+            this.httpClient = new HttpClient();
+            
             SteamApiKey = configuration["Steam:ApiKey"];
 
             this.memCache = memCache;
             steamFactory = new SteamWebInterfaceFactory(SteamApiKey);
-            steamInterface = steamFactory.CreateSteamWebInterface<SteamUser>(new HttpClient());
+            steamInterface = steamFactory.CreateSteamWebInterface<SteamUser>(httpClient);
+            steamGameServersInterface = steamFactory.CreateSteamWebInterface<GameServersService>(httpClient);
+        }
+
+        public async Task<GetServerResponse[]> GetGames(string filter = null, UInt32? limit = null)
+        {
+            var response = await steamGameServersInterface.GetServerListAsync(filter, limit);
+            return response.Data.Response.Servers;
         }
 
         public async Task<PlayerSummaryModel> Users(ulong playerID)
@@ -56,6 +68,7 @@ namespace MultiplayerSessionList.Services
             return null;
         }
 
+        [Obsolete("Use pre-baked data instead, consider restoring this function in the future")]
         public async Task<string> GetSteamWorkshopName(string workshopId)
         {
             if (string.IsNullOrWhiteSpace(workshopId)) return null;

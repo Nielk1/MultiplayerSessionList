@@ -168,7 +168,10 @@
             if (GetGamesAjax != null) {
                 GetGamesAjax.abort();
             }
-            GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key }).done(function (data) {
+            var windowSearch = window.location.search;
+            if (windowSearch.length > 0)
+                windowSearch = '&' + windowSearch.substring(1);
+            GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key + windowSearch }).done(function (data) {
                 $('#tblGames>tbody').empty();
                 $('#codeRawJson').empty();
                 if (data.Sessions.length > 0) {
@@ -210,9 +213,9 @@
                             }
                             sessionRow.append(cell);
                         }
-                        sessionRow.append($('<td/>').text(session.Status.IsLocked));
-                        sessionRow.append($('<td/>').text(session.Status.HasPassword));
-                        sessionRow.append($('<td/>').text(session.Status.State));
+                        sessionRow.append($('<td/>').text(session.Status && session.Status.IsLocked));
+                        sessionRow.append($('<td/>').text(session.Status && session.Status.HasPassword));
+                        sessionRow.append($('<td/>').text(session.Status && session.Status.State));
                         sessionRow.append($('<td/>').text(''));
                         $('#tblGames>tbody').append(sessionRow);
 

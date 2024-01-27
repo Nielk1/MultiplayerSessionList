@@ -44,9 +44,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
-        private CachedWebClient<MapData> mapDataInterface;
+        private CachedJsonWebClient mapDataInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedWebClient<MapData> mapDataInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedJsonWebClient mapDataInterface)
         {
             queryUrl = configuration["bigboat:battlezone_combat_commander:sessions"];
             mapUrl = configuration["bigboat:battlezone_combat_commander:maps"];
@@ -151,7 +151,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                         Task<MapData> mapDataTask = null;
                         if (!string.IsNullOrWhiteSpace(raw.MapFile))
-                            mapDataTask = mapDataInterface.GetJson($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
+                            mapDataTask = mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
 
                         game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.Locked);
                         game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.Passworded);
@@ -657,6 +657,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
                                         Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
+                                        if (mod.Value?.image != null)
+                                            Mods.AddObjectPath($"{mod.Key}:Image", mod.Value?.image);
                                         if (UInt64.TryParse(mod.Key, out _))
                                         {
                                             Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");

@@ -23,6 +23,7 @@ namespace MultiplayerSessionList.Modules
 
         public const string PLAYERTYPE_PLAYER = "Player";
         public const string PLAYERTYPE_SPECTATOR = "Spectator";
+        public const string PLAYERTYPE_BOT = "Bot";
     }
 
     public interface IGameListModule

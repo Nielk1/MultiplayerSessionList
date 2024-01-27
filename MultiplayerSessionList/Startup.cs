@@ -25,8 +25,7 @@ namespace MultiplayerSessionList
 
             services.AddSingleton<GogInterface>();
             services.AddSingleton<SteamInterface>();
-            services.AddSingleton<CachedWebClient<Plugins.BattlezoneCombatCommander.MapData>>();
-            services.AddSingleton<CachedWebClient<Plugins.Battlezone98Redux.MapData>>();
+            services.AddSingleton<CachedJsonWebClient>();
 
             services.AddSingleton<GameListModuleManager>();
 

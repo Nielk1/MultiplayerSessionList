@@ -132,5 +132,6 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public string workshop_name { get; set; }
         public string type { get; set; }
         public List<string> dependencies { get; set; }
+        public string image { get; set; }
     }
 }
