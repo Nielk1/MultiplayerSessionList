@@ -40,7 +40,8 @@ namespace MultiplayerSessionList.Controllers
             return Ok(_gameListModuleManager
                 .GameListPlugins
                 .Values
-                .Select(dr => new { Key = dr.GameID, Name = dr.Title }));
+                .Select(dr => new { Key = dr.GameID, Name = dr.Title })
+                .OrderBy(dr => dr.Name));
         }
     }
 }

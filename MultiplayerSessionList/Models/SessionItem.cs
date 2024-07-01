@@ -10,6 +10,8 @@ namespace MultiplayerSessionList.Models
 {
     public class SessionItem
     {
+        public string ID { get; set; }
+
         public string Type { get; set; }
 
         public string Name { get; set; }

@@ -99,6 +99,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     {
                         SessionItem game = new SessionItem();
 
+                        game.ID = $"Rebellion:B{raw.id}";
+
                         game.Name = raw.Name;
 
                         game.Address["LobbyID"] = $"B{raw.id}";
@@ -151,7 +153,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             if (admin) player.Attributes.Add("wanAddress", dr.wanAddress);
                             player.Attributes.Add("Launched", dr.Launched);
                             if (admin) player.Attributes.Add("lanAddresses", JArray.FromObject(dr.lanAddresses));
-                            player.Attributes.Add("isAuth", dr.isAuth);
+                            player.Attributes.Add("IsAuth", dr.isAuth);
 
                             if (dr.Team.HasValue)
                             {
@@ -378,7 +380,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                         Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
                                         Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
                                         if (mod.Value?.image != null)
-                                            Mods.AddObjectPath($"{mod.Key}:Image", mod.Value?.image);
+                                            Mods.AddObjectPath($"{mod.Key}:Image", $"{mapUrl.TrimEnd('/')}/{mod.Value.image}");
                                         if (UInt64.TryParse(mod.Key, out _))
                                         {
                                             Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");

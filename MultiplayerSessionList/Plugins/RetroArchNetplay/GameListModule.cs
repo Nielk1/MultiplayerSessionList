@@ -53,9 +53,11 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                     Session s = raw.fields;
                     SessionItem game = new SessionItem();
 
+                    game.ID = $"libretro:{s.RoomID}";
+
                     game.Name = $"{s.Username} - {s.GameName}";
 
-                    game.Address["IP"] = s.IP.ToString();
+                    game.Address["IP"] = s.IP;
                     game.Address["Port"] = s.Port;
                     game.Address["HostMethod"] = s.HostMethod.ToString();
                     if (s.HostMethod == HostMethod.HostMethodMITM)

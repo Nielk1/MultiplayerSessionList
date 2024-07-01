@@ -125,6 +125,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         if (raw.g == "XXXXXXX@XX")
                             return;
 
+                        game.ID = $"{raw.proxySource ?? "IonDriver"}:{raw.g}";
+
                         game.Address["NAT"] = raw.g;
                         //if (!raw.Passworded)
                         //{
@@ -237,14 +239,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     break;
                             }
 
-                        if (string.IsNullOrWhiteSpace(raw.proxySource))
-                        {
-                            game.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, $"IonDriver");
-                        }
-                        else
-                        {
-                            game.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, raw.proxySource);
-                        }
+                        game.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, raw.proxySource ?? "IonDriver");
 
                         bool m_TeamsOn = false;
                         bool m_OnlyOneTeam = false;
@@ -658,7 +653,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                         Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
                                         Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
                                         if (mod.Value?.image != null)
-                                            Mods.AddObjectPath($"{mod.Key}:Image", mod.Value?.image);
+                                            Mods.AddObjectPath($"{mod.Key}:Image", $"{mapUrl.TrimEnd('/')}/{mod.Value.image}");
                                         if (UInt64.TryParse(mod.Key, out _))
                                         {
                                             Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");

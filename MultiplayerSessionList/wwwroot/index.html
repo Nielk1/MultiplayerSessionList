@@ -25,7 +25,7 @@
             }
     </style>
 
-    <div class="container pt-2">
+    <div class="container-fluid pt-2">
         <div class="dropdown float-left">
             <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 Game
@@ -44,6 +44,7 @@
         <table id="tblGames" class="table table-dark">
             <thead class="thead-dark">
                 <tr>
+                    <th scope="col">ID</th>
                     <th scope="col">Name</th>
                     <th scope="col">Players</th>
                     <th scope="col">IsLocked</th>
@@ -52,9 +53,12 @@
                     <th scope="col">...</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+                <tr><td class="text-center bg-light text-dark" colspan="7"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> Select a Game <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>
+            </tbody>
             <thead class="thead-dark">
                 <tr>
+                    <th scope="col">ID</th>
                     <th scope="col">Name</th>
                     <th scope="col">Players</th>
                     <th scope="col">IsLocked</th>
@@ -70,7 +74,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2020 - MultiplayerSessionList
+            &copy; 2024 - MultiplayerSessionList
         </div>
     </footer>
     <script src="/lib/jquery/dist/jquery.min.js"></script>
@@ -78,7 +82,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 
     <script>
-        var tableColSpan = 6;
+        var tableColSpan = 7;
 
         function RichDataCheck(data, rich) {
             //console.log({ data, rich });
@@ -190,6 +194,7 @@
                         $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
 
                         var sessionRow = $('<tr/>');
+                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.ID));
                         sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
                         {
                             var cell = $('<td/>');
@@ -219,6 +224,29 @@
                         sessionRow.append($('<td/>').text(''));
                         $('#tblGames>tbody').append(sessionRow);
 
+                        // address
+                        if (session.Address != null) {
+                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Address</td></tr>');
+
+                            var contentRow = $('<div class="row"/>');
+
+                            {
+                                var keys = Object.keys(session.Address);
+                                for (var k = 0; k < keys.length; k++) {
+                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
+
+                                    col.append(keys[k] + ": ");
+                                    var val = session.Address[keys[k]];
+                                    col.append(JSON.stringify(val));
+
+                                    contentRow.append(col);
+                                }
+                            }
+
+                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
+                        }
+
                         // message
                         if (session.Message) {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Message</td></tr>');
@@ -231,8 +259,8 @@
                         {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Level</td></tr>');
 
-                            //var levelRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
-                            var levelRow = $('<div class="row"/>');
+                            //var contentRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
+                            var contentRow = $('<div class="row"/>');
 
                             if (session.Level.Image) {
                                 var col = $('<div class="col-xs-4" />');
@@ -241,7 +269,7 @@
                                 var img = $('<img src="' + session.Level.Image + '" class="card-img" style="height:auto;width:100px;" />').attr('alt', session.Level.MapFile);
                                 card.append(img);
                                 col.append(card);
-                                levelRow.append(col);
+                                contentRow.append(col);
                             }
                             {
                                 var wrapper = $('<div class="col row" />');
@@ -313,7 +341,7 @@
                                     }
                                 }
 
-                                levelRow.append(wrapper);
+                                contentRow.append(wrapper);
                             }
 
 
@@ -327,8 +355,8 @@
                               </div>
                             </div>*/
 
-                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
                         }
 
                         // players
@@ -492,7 +520,7 @@
                         if (session.Game != null) {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Game</td></tr>');
 
-                            var levelRow = $('<div class="row"/>');
+                            var contentRow = $('<div class="row"/>');
 
                             {
                                 var keys = Object.keys(session.Game);
@@ -509,7 +537,7 @@
                                         } else {
                                             col.append(JSON.stringify(session.Game[keys[k]]))
                                         }
-                                        levelRow.append(col);
+                                        contentRow.append(col);
                                         continue;
                                     }
                                     if (keys[k] == "Mods") {
@@ -527,7 +555,7 @@
                                             }
                                         }
                                         col.append("]");
-                                        levelRow.append(col);
+                                        contentRow.append(col);
                                         continue;
                                     }
 
@@ -537,19 +565,19 @@
                                     var val = session.Game[keys[k]];
                                     col.append(JSON.stringify(val));
 
-                                    levelRow.append(col);
+                                    contentRow.append(col);
                                 }
                             }
 
-                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
                         }
 
                         // time
                         if (session.Time != null) {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Time</td></tr>');
 
-                            var levelRow = $('<div class="row"/>');
+                            var contentRow = $('<div class="row"/>');
 
                             {
                                 var keys = Object.keys(session.Time);
@@ -562,19 +590,19 @@
                                     var val = session.Time[keys[k]];
                                     col.append(JSON.stringify(val));
 
-                                    levelRow.append(col);
+                                    contentRow.append(col);
                                 }
                             }
 
-                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
                         }
 
                         // attributes
                         if (session.Attributes != null) {
                             $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Attributes</td></tr>');
 
-                            var levelRow = $('<div class="row"/>');
+                            var contentRow = $('<div class="row"/>');
 
                             {
                                 var keys = Object.keys(session.Attributes);
@@ -587,12 +615,12 @@
                                     var val = session.Attributes[keys[k]];
                                     col.append(JSON.stringify(val));
 
-                                    levelRow.append(col);
+                                    contentRow.append(col);
                                 }
                             }
 
-                            var levelPanel = $('<div class="container-fluid bg-white text-dark">').append(levelRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(levelPanel)));
+                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
                         }
 
                         $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">-</td></tr>');
