@@ -432,7 +432,7 @@
                                                 break;
                                         }
                                         if (session.Players[j].IDs[keys[k]].AvatarUrl) {
-                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname });
+                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname, type: keys[k] });
                                         }
                                         cell.append(elem);
                                     }
@@ -509,6 +509,9 @@
                                 var avatarImage = $('<img src="' + avatars[j].src + '" />');
                                 if (avatars[j].name) {
                                     avatarImage.attr('alt', avatars[j].name);
+                                }
+                                if (avatars[j].type == "Steam") {
+                                    avatarImage.attr('onError', "this.src='https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'");
                                 }
                                 if (wrapper != null) {
                                     wrapper.append(avatarImage);
