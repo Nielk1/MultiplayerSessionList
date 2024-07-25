@@ -30,6 +30,7 @@ namespace MultiplayerSessionList.Modules
     {
         string GameID { get; }
         string Title { get; }
+        bool IsPublic { get; }
 
         Task<GameListData> GetGameList(bool admin);
 

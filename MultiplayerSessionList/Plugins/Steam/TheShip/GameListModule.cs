@@ -11,16 +11,18 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MultiplayerSessionList.Plugins.Steam.KillingFloor
+namespace MultiplayerSessionList.Plugins.Steam.TheShip
 {
     public class GameListModule : Steam.GameListModule
     {
-        public override string GameID => "steam:killingfloor";
+        public override string GameID => "steam:theship";
 
-        public override string Title => "Killing Floor";
-        protected override string Filter => @"\appid\1250";
+        public override string Title => "The Ship";
+        protected override string Filter => @"\appid\2400";
+        //protected override string Filter => @"\appid\383790";
         protected override bool DoQueryInfo => true;
         protected override bool DoQueryPlayers => true;
+        protected override bool DoQueryRules => true;
 
         public GameListModule(IConfiguration configuration, SteamInterface steamInterface) : base(configuration, steamInterface)
         {

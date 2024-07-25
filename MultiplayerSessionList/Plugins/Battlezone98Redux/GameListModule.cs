@@ -20,6 +20,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
     {
         public string GameID => "bigboat:battlezone_98_redux";
         public string Title => "Battlezone 98 Redux";
+        public bool IsPublic => true;
 
 
         private string queryUrl;

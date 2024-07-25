@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.Runtime;
 
 namespace MultiplayerSessionList
 {
@@ -21,6 +22,26 @@ namespace MultiplayerSessionList
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            string[] CorsOriginGames    = Configuration.GetSection("Cors")?.GetSection("Origin")?.GetSection("Games"   )?.Get<string[]>() ?? null;
+            string[] CorsOriginSessions = Configuration.GetSection("Cors")?.GetSection("Origin")?.GetSection("Sessions")?.Get<string[]>() ?? null;
+
+            if ((CorsOriginGames?.Length ?? 0) > 0 || (CorsOriginSessions?.Length ?? 0) > 0)
+                services.AddCors(options =>
+                {
+                    if ((CorsOriginGames?.Length ?? 0) > 0)
+                        options.AddPolicy("Games",
+                            policy =>
+                            {
+                                policy.WithOrigins(CorsOriginGames);
+                            });
+                    if ((CorsOriginSessions?.Length ?? 0) > 0)
+                        options.AddPolicy("Sessions",
+                            policy =>
+                            {
+                                policy.WithOrigins(CorsOriginSessions);
+                            });
+                });
+
             services.AddMemoryCache();
 
             services.AddSingleton<GogInterface>();
@@ -59,6 +80,8 @@ namespace MultiplayerSessionList
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseCors();
 
             app.UseAuthorization();
 

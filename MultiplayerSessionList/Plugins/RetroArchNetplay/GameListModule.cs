@@ -17,6 +17,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
     {
         public string GameID => "retroarch:netplay";
         public string Title => "RetroArch Netplay";
+        public bool IsPublic => true;
 
 
         private string queryUrl;

@@ -19,6 +19,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
     {
         public string GameID => "bigboat:battlezone_combat_commander";
         public string Title => "Battlezone: Combat Commander";
+        public bool IsPublic => true;
 
         enum GameMode : int
         {

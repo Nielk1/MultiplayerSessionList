@@ -132,22 +132,27 @@
         }
 
         //$(document).ready(function () {
-        $.ajax({ url: '/api/1.0/games' })
-            .done(function (data) {
-                $('#dropdownMenuContainer').empty();
-                for (var i = 0; i < data.length; i++) {
-                    var dat = data[i];
-                    //if (i == 0) {
-                    //    $('#dropdownMenuLink').text(dat.Name);
-                    //    $('#dropdownMenuContainer').append('<a class="dropdown-item active" href="#" data-value="' + dat.Key + '">' + dat.Name + '</a>');
-                    //} else {
-                    var sessionRow = $('<a class="dropdown-item" href="#"/>');
-                    sessionRow.text(dat.Name);
-                    sessionRow.data('value', dat.Key)
-                    $('#dropdownMenuContainer').append(sessionRow);
-                    //}
-                }
-            });
+        {
+            var windowSearch = window.location.search;
+            if (windowSearch.length > 0)
+                windowSearch = '?' + windowSearch.substring(1);
+            $.ajax({ url: '/api/1.0/games' + windowSearch })
+                .done(function (data) {
+                    $('#dropdownMenuContainer').empty();
+                    for (var i = 0; i < data.length; i++) {
+                        var dat = data[i];
+                        //if (i == 0) {
+                        //    $('#dropdownMenuLink').text(dat.Name);
+                        //    $('#dropdownMenuContainer').append('<a class="dropdown-item active" href="#" data-value="' + dat.Key + '">' + dat.Name + '</a>');
+                        //} else {
+                        var sessionRow = $('<a class="dropdown-item" href="#"/>');
+                        sessionRow.text(dat.Name);
+                        sessionRow.data('value', dat.Key)
+                        $('#dropdownMenuContainer').append(sessionRow);
+                        //}
+                    }
+                });
+        }
 
         $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
             e.preventDefault();
