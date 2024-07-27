@@ -60,7 +60,7 @@ namespace MultiplayerSessionList.Modules
     public class GameListData
     {
         public DataCache Metadata { get; set; }
-        public SessionItem SessionDefault { get; set; }
+        public SessionItem SessionsDefault { get; set; }
         public DataCache DataCache { get; set; }
         public DataCache Heroes { get; set; }
         public DataCache Mods { get; set; }

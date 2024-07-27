@@ -45,6 +45,7 @@
             <thead class="thead-dark">
                 <tr>
                     <th scope="col">ID</th>
+                    <th scope="col">Type</th>
                     <th scope="col">Name</th>
                     <th scope="col">Players</th>
                     <th scope="col">IsLocked</th>
@@ -54,11 +55,12 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td class="text-center bg-light text-dark" colspan="7"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> Select a Game <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>
+                <tr><td class="text-center bg-light text-dark" colspan="8"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> Select a Game <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>
             </tbody>
             <thead class="thead-dark">
                 <tr>
                     <th scope="col">ID</th>
+                    <th scope="col">Type</th>
                     <th scope="col">Name</th>
                     <th scope="col">Players</th>
                     <th scope="col">IsLocked</th>
@@ -82,30 +84,68 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
 
     <script>
-        var tableColSpan = 7;
+        var tableColSpan = 8;
 
-        function RichDataCheck(data, rich) {
-            //console.log({ data, rich });
+        function DecorateWithDataCache(data) {
+            if (data == null || data["DataCache"] == null)
+                return data;
+
             var keys = Object.keys(data);
             for (var i = 0; i < keys.length; i++) {
-                if (rich[keys[i]] != null && typeof (data[keys[i]]) == "object" && data[keys[i]] != null) {
-                    var dat = data[keys[i]];
-                    if (!Array.isArray(dat))
-                        dat = [dat];
-                    if (dat.length > 0 && typeof (dat[0]) == "object") // if the first item in the array is an object, assume they all are
-                        for (var j = 0; j < dat.length; j++)
-                            RichDataCheck(dat[j], rich[keys[i]]);
+                if (keys[i] == "DataCache") continue;
+                if (keys[i].endsWith("Default")) continue;
+                data[keys[i]] = DecorateWithDataDefault(data[keys[i]], data[keys[i] + "Default"]);
+                data[keys[i]] = DecorateWithDataCacheRecurse(data[keys[i]], data["DataCache"]);
+            }
+            return data;
+        }
+
+        function DecorateWithDataDefault(data, defaultData) {
+            if (defaultData == null)
+                return data;
+
+            // if we are an array, recall for each array sub-items
+            if (Array.isArray(data)) {
+                for (var i = 0; i < data.length; i++)
+                    data[i] = DecorateWithDataDefault(data[i], defaultData);
+                return data;
+            }
+
+            return $.extend(true, {}, data, defaultData);
+        }
+
+        function DecorateWithDataCacheRecurse(data, cache) {
+            // if we are an array, recall for each array sub-items
+            if (Array.isArray(data)) {
+                for (var i = 0; i < data.length; i++)
+                    data[i] = DecorateWithDataCacheRecurse(data[i], cache);
+                return data;
+            }
+
+            //console.log({ data, cache });
+
+            // for all member fields do a recursive call for look for deeper cache entries
+            var keys = Object.keys(data);
+            for (var i = 0; i < keys.length; i++) {
+                if (cache[keys[i]] != null && typeof (data[keys[i]]) == "object" && data[keys[i]] != null) {
+                    // if the field value is an object and either not an array, or the first item of the array is an object
+                    if (typeof data[keys[i]] == "object" && (!Array.isArray( data[keys[i]]) || (data[keys[i]].length > 0 && typeof data[keys[i]][0] == "object")))
+                        DecorateWithDataCacheRecurse(data[keys[i]], cache[keys[i]]);
                 }
             }
-            if (data["ID"] != null && typeof (data["ID"]) == "string" && rich[data["ID"]] != null && typeof (rich[data["ID"]]) == "object") {
-                var keys = Object.keys(rich[data["ID"]]);
+
+            // if we have an ID field and it is a string check the cache for a match and merge the data if present
+            if (data["ID"] != null && typeof (data["ID"]) == "string" && cache[data["ID"]] != null && typeof (cache[data["ID"]]) == "object") {
+                var keys = Object.keys(cache[data["ID"]]);
                 for (var i = 0; i < keys.length; i++) {
                     if (data[keys[i]] == null) {
-                        data[keys[i]] = rich[data["ID"]][keys[i]];
+                        data[keys[i]] = cache[data["ID"]][keys[i]];
                     }
                 }
             }
             //console.log('-------------');
+
+            return data;
         }
 
         function DrawModNode(Mod) {
@@ -185,23 +225,28 @@
             GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key + windowSearch }).done(function (data) {
                 $('#tblGames>tbody').empty();
                 $('#codeRawJson').empty();
+
+                data = DecorateWithDataCache(data);
+
                 if (data.Sessions.length > 0) {
                     var heroes = data.Heroes;
-                    if (data.DataCache != null) {
-                        if (heroes) {
-                            RichDataCheck(heroes, data.DataCache);
-                        }
-                    }
+                    //if (data.DataCache != null) {
+                    //    if (heroes) {
+                    //        DecorateWithDataCacheRecurse(heroes, data.DataCache);
+                    //    }
+                    //}
                     for (var i = 0; i < data.Sessions.length; i++) {
-                        var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
+                        //var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
+                        var session = data.Sessions[i];
 
-                        if (data.DataCache != null)
-                            RichDataCheck(session, data.DataCache);
+                        //if (data.DataCache != null)
+                        //    DecorateWithDataCacheRecurse(session, data.DataCache);
 
                         $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
 
                         var sessionRow = $('<tr/>');
                         sessionRow.append($('<th scope="row" class="pre"/>').text(session.ID));
+                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.Type));
                         sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
                         {
                             var cell = $('<td/>');

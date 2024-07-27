@@ -403,7 +403,7 @@ namespace MultiplayerSessionList.Plugins.Steam
 
             return new GameListData()
             {
-                SessionDefault = DefaultSession,
+                SessionsDefault = DefaultSession,
                 Sessions = Sessions,
                 //Raw = admin ? res : null,
             };

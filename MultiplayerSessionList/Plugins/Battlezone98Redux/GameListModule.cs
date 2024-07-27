@@ -461,7 +461,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 return new GameListData()
                 {
                     Metadata = Metadata,
-                    SessionDefault = DefaultSession,
+                    SessionsDefault = DefaultSession,
                     DataCache = DataCache,
                     Sessions = Sessions,
                     Mods = Mods,

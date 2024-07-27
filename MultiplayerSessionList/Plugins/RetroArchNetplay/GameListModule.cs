@@ -98,7 +98,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
 
                 return new GameListData()
                 {
-                    SessionDefault = DefaultSession,
+                    SessionsDefault = DefaultSession,
                     Sessions = Sessions,
                     Raw = admin ? res : null,
                 };
