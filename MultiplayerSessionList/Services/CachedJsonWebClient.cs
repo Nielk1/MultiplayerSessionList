@@ -31,6 +31,8 @@ namespace MultiplayerSessionList.Services
 
             try
             {
+                if (url.StartsWith("//"))
+                    url = "https:" + url;
                 string rawJson = await httpClient.GetStringAsync(url);
                 data = JsonConvert.DeserializeObject<T>(rawJson);
                 if (data == null)

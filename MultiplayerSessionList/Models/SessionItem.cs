@@ -54,6 +54,10 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializeTime() { return Time.Count > 0; }
 
 
+        public DataCache Teams { get; set; }
+        public bool ShouldSerializeTeams() { return Teams.Count > 0; }
+
+
         public SessionItem()
         {
             Level = new DataCache();
@@ -65,6 +69,7 @@ namespace MultiplayerSessionList.Models
             Address = new DataCache();
             Game = new DataCache();
             Time = new DataCache();
+            Teams = new DataCache();
         }
     }
 

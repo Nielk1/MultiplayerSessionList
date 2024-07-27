@@ -113,6 +113,8 @@
                 var elem = $('<a/>');
                 elem.attr('href', Mod.Url);
                 elem.data('id', Mod.ID);
+                elem.attr('target', "_blank");
+                elem.attr('rel', "noopener noreferrer");
                 if (Mod.Name != null) {
                     elem.text(Mod.Name);
                 } else {
@@ -412,19 +414,19 @@
                                                 break;
                                             case "Steam":
                                                 elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
-                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
+                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
                                                 break;
                                             case "Gog":
                                                 elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
-                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Username + '</a>');
+                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
                                                 break;
                                             default:
                                                 elem.append(keys[k] + ": ");
                                                 if (session.Players[j].IDs[keys[k]].ProfileUrl) {
                                                     if (session.Players[j].IDs[keys[k]].Username) {
-                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].Username + '</a>');
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
                                                     } else {
-                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '">' + session.Players[j].IDs[keys[k]].ID + '</a>');
+                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].ID + '</a>');
                                                     }
                                                 } else {
                                                     elem.append(session.Players[j].IDs[keys[k]].ID);
@@ -502,6 +504,8 @@
                                 if (avatars[j].href) {
                                     wrapper = $('<a/>');
                                     wrapper.attr('href', avatars[j].href);
+                                    wrapper.attr('target', "_blank");
+                                    wrapper.attr('rel', "noopener noreferrer");
                                     if (avatars[j].name) {
                                         wrapper.attr('title', avatars[j].name);
                                     }

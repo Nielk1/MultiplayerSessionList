@@ -541,6 +541,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                             if (dr.Team == 1 || dr.Team == 6)
                                                 player.Team.Leader = true;
                                         }
+                                        else // MPI, only teams 1-5 should be valid but let's assume all are valid
+                                        {
+                                            // TODO confirm if map data might need to influence this
+                                            player.Team.ID = "1";
+                                            if (dr.Team == 1)
+                                                player.Team.Leader = true;
+                                        }
                                     }
                                     player.Team.SubTeam = new PlayerTeam() { ID = dr.Team.Value.ToString() };
                                     player.GetIDData("Slot").Add("ID", dr.Team);
@@ -663,6 +670,27 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 }
                             }
                             ModsLock.Release();
+                        }
+
+                        if (m_TeamsOn)
+                        {
+                            game.Teams.AddObjectPath("1:Human", true);
+                            game.Teams.AddObjectPath("1:Computer", false);
+                            if ((mapData?.netVars?.Count ?? 0) > 0)
+                            {
+                                if (mapData.netVars.ContainsKey("svar1")) game.Teams.AddObjectPath("1:Name", mapData.netVars["svar1"]);
+                                if (mapData.netVars.ContainsKey("svar2")) game.Teams.AddObjectPath("2:Name", mapData.netVars["svar2"]);
+                            }
+                            if (!m_OnlyOneTeam)
+                            {
+                                game.Teams.AddObjectPath("2:Human", true);
+                                game.Teams.AddObjectPath("2:Computer", false);
+                            }
+                            else
+                            {
+                                game.Teams.AddObjectPath("2:Human", false);
+                                game.Teams.AddObjectPath("2:Computer", true);
+                            }
                         }
 
                         await SessionsLock.WaitAsync();
