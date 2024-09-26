@@ -305,9 +305,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                     int ModsLen = (modDatumList?.Count ?? 0);
                                     //if (ModsLen > 0 && modDatumList.First() != "0")
                                     if (ModsLen > 0) // TODO missing 0 check for stock, but maybe we should always list stock?
-                                        mapDatum.AddObjectPath("mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0"));
+                                        mapDatum.AddObjectPath("mod", modDatumList[0]);
                                     if (ModsLen > 1)
-                                        mapDatum.AddObjectPath("mods", modDatumList.Skip(1).Select(m => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));
+                                        mapDatum.AddObjectPath("mods", modDatumList.Skip(1));
                                 }
 
                                 List<DatumRef> heroDatumList = new List<DatumRef>();
