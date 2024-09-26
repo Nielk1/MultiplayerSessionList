@@ -73,7 +73,8 @@ namespace MultiplayerSessionList.Controllers
                 //Response.StatusCode = StatusCodes.Status401Unauthorized;
                 //yield break;
             }
-
+            if (simulate_delay > 5000)
+                simulate_delay = 5000;
             //GameListData data = await _gameListModuleManager.GameListPlugins[game].GetGameList(Admin);
             //return Ok(data);
             //await foreach(var item in _gameListModuleManager.GameListPlugins[game].GetGameListChunksAsync(Admin, cancellationToken))
