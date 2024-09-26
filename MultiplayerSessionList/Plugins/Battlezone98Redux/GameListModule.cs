@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using static MultiplayerSessionList.Services.GogInterface;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
@@ -127,6 +128,17 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     session.AddObjectPath($"player_count:{GAMELIST_TERMS.PLAYERTYPE_PLAYER}", raw.userCount);
 
                     string modID = (raw.WorkshopID ?? @"0");
+
+                    if (modID != "0")
+                    {
+                        if (DontSendStub.Add($"mod\t{modID}"))
+                        {
+                            yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}");
+                        }
+                        session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}"));
+                    }
+
+
                     string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
 
                     // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
@@ -261,8 +273,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                     }*/
                                 }
 
-                                List<DatumRef> modDatumList = new List<DatumRef>();
-                                if (mapData?.mods != null)
+                                // we don't bother linking these mods to the map since they came from the session.game, not the map, their data just came in piggybacking on the map data
+                                //List<DatumRef> modDatumList = new List<DatumRef>();
+                                if (mapData?.mods != null && mapData.mods.Count > 0)
                                 {
                                     foreach (var mod in mapData.mods)
                                     {
@@ -270,7 +283,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                         if (mod.Key == "0")
                                             continue;
 
-                                        modDatumList.Add(new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}"));
+                                        //modDatumList.Add(new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}"));
 
                                         await modsAlreadyReturnedLock.WaitAsync();
                                         try
@@ -287,6 +300,14 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                                 if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
                                                     modData.Data["url"] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
 
+                                                if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
+                                                {
+                                                    // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
+                                                    foreach (var dep in mod.Value.dependencies)
+                                                        retVal.Add(new PendingDatum(new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"mod\t{dep}", true));
+                                                    modData.AddObjectPath("dependencies", mod.Value.dependencies.Select(dep => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
+                                                }
+
                                                 retVal.Add(new PendingDatum(modData, $"mod\t{mod.Key}", false));
 
                                                 modsAlreadyReturnedFull.Add(mod.Key);
@@ -302,12 +323,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                             modsAlreadyReturnedLock.Release();
                                         }
                                     }
-                                    int ModsLen = (modDatumList?.Count ?? 0);
-                                    //if (ModsLen > 0 && modDatumList.First() != "0")
-                                    if (ModsLen > 0) // TODO missing 0 check for stock, but maybe we should always list stock?
-                                        mapDatum.AddObjectPath("mod", modDatumList[0]);
-                                    if (ModsLen > 1)
-                                        mapDatum.AddObjectPath("mods", modDatumList.Skip(1));
+
+                                    //int ModsLen = (modDatumList?.Count ?? 0);
+                                    ////if (ModsLen > 0 && modDatumList.First() != "0")
+                                    //if (ModsLen > 0) // TODO missing 0 check for stock, but maybe we should always list stock?
+                                    //    mapDatum.AddObjectPath("mod", modDatumList[0]);
+                                    //if (ModsLen > 1)
+                                    //    mapDatum.AddObjectPath("mods", modDatumList.Skip(1));
                                 }
 
                                 List<DatumRef> heroDatumList = new List<DatumRef>();

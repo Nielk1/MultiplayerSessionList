@@ -398,6 +398,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
     {
         public string name { get; set; }
         public string workshop_name { get; set; }
+        public List<string> dependencies { get; set; }
         public string image { get; set; }
     }
 }

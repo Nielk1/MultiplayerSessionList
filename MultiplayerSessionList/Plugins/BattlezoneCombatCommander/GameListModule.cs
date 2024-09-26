@@ -193,6 +193,14 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                     if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
                                                         modData.Data["url"] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
 
+                                                    if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
+                                                    {
+                                                        // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
+                                                        foreach (var dep in mod.Value.dependencies)
+                                                            retVal.Add(new PendingDatum(new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"mod\t{dep}", true));
+                                                        modData.AddObjectPath("dependencies", mod.Value.dependencies.Select(dep => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
+                                                    }
+
                                                     retVal.Add(new PendingDatum(modData, null, false));
 
                                                     modsAlreadyReturnedFull.Add(mod.Key);
