@@ -442,7 +442,7 @@ function escapeHtml(unsafe)
             return `
 <div class="col-3 col-sm-2 col-lg-1 col-xl-2 p-1">
     <div class="ratio ratio-1x1">
-        <a data-path="mod_box_link" data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank"><img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;"></a>
+        <a data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank"><img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;"></a>
     </div>
     <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
         <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
