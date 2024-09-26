@@ -49,7 +49,7 @@ namespace MultiplayerSessionList.Controllers
 
         [EnableCors("Sessions")]
         [Route("api/2.0/sessions")]
-        public async Task<IActionResult> Sessions2([FromQuery] string[] game, string admin_password, CancellationToken cancellationToken)
+        public async Task<IActionResult> Sessions2([FromQuery] string[] game, string admin_password, int? simulate_delay, CancellationToken cancellationToken)
         {
             string[] games = game.Distinct().Where(g => _gameListModuleManager.GameListPlugins.ContainsKey(g)).ToArray();
             if (games.Length == 0)
@@ -63,7 +63,10 @@ namespace MultiplayerSessionList.Controllers
             bool Admin = AdminDataPassword == admin_password;
 
             if (!Admin)
+            {
+                simulate_delay = 0;
                 games = games.Where(g => _gameListModuleManager.GameListPlugins[g].IsPublic).ToArray();
+            }
             if (games.Length == 0)
             {
                 return Unauthorized();
@@ -79,7 +82,7 @@ namespace MultiplayerSessionList.Controllers
             //}
 
             ////return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
-            return new NdjsonAsyncEnumerableResult<Datum>(SelectManyAsync(games.Select(g => _gameListModuleManager.GameListPlugins[g].GetGameListChunksAsync(games.Length > 1, Admin, cancellationToken))));
+            return new NdjsonAsyncEnumerableResult<Datum>(SelectManyAsync(games.Select(g => _gameListModuleManager.GameListPlugins[g].GetGameListChunksAsync(games.Length > 1, Admin, cancellationToken)), simulate_delay ?? 0));
             //return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
             //return Sessions2Internal(games, Admin, cancellationToken);
             //yield break;
@@ -89,7 +92,7 @@ namespace MultiplayerSessionList.Controllers
         /// <summary>
         /// Starts all inner IAsyncEnumerable and returns items from all of them in order in which they come.
         /// </summary>
-        public static async IAsyncEnumerable<TItem> SelectManyAsync<TItem>(IEnumerable<IAsyncEnumerable<TItem>> source)
+        public static async IAsyncEnumerable<TItem> SelectManyAsync<TItem>(IEnumerable<IAsyncEnumerable<TItem>> source, int testDelay = 0)
         {
             // get enumerators from all inner IAsyncEnumerable
             var enumerators = source.Select(x => x.GetAsyncEnumerator()).ToList();
@@ -120,6 +123,9 @@ namespace MultiplayerSessionList.Controllers
                     yield return asyncEnumerator.Current;
 
                     runningTasks.Add(MoveNextWrapped(asyncEnumerator));
+
+                    if (testDelay > 0)
+                        await Task.Delay(testDelay);
                 }
             }
 

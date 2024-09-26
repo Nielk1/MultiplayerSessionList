@@ -70,9 +70,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 SemaphoreSlim modsAlreadyReturnedLock = new SemaphoreSlim(1, 1);
                 HashSet<string> modsAlreadyReturnedFull = new HashSet<string>();
 
-                yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
-                modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
-                DontSendStub.Add("mod\t0"); // we already sent the full data for stock, don't send stubs
+                //yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
+                //modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
+                //DontSendStub.Add("mod\t0"); // we already sent the full data for stock, don't send stubs
 
                 /*
                 Tasks.Add(Task.Run(async () =>
@@ -266,6 +266,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                 {
                                     foreach (var mod in mapData.mods)
                                     {
+                                        // skip stock
+                                        if (mod.Key == "0")
+                                            continue;
+
                                         modDatumList.Add(new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}"));
 
                                         await modsAlreadyReturnedLock.WaitAsync();

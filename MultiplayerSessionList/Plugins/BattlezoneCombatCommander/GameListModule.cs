@@ -97,9 +97,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 HashSet<string> modStubAlreadySent = new HashSet<string>();
                 HashSet<string> mapStubAlreadySent = new HashSet<string>();
 
-                yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
-                modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
-                DontSendStub.Add("mod\t0"); // we already sent the full data for stock, don't send stubs
+                //yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
+                //modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
+                //DontSendStub.Add("mod\t0"); // we already sent the full data for stock, don't send stubs
 
                 foreach (var raw in gamelist.GET)
                 {
@@ -257,10 +257,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     if (ModsLen > 0 && raw.Mods[0] != "0")
                         //game.AddObjectPath("game:mod", raw.Mods[0]);
-                        session.AddObjectPath("game:mod", new DatumRef("mod", $"0"));
+                        session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
                     if (ModsLen > 1)
                         //game.AddObjectPath("game:mods", raw.Mods.Skip(1));
-                        session.AddObjectPath("game:mods", raw.Mods.Skip(1).Select(m => new DatumRef("mod", $"{m}")));
+                        session.AddObjectPath("game:mods", raw.Mods.Skip(1).Select(m => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));
 
                     if (!string.IsNullOrWhiteSpace(raw.v))
                         session.AddObjectPath("game:version", raw.v);

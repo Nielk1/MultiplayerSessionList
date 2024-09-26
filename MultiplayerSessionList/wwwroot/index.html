@@ -438,6 +438,18 @@ function escapeHtml(unsafe)
         //    parent.appendChild($pad);
         //}
 
+        function GenerateHtml_ModBox(mod, primary) {
+            return `
+<div class="col-3 col-sm-2 col-lg-1 col-xl-2 p-1">
+    <div class="ratio ratio-1x1">
+        <a data-path="mod_box_link" data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank"><img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;"></a>
+    </div>
+    <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
+        <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
+    </div>
+</div>`;
+        }
+
         function GenerateHtml_IdentitySteam(identity) {
             let platform_name = identity.nickname || identity.$id;
             let platform_profile = identity.profile_url;
@@ -460,6 +472,22 @@ function escapeHtml(unsafe)
 
         function CreateOrUpdateSessionOther($type, $id, data) {
             switch ($type) {
+                case 'mod':
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="mod_box_image"]`).forEach(scr => {
+                        scr.setAttribute("src", data[$type][$id].image || "");
+                        scr.setAttribute("title", data[$type][$id].name || "");
+                    });
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="mod_box_name"]`).forEach(scr => {
+                        scr.textContent = data[$type][$id].name || $id;
+                    });
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="mod_box_link"]`).forEach(scr => {
+                        if (data[$type][$id].url) {
+                            scr.setAttribute("href", data[$type][$id].url);
+                        } else {
+                            src.removeAttr("href")
+                        }
+                    });
+                    break;
                 case 'map':
                     parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="image"]`).forEach(scr => scr.setAttribute("src", data[$type][$id].image || ""));
                     parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="map_file"]`).forEach(scr => scr.textContent = data[$type][$id].map_file || " ");
@@ -476,14 +504,28 @@ function escapeHtml(unsafe)
                         scr.textContent = (data[$type][$id].game_mode || {}).id || scr.textContent;
                     });
 
-                    {
-                        if (data[$type][$id].teams) {
-                            for (let team in data[$type][$id].teams) {
-                                if (data[$type][$id].teams[team].name) {
-                                    parent.querySelectorAll(`[data-path="team_name"][data-id-map="${CSS.escape($id)}"][data-id-team="${CSS.escape(team)}"]`).forEach(elem => elem.textContent = data[$type][$id].teams[team].name);
-                                }
+                    if (data[$type][$id].teams) {
+                        for (let team in data[$type][$id].teams) {
+                            if (data[$type][$id].teams[team].name) {
+                                parent.querySelectorAll(`[data-path="team_name"][data-id-map="${CSS.escape($id)}"][data-id-team="${CSS.escape(team)}"]`).forEach(elem => elem.textContent = data[$type][$id].teams[team].name);
                             }
                         }
+                    }
+
+                    if (data[$type][$id].mod || data[$type][$id].mods) {
+                        parent.querySelectorAll(`[data-path="mods"][data-id-map="${CSS.escape($id)}"]`).forEach(modListDom => {
+                            modListDom.innerHTML = '';
+                            let insertHtml = '';
+                            if (data[$type][$id].mod) {
+                                insertHtml += GenerateHtml_ModBox(data[$type][$id].mod, true);
+                            }
+                            if (data[$type][$id].mods) {
+                                for (let mod of data[$type][$id].mods) {
+                                    insertHtml += GenerateHtml_ModBox(mod, false);
+                                }
+                            }
+                            modListDom.insertAdjacentHTML('beforeend', insertHtml);
+                        });
                     }
                     break;
                 case 'identity/steam':
@@ -507,7 +549,7 @@ function escapeHtml(unsafe)
             <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
         </div>
         <ul class="list-group list-group-flush">
-            <li data-path="session.message" class="list-group-item" style="white-space:pre;"></li>
+            <li data-path="session.message" class="list-group-item force-ellipsis" style="white-space:pre;"></li>
         </ul>
         <div class="container-fluid pb-1">
             <div class="row border-bottom">
@@ -549,8 +591,11 @@ function escapeHtml(unsafe)
                 </div>
             </div>
         </div>
-        <div class="container-fluid h-100 pb-1">
+        <div class="container-fluid pb-1">
             <div data-path="players" class="row"></div>
+        </div>
+        <div class="container-fluid pb-1">
+            <div data-path="mods" data-id-map="${encodeAttr(session.level.map.$id)}" class="row"></div>
         </div>
     </div>
 </div>
@@ -787,6 +832,21 @@ function escapeHtml(unsafe)
                 }
             }
 
+            if (session.game && (session.game.mod || session.game.mods)) {
+                let modListDom = sessionDom.querySelector('[data-path="mods"]');
+                modListDom.innerHTML = '';
+                let insertHtml = '';
+                if (session.game.mod) {
+                    insertHtml += GenerateHtml_ModBox(session.game.mod, true);
+                }
+                if (session.game.mods) {
+                    for (let mod of session.game.mods) {
+                        insertHtml += GenerateHtml_ModBox(mod, false);
+                    }
+                }
+                modListDom.insertAdjacentHTML('beforeend', insertHtml);
+            }
+
             //var sessionNew0 = false;
             //if (!sessionRow0) {
             //    sessionRow0 = document.createElement("tr");
@@ -979,6 +1039,7 @@ function escapeHtml(unsafe)
                     case 'session':
                         CreateOrUpdateSessionDom($id, data);
                         break;
+                    case 'mod':
                     case 'map':
                     case 'identity/steam':
                     case 'identity/gog':
