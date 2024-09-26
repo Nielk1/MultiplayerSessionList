@@ -6,13 +6,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Steam.Models.SteamCommunity;
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
 using static MultiplayerSessionList.Services.GogInterface;
+using System.Runtime.CompilerServices;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
@@ -38,33 +38,41 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.mapDataInterface = mapDataInterface;
         }
 
-        public async Task<GameListData> GetGameList(bool admin)
+        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             using (var http = new HttpClient())
             {
+                if (!multiGame)
+                    yield return new Datum("default", "session", new DataCache() {
+                        { "type", GAMELIST_TERMS.TYPE_LISTEN },
+                        { "sources", new DataCache() { {"Rebellion", true } } },
+                    }, true);
+
                 var res_raw = await http.GetAsync(queryUrl).ConfigureAwait(false);
                 var res = await res_raw.Content.ReadAsStringAsync();
                 var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
 
-                SessionItem DefaultSession = new SessionItem();
-                DefaultSession.Type = GAMELIST_TERMS.TYPE_LISTEN;
-                DefaultSession.Attributes.Add(GAMELIST_TERMS.ATTRIBUTE_LISTSERVER, $"Rebellion");
+                yield return new Datum("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion", new DataCache() {
+                    { "name", "Rebellion" },
+                    //{ "status", proxyStatus.Value.status },
+                    //{ "success", proxyStatus.Value.success },
+                    { "timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime },
+                });
 
-                DataCache Metadata = new DataCache();
-                if (res_raw.Content.Headers.LastModified.HasValue)
-                    Metadata.AddObjectPath($"{GAMELIST_TERMS.ATTRIBUTE_LISTSERVER}:Rebellion:Timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime);
+                HashSet<string> DontSendStub = new HashSet<string>();
 
-                DataCache DataCache = new DataCache();
-                DataCache Mods = new DataCache();
-                DataCache Heroes = new DataCache();
+                Dictionary<(string mod, string map), Task<MapData>> MapDataFetchTasks = new Dictionary<(string mod, string map), Task<MapData>>();
+                List<Task<List<PendingDatum>>> DelayedDatumTasks = new List<Task<List<PendingDatum>>>();
 
-                List<SessionItem> Sessions = new List<SessionItem>();
+                SemaphoreSlim heroesAlreadyReturnedLock = new SemaphoreSlim(1, 1);
+                HashSet<string> heroesAlreadyReturnedFull = new HashSet<string>();
 
-                List<Task> Tasks = new List<Task>();
-                SemaphoreSlim DataCacheLock = new SemaphoreSlim(1);
-                SemaphoreSlim ModsLock = new SemaphoreSlim(1);
-                SemaphoreSlim HeroesLock = new SemaphoreSlim(1);
-                SemaphoreSlim SessionsLock = new SemaphoreSlim(1);
+                SemaphoreSlim modsAlreadyReturnedLock = new SemaphoreSlim(1, 1);
+                HashSet<string> modsAlreadyReturnedFull = new HashSet<string>();
+
+                yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
+                modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
+                DontSendStub.Add("mod\t0"); // we already sent the full data for stock, don't send stubs
 
                 /*
                 Tasks.Add(Task.Run(async () =>
@@ -96,378 +104,445 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (raw.isPrivate && !(raw.IsPassworded ?? false))
                         continue;
 
-                    Tasks.Add(Task.Run(async () =>
+                    Datum session = new Datum("session", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{raw.id}");
+
+                    if (multiGame) {
+                        session["type"] = GAMELIST_TERMS.TYPE_LISTEN;
+                        session["sources"] = new DataCache() { { $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion", true } };
+                    }
+
+                    session["name"] = raw.Name;
+
+                    session.AddObjectPath("address:token", $"B{raw.id}");
+                    session.AddObjectPath("address:other:lobby_id",raw.id);
+
+                    List<DataCache> PlayerTypes = new List<DataCache>();
+                    PlayerTypes.Add(new DataCache()
                     {
-                        SessionItem game = new SessionItem();
+                        { "types", new List<string>() { GAMELIST_TERMS.PLAYERTYPE_PLAYER } },
+                        { "max", raw.PlayerLimit },
+                    });
+                    session["player_types"] = PlayerTypes;
 
-                        game.ID = $"Rebellion:B{raw.id}";
+                    session.AddObjectPath($"player_count:{GAMELIST_TERMS.PLAYERTYPE_PLAYER}", raw.userCount);
 
-                        game.Name = raw.Name;
+                    string modID = (raw.WorkshopID ?? @"0");
+                    string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
 
-                        game.Address["LobbyID"] = $"B{raw.id}";
+                    // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
+                    Datum mapData = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}");
+                    mapData["map_file"] = raw.MapFile.ToLowerInvariant();
+                    yield return mapData;
+                    DontSendStub.Add($"map\t{modID}:{mapID}"); // we already sent the a stub don't send another
 
-                        game.PlayerTypes.Add(new PlayerTypeData()
-                        {
-                            Types = new List<string>() { GAMELIST_TERMS.PLAYERTYPE_PLAYER },
-                            Max = raw.PlayerLimit
-                        });
+                    session.AddObjectPath("level:map", new DatumRef("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}"));
+                    session.AddObjectPath("level:other:crc32", raw.CRC32);
 
-                        game.PlayerCount.Add(GAMELIST_TERMS.PLAYERTYPE_PLAYER, raw.userCount);
-
-                        string modID = (raw.WorkshopID ?? @"0");
-                        string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
-                        game.Level["ID"] = $"{modID}:{mapID}";
-
-                        game.Level["MapFile"] = raw.MapFile;
-                        game.Level["CRC32"] = raw.CRC32;
-
-                        Task<MapData> mapDataTask = mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
-
-                        if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0") game.Level.Add("Mod", raw.WorkshopID);
-
-                        if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) game.Level.AddObjectPath("Attributes:TimeLimit", raw.TimeLimit);
-                        if (raw.KillLimit.HasValue && raw.KillLimit > 0) game.Level.AddObjectPath("Attributes:KillLimit", raw.KillLimit);
-                        if (raw.Lives.HasValue && raw.Lives.Value > 0) game.Level.AddObjectPath("Attributes:Lives", raw.Lives.Value);
-                        if (raw.SatelliteEnabled.HasValue) game.Level.AddObjectPath("Attributes:Satellite", raw.SatelliteEnabled.Value);
-                        if (raw.BarracksEnabled.HasValue) game.Level.AddObjectPath("Attributes:Barracks", raw.BarracksEnabled.Value);
-                        if (raw.SniperEnabled.HasValue) game.Level.AddObjectPath("Attributes:Sniper", raw.SniperEnabled.Value);
-                        if (raw.SplinterEnabled.HasValue) game.Level.AddObjectPath("Attributes:Splinter", raw.SplinterEnabled.Value);
-
-                        // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
-                        if (raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
-                        {
-                            game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, true);
-                        }
-                        else
-                        {
-                            game.Status.Add(GAMELIST_TERMS.STATUS_LOCKED, raw.isLocked);
-                        }
-                        game.Status.Add(GAMELIST_TERMS.STATUS_PASSWORD, raw.IsPassworded);
-                        game.Status.Add(GAMELIST_TERMS.STATUS_STATE, Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame));
-
-                        foreach (var dr in raw.users.Values)
-                        {
-                            PlayerItem player = new PlayerItem();
-
-                            player.Name = dr.name;
-                            player.Type = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
-                            if (admin) player.Attributes.Add("wanAddress", dr.wanAddress);
-                            player.Attributes.Add("Launched", dr.Launched);
-                            if (admin) player.Attributes.Add("lanAddresses", JArray.FromObject(dr.lanAddresses));
-                            player.Attributes.Add("IsAuth", dr.isAuth);
-
-                            if (dr.Team.HasValue)
+                    if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
+                    {
+                        DelayedDatumTasks.Add(Task.Run(async () => {
+                            List<PendingDatum> retVal = new List<PendingDatum>();
+                            MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID}");
+                            if (mapData != null)
                             {
-                                player.Team = new PlayerTeam();
-                                player.Team.ID = dr.Team.Value.ToString();
-                                player.GetIDData("Slot").Add("ID", dr.Team);
-                            }
+                                Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
+                                    { "name", mapData?.map?.title },
+                                });
+                                if (mapData.image != null)
+                                    mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
 
-                            //player.Attributes.Add("Vehicle", dr.Vehicle);
-                            if (dr.Vehicle != null)
-                            {
-                                player.Hero = new PlayerHero();
-                                player.Hero.ID = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
-                                player.Hero.Attributes["ODF"] = dr.Vehicle;
-                            }
 
-                            if (!string.IsNullOrWhiteSpace(dr.id))
-                            {
-                                player.GetIDData("BZRNet").Add("ID", dr.id);
-                                if (dr.id == raw.owner)
-                                    player.Attributes.Add("IsOwner", true);
-                                switch (dr.id[0])
+                                mapDatum.AddObjectPath("game_type:id", mapData?.map?.type);
+                                //game.Level["GameMode"] = "Unknown";
+                                if (!string.IsNullOrWhiteSpace(mapData?.map?.type))
                                 {
-                                    case 'S': // dr.authType == "steam"
-                                        {
-                                            player.GetIDData("Steam").Add("Raw", dr.id.Substring(1));
+                                    switch (mapData?.map?.type)
+                                    {
+                                        case "D": // Deathmatch
+                                            mapDatum.AddObjectPath("game_type:id", "DM");
+                                            mapDatum.AddObjectPath("game_mode:id", "DM");
+                                            /*await DataCacheLock.WaitAsync();
                                             try
                                             {
-                                                ulong playerID = 0;
-                                                if (ulong.TryParse(dr.id.Substring(1), out playerID))
-                                                {
-                                                    player.GetIDData("Steam").Add("ID", playerID.ToString());
-
-                                                    await DataCacheLock.WaitAsync();
-                                                    try
-                                                    {
-                                                        if (!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
-                                                        {
-                                                            PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-                                                        DataCacheLock.Release();
-                                                    }
-                                                }
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:DM:Name", "Deathmatch");
                                             }
-                                            catch { }
-                                        }
-                                        break;
-                                    case 'G':
-                                        {
-                                            player.GetIDData("GOG").Add("Raw", dr.id.Substring(1));
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }*/
+                                            break;
+                                        case "S": // Strategy
+                                            mapDatum.AddObjectPath("game_type:id", "STRAT");
+                                            mapDatum.AddObjectPath("game_mode:id", "STRAT");
+                                            /*await DataCacheLock.WaitAsync();
                                             try
                                             {
-                                                ulong playerID = 0;
-                                                if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                                if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }*/
+                                            break;
+                                        case "K": // King of the Hill
+                                            mapDatum.AddObjectPath("game_type:id", "DM");
+                                            mapDatum.AddObjectPath("game_mode:id", "KOTH");
+                                            /*await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:KOTH"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:KOTH:Name", "King of the Hill");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }*/
+                                            break;
+                                        case "M": // Mission MPI
+                                            mapDatum.AddObjectPath("game_type:id", "STRAT");
+                                            mapDatum.AddObjectPath("game_mode:id", "M_MPI");
+                                            /*await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
+                                                    DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:M_MPI"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:M_MPI:Name", "Mission MPI");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }*/
+                                            break;
+                                        case "A": // Action MPI
+                                            mapDatum.AddObjectPath("game_type:id", "DM");
+                                            mapDatum.AddObjectPath("game_mode:id", "A_MPI");
+                                            /*await DataCacheLock.WaitAsync();
+                                            try
+                                            {
+                                                if (!DataCache.ContainsPath($"Level:GameType:DM"))
+                                                    DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
+                                                if (!DataCache.ContainsPath($"Level:GameMode:A_MPI"))
+                                                    DataCache.AddObjectPath($"Level:GameMode:A_MPI:Name", "Action MPI");
+                                            }
+                                            finally
+                                            {
+                                                DataCacheLock.Release();
+                                            }*/
+                                            break;
+                                    }
+                                }
+                                if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
+                                {
+                                    mapDatum.AddObjectPath("game_mode:id", mapData.map.custom_type);
+                                    // TODO handle custom type name!!!
+                                    /*if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type_name))
+                                    {
+                                        //DataCache.AddObjectPath($"Level:GameMode:{mapData.map.custom_type}", mapData.map.custom_type_name);
+
+                                        await DataCacheLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!DataCache.ContainsPath($"Level:GameMode:{mapData.map.custom_type}"))
+                                                DataCache.AddObjectPath($"Level:GameMode:{mapData.map.custom_type}:Name", mapData.map.custom_type_name); // TODO: consider localization
+                                        }
+                                        finally
+                                        {
+                                            DataCacheLock.Release();
+                                        }
+                                    }*/
+                                }
+
+                                List<DatumRef> modDatumList = new List<DatumRef>();
+                                if (mapData?.mods != null)
+                                {
+                                    foreach (var mod in mapData.mods)
+                                    {
+                                        modDatumList.Add(new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}"));
+
+                                        await modsAlreadyReturnedLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!modsAlreadyReturnedFull.Contains(mod.Key))
+                                            {
+                                                Datum modData = new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}", new DataCache() {
+                                                    { "name", mod.Value?.name ?? mod.Value?.workshop_name },
+                                                });
+
+                                                if (mod.Value?.image != null)
+                                                    modData.Data["image"] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
+
+                                                if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
+                                                    modData.Data["url"] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
+
+                                                retVal.Add(new PendingDatum(modData, $"mod\t{mod.Key}", false));
+
+                                                modsAlreadyReturnedFull.Add(mod.Key);
+                                            }
+                                            else
+                                            {
+                                                // to deal with interlacing spit out some stubs too
+                                                retVal.Add(new PendingDatum(new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}"), $"mod\t{mod.Key}", true));
+                                            }
+                                        }
+                                        finally
+                                        {
+                                            modsAlreadyReturnedLock.Release();
+                                        }
+                                    }
+                                    int ModsLen = (modDatumList?.Count ?? 0);
+                                    //if (ModsLen > 0 && modDatumList.First() != "0")
+                                    if (ModsLen > 0) // TODO missing 0 check for stock, but maybe we should always list stock?
+                                        mapDatum.AddObjectPath("mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0"));
+                                    if (ModsLen > 1)
+                                        mapDatum.AddObjectPath("mods", modDatumList.Skip(1).Select(m => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));
+                                }
+
+                                List<DatumRef> heroDatumList = new List<DatumRef>();
+                                if (mapData?.vehicles != null)
+                                {
+                                    foreach (var vehicle in mapData.vehicles)
+                                    {
+                                        // breakpoint here to make sure the vehicle has the mod prefix
+                                        heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"));
+
+                                        await heroesAlreadyReturnedLock.WaitAsync();
+                                        try
+                                        {
+                                            if (!heroesAlreadyReturnedFull.Contains(vehicle.Key))
+                                            {
+                                                Datum heroData = new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}", new DataCache() {
+                                                    { "name", vehicle.Value.name },
+                                                });
+
+                                                // todo handle language logic
+                                                if (vehicle.Value.description.ContainsKey("en"))
                                                 {
-                                                    playerID = GogInterface.CleanGalaxyUserId(playerID);
-                                                    player.GetIDData("GOG").Add("ID", playerID.ToString());
-
-                                                    await DataCacheLock.WaitAsync();
-                                                    try
-                                                    {
-                                                        if (!DataCache.ContainsPath($"Players:IDs:GOG:{playerID.ToString()}"))
-                                                        {
-                                                            GogUserData playerData = await gogInterface.Users(playerID);
-                                                            DataCache.AddObjectPath($"Players:IDs:GOG:{playerID.ToString()}:AvatarUrl", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large);
-                                                            DataCache.AddObjectPath($"Players:IDs:GOG:{playerID.ToString()}:Username", playerData.username);
-                                                            DataCache.AddObjectPath($"Players:IDs:GOG:{playerID.ToString()}:ProfileUrl", $"https://www.gog.com/u/{playerData.username}");
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-                                                        DataCacheLock.Release();
-                                                    }
+                                                    heroData["description"] = vehicle.Value.description["en"].content;
                                                 }
+                                                else if (vehicle.Value.description.ContainsKey("default"))
+                                                {
+                                                    heroData["description"] = vehicle.Value.description["default"].content;
+                                                }
+
+                                                retVal.Add(new PendingDatum(heroData, $"hero\t{vehicle.Key}", false));
+
+                                                heroesAlreadyReturnedFull.Add(vehicle.Key);
                                             }
-                                            catch { }
-                                        }
-                                        break;
-                                }
-                            }
-
-                            game.Players.Add(player);
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(raw.clientVersion))
-                            game.Game["Version"] = raw.clientVersion;
-                        else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
-                            game.Game["Version"] = raw.GameVersion;
-
-                        if (raw.SyncJoin.HasValue)
-                            game.Attributes.Add("SyncJoin", raw.SyncJoin.Value);
-                        if (raw.MetaDataVersion.HasValue)
-                            game.Attributes.Add("MetaDataVersion", raw.MetaDataVersion);
-
-                        MapData mapData = null;
-                        if (mapDataTask != null)
-                            mapData = await mapDataTask;
-                        if (mapData != null)
-                        {
-                            game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
-                            game.Level["Name"] = mapData?.map?.title;
-                            //game.Level["GameType"] = mapData?.map?.type;
-                            game.Level.AddObjectPath("GameType:ID", mapData?.map?.type);
-                            //game.Level["GameMode"] = "Unknown";
-                            if (!string.IsNullOrWhiteSpace(mapData?.map?.type))
-                            {
-                                switch (mapData?.map?.type)
-                                {
-                                    case "D": // Deathmatch
-                                        game.Level.AddObjectPath("GameType:ID", "DM");
-                                        game.Level.AddObjectPath("GameMode:ID", "DM");
-                                        await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:DM"))
-                                                DataCache.AddObjectPath($"Level:GameMode:DM:Name", "Deathmatch");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }
-                                        break;
-                                    case "S": // Strategy
-                                        game.Level.AddObjectPath("GameType:ID", "STRAT");
-                                        game.Level.AddObjectPath("GameMode:ID", "STRAT");
-                                        await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }
-                                        break;
-                                    case "K": // King of the Hill
-                                        game.Level.AddObjectPath("GameType:ID", "DM");
-                                        game.Level.AddObjectPath("GameMode:ID", "KOTH");
-                                        await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:KOTH"))
-                                                DataCache.AddObjectPath($"Level:GameMode:KOTH:Name", "King of the Hill");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }
-                                        break;
-                                    case "M": // Mission MPI
-                                        game.Level.AddObjectPath("GameType:ID", "STRAT");
-                                        game.Level.AddObjectPath("GameMode:ID", "M_MPI");
-                                        await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:M_MPI"))
-                                                DataCache.AddObjectPath($"Level:GameMode:M_MPI:Name", "Mission MPI");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }
-                                        break;
-                                    case "A": // Action MPI
-                                        game.Level.AddObjectPath("GameType:ID", "DM");
-                                        game.Level.AddObjectPath("GameMode:ID", "A_MPI");
-                                        await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:A_MPI"))
-                                                DataCache.AddObjectPath($"Level:GameMode:A_MPI:Name", "Action MPI");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }
-                                        break;
-                                }
-                            }
-                            if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
-                            {
-                                game.Level["GameMode"] = $"{mapData.map.custom_type}";
-                                if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type_name))
-                                {
-                                    //DataCache.AddObjectPath($"Level:GameMode:{mapData.map.custom_type}", mapData.map.custom_type_name);
-
-                                    await DataCacheLock.WaitAsync();
-                                    try
-                                    {
-                                        if (!DataCache.ContainsPath($"Level:GameMode:{mapData.map.custom_type}"))
-                                            DataCache.AddObjectPath($"Level:GameMode:{mapData.map.custom_type}:Name", mapData.map.custom_type_name); // TODO: consider localization
-                                    }
-                                    finally
-                                    {
-                                        DataCacheLock.Release();
-                                    }
-                                }
-                            }
-
-                            await ModsLock.WaitAsync();
-                            if (mapData?.mods != null)
-                            {
-                                foreach (var mod in mapData.mods)
-                                {
-                                    if (!Mods.ContainsKey(mod.Key))
-                                    {
-                                        Mods.AddObjectPath($"{mod.Key}:Name", mod.Value?.name ?? mod.Value?.workshop_name);
-                                        Mods.AddObjectPath($"{mod.Key}:ID", mod.Key);
-                                        if (mod.Value?.image != null)
-                                            Mods.AddObjectPath($"{mod.Key}:Image", $"{mapUrl.TrimEnd('/')}/{mod.Value.image}");
-                                        if (UInt64.TryParse(mod.Key, out _))
-                                        {
-                                            Mods.AddObjectPath($"{mod.Key}:Url", $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}");
-                                        }
-                                    }
-                                }
-                            }
-                            ModsLock.Release();
-
-                            game.Level["AllowedHeroes"] = new JArray(mapData.map.vehicles.Select(dr => $"{dr}").ToArray());
-                            foreach (var vehicle in mapData.vehicles)
-                            {
-                                await HeroesLock.WaitAsync();
-                                try
-                                {
-                                    if (!Heroes.ContainsPath($"{vehicle.Key.Replace(":", "\\:")}"))
-                                    {
-                                        Heroes.AddObjectPath($"{vehicle.Key.Replace(":", "\\:")}:Name", vehicle.Value.name);
-                                        if (vehicle.Value.description != null)
-                                        {
-                                            if (vehicle.Value.description.ContainsKey("en"))
+                                            else
                                             {
-                                                Heroes.AddObjectPath($"{vehicle.Key.Replace(":", "\\:")}:Description", vehicle.Value.description["en"].content);
-                                            }
-                                            else if (vehicle.Value.description.ContainsKey("default"))
-                                            {
-                                                Heroes.AddObjectPath($"{vehicle.Key.Replace(":", "\\:")}:Description", vehicle.Value.description["default"].content);
+                                                // to deal with interlacing spit out some stubs too
+                                                retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"), $"hero\t{vehicle.Key}", true));
                                             }
                                         }
+                                        finally
+                                        {
+                                            heroesAlreadyReturnedLock.Release();
+                                        }
                                     }
+                                    mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
                                 }
-                                finally
-                                {
-                                    HeroesLock.Release();
-                                }
-                            }
 
-                            foreach (var player in game.Players)
+                                retVal.Add(new PendingDatum(mapDatum, null, false));
+                            }
+                            return retVal;
+                        }));
+
+                        //DelayedDatumTasks
+                    }
+
+                    //if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0")
+                    //{
+                    //    /*if (!modsAlreadyReturnedStub.Contains(raw.WorkshopID))
+                    //    {
+                    //        yield return new Datum("mod", raw.WorkshopID);
+                    //        modsAlreadyReturnedStub.Add(raw.WorkshopID);
+                    //    }*/
+                    //    session.AddObjectPath("level:mod", new DatumRef("mod", raw.WorkshopID));
+                    //}
+
+                    if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath("level:rules:time_limit", raw.TimeLimit);
+                    if (raw.KillLimit.HasValue && raw.KillLimit > 0) session.AddObjectPath("level:rules:kill_limit", raw.KillLimit);
+                    if (raw.Lives.HasValue && raw.Lives.Value > 0) session.AddObjectPath("level:rules:lives", raw.Lives.Value);
+                    if (raw.SatelliteEnabled.HasValue) session.AddObjectPath("level:rules:satellite", raw.SatelliteEnabled.Value);
+                    if (raw.BarracksEnabled.HasValue) session.AddObjectPath("level:rules:barracks", raw.BarracksEnabled.Value);
+                    if (raw.SniperEnabled.HasValue) session.AddObjectPath("level:rules:sniper", raw.SniperEnabled.Value);
+                    if (raw.SplinterEnabled.HasValue) session.AddObjectPath("level:rules:splinter", raw.SplinterEnabled.Value);
+
+                    // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
+                    if (raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
+                    {
+                        session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", true);
+                    }
+                    else
+                    {
+                        session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", raw.isLocked);
+                    }
+                    session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_PASSWORD}", raw.IsPassworded);
+                    
+                    string ServerState = Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame);
+                    session.AddObjectPath("status:state", ServerState); // TODO limit this state to our state enumeration
+                    session.AddObjectPath("status:other:state", ServerState);
+
+                    List<DataCache> Players = new List<DataCache>();
+                    foreach (var dr in raw.users.Values)
+                    {
+                        DataCache player = new DataCache();
+
+                        player["name"] = dr.name;
+                        player["type"] = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
+                        player.AddObjectPath("other:launched", dr.Launched);
+                        player.AddObjectPath("other:is_auth", dr.isAuth);
+                        if (admin)
+                        {
+                            player.AddObjectPath("other:wan_address", dr.wanAddress);
+                            player.AddObjectPath("other:lan_addresses", JArray.FromObject(dr.lanAddresses));
+                        }
+
+                        if (dr.Team.HasValue)
+                        {
+                            //player.AddObjectPath("team:id", dr.Team.Value.ToString());
+                            player.AddObjectPath("ids:slot:id", dr.Team);
+                            player.AddObjectPath("index", dr.Team);
+                        }
+
+                        //player.Attributes.Add("Vehicle", dr.Vehicle);
+                        if (dr.Vehicle != null)
+                        {
+                            string heroId = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
+                            yield return new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}", new DataCache()
                             {
-                                if (player.Hero != null)
-                                {
-                                    string ODF = player.Hero.Attributes["ODF"]?.Value<string>();
-                                    if (!string.IsNullOrWhiteSpace(ODF))
+                                //{ "other", new DataCache2() { { "odf", dr.Vehicle } } },
+                            });
+                            DontSendStub.Add($"hero\t{heroId}"); // we already sent the a stub don't send another
+                            player.AddObjectPath("hero", new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}"));
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(dr.id))
+                        {
+                            player.AddObjectPath("ids:bzr_net:id", dr.id);
+                            if (dr.id == raw.owner)
+                                player["is_host"] = true;
+                            switch (dr.id[0])
+                            {
+                                case 'S': // dr.authType == "steam"
                                     {
-                                        string ProperHeroID = mapData.map?.vehicles?.Where(heroData => heroData.EndsWith($":{ODF}")).FirstOrDefault();
-                                        if (!string.IsNullOrWhiteSpace(ProperHeroID))
+                                        ulong playerID = 0;
+                                        if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                         {
-                                            player.Hero.ID = ProperHeroID;
-                                        }
-                                        else
-                                        {
-                                            ProperHeroID = Heroes.Where(heroData => heroData.Key.EndsWith($":{ODF}")).Select(dr => dr.Key).FirstOrDefault();
-                                            if (!string.IsNullOrWhiteSpace(ProperHeroID))
+                                            yield return new Datum("identity/steam", playerID.ToString(), new DataCache()
                                             {
-                                                player.Hero.ID = ProperHeroID;
-                                            }
+                                                { "type", "steam" },
+                                            });
+                                            DontSendStub.Add($"identity/steam\t{playerID.ToString()}"); // we already sent the a stub don't send another
+
+                                            player.AddObjectPath("ids:steam", new DataCache() {
+                                                { "id", playerID.ToString() },
+                                                { "raw", dr.id.Substring(1) },
+                                                { "identity", new DatumRef("identity/steam", playerID.ToString()) },
+                                            });
+
+                                            DelayedDatumTasks.Add(Task.Run(async () =>
+                                            {
+                                                PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                Datum accountDataSteam = new Datum("identity/steam", playerID.ToString(), new DataCache()
+                                                {
+                                                    { "type", "steam" },
+                                                    { "avatar_url", playerData.AvatarFullUrl },
+                                                    { "nickname", playerData.Nickname },
+                                                    { "profile_url", playerData.ProfileUrl },
+                                                });
+                                                return new List<PendingDatum> () { new PendingDatum(accountDataSteam, $"identity/steam/{playerID.ToString()}", false) };
+                                            }));
                                         }
                                     }
-                                }
+                                    break;
+                                case 'G':
+                                    {
+                                        ulong playerID = 0;
+                                        if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                        {
+                                            playerID = GogInterface.CleanGalaxyUserId(playerID);
+
+                                            yield return new Datum("identity/gog", playerID.ToString(), new DataCache()
+                                            {
+                                                { "type", "gog" },
+                                            });
+                                            DontSendStub.Add($"identity/gog\t{playerID.ToString()}"); // we already sent the a stub don't send another
+
+                                            player.AddObjectPath("ids:steam", new DataCache() {
+                                                { "id", playerID.ToString() },
+                                                { "raw", dr.id.Substring(1) },
+                                                { "identity", new DatumRef("identity/gog", playerID.ToString()) },
+                                            });
+
+                                            player.AddObjectPath("ids:gog", new DatumRef("identity/gog", playerID.ToString()));
+
+                                            DelayedDatumTasks.Add(Task.Run(async () =>
+                                            {
+                                                GogUserData playerData = await gogInterface.Users(playerID);
+                                                Datum accountDataGog = new Datum("identity/gog", playerID.ToString(), new DataCache()
+                                                {
+                                                    { "type", "gog" },
+                                                    { "avatar_url", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large },
+                                                    { "username", playerData.username },
+                                                    { "profile_url", $"https://www.gog.com/u/{playerData.username}" },
+                                                });
+                                                return new List<PendingDatum> () { new PendingDatum(accountDataGog, $"identity/gog/{playerID.ToString()}", false) };
+                                            }));
+                                        }
+                                    }
+                                    break;
                             }
                         }
 
-                        await SessionsLock.WaitAsync();
-                        try
-                        {
-                            Sessions.Add(game);
-                        }
-                        finally
-                        {
-                            SessionsLock.Release();
-                        }
-                    }));
+                        Players.Add(player);
+                    }
+                    session["players"] = Players;
+
+                    if (!string.IsNullOrWhiteSpace(raw.clientVersion))
+                        session.AddObjectPath("game:version", raw.clientVersion);
+                    else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
+                        session.AddObjectPath("game:version", raw.GameVersion);
+
+                    if (raw.SyncJoin.HasValue)
+                        session.AddObjectPath("attributes:sync_join", raw.SyncJoin.Value);
+                    if (raw.MetaDataVersion.HasValue)
+                        session.AddObjectPath("attributes:meta_data_version", raw.MetaDataVersion);
+
+                    yield return session;
                 }
 
-                Task.WaitAll(Tasks.ToArray());
-
-                return new GameListData()
+                while (DelayedDatumTasks.Any())
                 {
-                    Metadata = Metadata,
-                    SessionsDefault = DefaultSession,
-                    DataCache = DataCache,
-                    Sessions = Sessions,
-                    Mods = Mods,
-                    Heroes = Heroes,
-                    Raw = admin ? res : null,
-                };
+                    Task<List<PendingDatum>> doneTask = await Task.WhenAny(DelayedDatumTasks);
+                    foreach (var datum in doneTask.Result)
+                    {
+                        // don't send datums if we already sent the big guy
+                        if (datum.key != null)
+                        {
+                            if (datum.stub)
+                            {
+                                if (DontSendStub.Contains(datum.key)) // it's a stub and we are now blocking stubs
+                                    continue;
+                            }
+                            else
+                            {
+                                DontSendStub.Add(datum.key); // if it's not a stub, remember no more stubs!
+                            }
+                        }
+                        yield return datum.data;
+                    }
+                    DelayedDatumTasks.Remove(doneTask);
+                }
             }
         }
     }

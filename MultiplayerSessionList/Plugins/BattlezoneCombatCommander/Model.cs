@@ -47,7 +47,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public string s { get; set; } // score
         public string t { get; set; } // team
 
-        [JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n)); } }
+        //[JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n)); } }
+        [JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n)); } }
         [JsonIgnore] public int? Kills { get { int tmp = 0; return int.TryParse(k, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? Deaths { get { int tmp = 0; return int.TryParse(d, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? Score { get { int tmp = 0; return int.TryParse(s, out tmp) ? (int?)tmp : null; } }
@@ -80,6 +81,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public string ki { get; set; } // kill limit
 
         public string gtm { get; set; } // game time min
+        public string pg { get; set; } // seen max ping
         public string pgm { get; set; } // max ping
 
         public BZCCPlayerData[] pl { get; set; }
@@ -98,11 +100,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [JsonIgnore] public int? GameTimeMinutes { get { int tmp = 0; return int.TryParse(gtm, out tmp) ? (int?)tmp : null; } }
 
         [JsonIgnore] public int? TPS { get { int tmp = 0; return int.TryParse(tps, out tmp) ? (int?)tmp : null; } }
+        [JsonIgnore] public int? MaxPingSeen { get { int tmp = 0; return int.TryParse(pg, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? MaxPing { get { int tmp = 0; return int.TryParse(pgm, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? TimeLimit { get { int tmp = 0; return int.TryParse(ti, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? KillLimit { get { int tmp = 0; return int.TryParse(ki, out tmp) ? (int?)tmp : null; } }
 
-        [JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
+        [JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
+        //[JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
         //[JsonIgnore] public string MOTD { get { try { return string.IsNullOrWhiteSpace(h) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(h)); } catch { return null; } } }
 
         [JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }

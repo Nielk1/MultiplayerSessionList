@@ -26,11 +26,11 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializePlayerCount() { return PlayerCount.Count > 0; }
 
 
-        public DataCache Level { get; set; }
+        public DataCacheOld Level { get; set; }
         public bool ShouldSerializeLevel() { return Level.Count > 0; }
 
 
-        public DataCache Status { get; set; }
+        public DataCacheOld Status { get; set; }
         public bool ShouldSerializeStatus() { return Status.Count > 0; }
 
 
@@ -38,38 +38,38 @@ namespace MultiplayerSessionList.Models
         public bool ShouldSerializePlayers() { return Players.Count > 0; }
 
 
-        public DataCache Attributes { get; set; }
+        public DataCacheOld Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
 
-        public DataCache Address { get; set; }
+        public DataCacheOld Address { get; set; }
         public bool ShouldSerializeAddress() { return Address.Count > 0; }
 
 
-        public DataCache Game { get; set; }
+        public DataCacheOld Game { get; set; }
         public bool ShouldSerializeGame() { return Game.Count > 0; }
 
 
-        public DataCache Time { get; set; }
+        public DataCacheOld Time { get; set; }
         public bool ShouldSerializeTime() { return Time.Count > 0; }
 
 
-        public DataCache Teams { get; set; }
+        public DataCacheOld Teams { get; set; }
         public bool ShouldSerializeTeams() { return Teams.Count > 0; }
 
 
         public SessionItem()
         {
-            Level = new DataCache();
-            Status = new DataCache();
+            Level = new DataCacheOld();
+            Status = new DataCacheOld();
             PlayerTypes = new List<PlayerTypeData>();
             PlayerCount = new Dictionary<string, int?>();
             Players = new List<PlayerItem> ();
-            Attributes = new DataCache();
-            Address = new DataCache();
-            Game = new DataCache();
-            Time = new DataCache();
-            Teams = new DataCache();
+            Attributes = new DataCacheOld();
+            Address = new DataCacheOld();
+            Game = new DataCacheOld();
+            Time = new DataCacheOld();
+            Teams = new DataCacheOld();
         }
     }
 
@@ -90,7 +90,7 @@ namespace MultiplayerSessionList.Models
         public string Type { get; set; }
 
 
-        public DataCache Stats { get; set; }
+        public DataCacheOld Stats { get; set; }
         public bool ShouldSerializeStats() { return Stats.Count > 0; }
 
 
@@ -98,26 +98,26 @@ namespace MultiplayerSessionList.Models
         public PlayerHero Hero { get; set; }
 
 
-        public DataCache Attributes { get; set; }
+        public DataCacheOld Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
 
-        public Dictionary<string, DataCache> IDs { get; set; }
+        public Dictionary<string, DataCacheOld> IDs { get; set; }
 
         public bool ShouldSerializeIDs() { return IDs.Count > 0; }
 
 
         public PlayerItem()
         {
-            Stats = new DataCache();
-            Attributes = new DataCache();
-            IDs = new Dictionary<string, DataCache>();
+            Stats = new DataCacheOld();
+            Attributes = new DataCacheOld();
+            IDs = new Dictionary<string, DataCacheOld>();
         }
 
         public Dictionary<string, JToken> GetIDData(string key)
         {
             if (!IDs.ContainsKey(key))
-                IDs[key] = new DataCache();
+                IDs[key] = new DataCacheOld();
             return IDs[key];
         }
     }
@@ -133,16 +133,16 @@ namespace MultiplayerSessionList.Models
     {
         public string ID { get; set; }
 
-        public DataCache Attributes { get; set; }
+        public DataCacheOld Attributes { get; set; }
         public bool ShouldSerializeAttributes() { return Attributes.Count > 0; }
 
         public PlayerHero()
         {
-            Attributes = new DataCache();
+            Attributes = new DataCacheOld();
         }
     }
 
-    public class DataCache : Dictionary<string, JToken>
+    public class DataCacheOld : Dictionary<string, JToken>
     {
         static Regex KeySplit = new Regex("(?<!\\\\):");
 

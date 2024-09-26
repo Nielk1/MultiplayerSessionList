@@ -9,11 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Plugins.RetroArchNetplay
 {
-    public class GameListModule : IGameListModule
+    public class GameListModule : IGameListModuleOld
     {
         public string GameID => "retroarch:netplay";
         public string Title => "RetroArch Netplay";
@@ -44,7 +46,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                 var gamelist = JsonConvert.DeserializeObject<List<SessionWrapper>>(res);
 
                 SessionItem DefaultSession = new SessionItem();
-                DefaultSession.Type = GAMELIST_TERMS.TYPE_LISTEN;
+                DefaultSession.Type = GAMELIST_TERMS_OLD.TYPE_LISTEN;
                 DefaultSession.Time.AddObjectPath("Resolution", 1);
 
                 List<SessionItem> Sessions = new List<SessionItem>();
@@ -74,8 +76,8 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                     //game.Level.ID = MapID.ToString(Formatting.None);
                     game.Level["ID"] = $"{s.GameCRC}:{s.GameName}";
 
-                    game.Status[GAMELIST_TERMS.STATUS_PASSWORD] = s.HasPassword;
-                    game.Status[$"{GAMELIST_TERMS.STATUS_PASSWORD}.{GAMELIST_TERMS.PLAYERTYPE_SPECTATOR}"] = s.HasSpectatePassword;
+                    game.Status[GAMELIST_TERMS_OLD.STATUS_PASSWORD] = s.HasPassword;
+                    game.Status[$"{GAMELIST_TERMS_OLD.STATUS_PASSWORD}.{GAMELIST_TERMS_OLD.PLAYERTYPE_SPECTATOR}"] = s.HasSpectatePassword;
 
                     game.Game.AddObjectPath("Attributes:Core:Name", s.CoreName);
                     game.Game.AddObjectPath("Attributes:Core:Version", s.CoreVersion);
@@ -103,6 +105,11 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                     Raw = admin ? res : null,
                 };
             }
+        }
+
+        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield break;
         }
     }
 }

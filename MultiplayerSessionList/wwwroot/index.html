@@ -1,14 +1,19 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home Page - MultiplayerSessionList</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!--<link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />-->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+
     <link href="/lib/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/icomoon.css" />
-    <link rel="stylesheet"
-          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">-->
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/felipec.min.css">-->
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/obsidian.min.css">-->
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/stackoverflow-dark.min.css">-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
 </head>
 <body>
     <style>
@@ -23,17 +28,38 @@
             .player_avatars a img {
                 height: 100px;
             }
+
+            /* ^^^^^ old ^^^^^ */
+
+        .force-ellipsis {
+            text-overflow: ellipsis;
+            text-wrap: nowrap;
+            overflow: hidden;
+        }
+
+        @media (max-width: 575.99px) {
+            .border-start-xs-0 {
+                border-left: 0 !important;
+            }
+        }
+
+        .border-dashed {
+            border-style: dotted !important;
+        }
+        .border-dashed {
+            border-style: dashed !important;
+        }
     </style>
 
     <div class="container-fluid pt-2">
-        <div class="dropdown float-left">
-            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <div class="dropdown float-start">
+            <button id="dropdownMenuLink" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Game
-            </a>
+            </button>
 
-            <div id="dropdownMenuContainer" class="dropdown-menu" aria-labelledby="dropdownMenuLink"></div>
+            <ul id="dropdownMenuContainer" class="dropdown-menu"></ul>
         </div>
-        <button id="btnRefresh" disabled="disabled" type="button" class="btn btn-outline-primary float-right">Refresh</button>
+        <button id="btnRefresh" disabled="disabled" type="button" class="btn btn-outline-primary float-end">Refresh</button>
 
         <div class="text-center">
             <h1 class="display-5">Game List Test</h1>
@@ -41,112 +67,82 @@
     </div>
 
     <div class="container-fluid">
-        <table id="tblGames" class="table table-dark">
-            <thead class="thead-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Players</th>
-                    <th scope="col">IsLocked</th>
-                    <th scope="col">HasPassword</th>
-                    <th scope="col">State</th>
-                    <th scope="col">...</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td class="text-center bg-light text-dark" colspan="8"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> Select a Game <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>
-            </tbody>
-            <thead class="thead-dark">
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Players</th>
-                    <th scope="col">IsLocked</th>
-                    <th scope="col">HasPassword</th>
-                    <th scope="col">State</th>
-                    <th scope="col">...</th>
-                </tr>
-            </thead>
-        </table>
+        <div class="accordion pb-2">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
+                        Rendered DOM Elements
+                    </button>
+                </h2>
+                <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                        <div id="lobbyList" class="row"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                        Raw LD-JSON
+                    </button>
+                </h2>
+                <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                    <div class="accordion-body p-0">
+                        <pre class="m-0"><code class="language-json small" id="codeRawJsonLines"></code></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3" aria-expanded="true" aria-controls="collapse3">
+                        Data References Processed
+                    </button>
+                </h2>
+                <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                    <div class="accordion-body p-0">
+                        <pre class="m-0"><code class="language-json small" id="codeRawJson"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="container-fluid"><pre><code class="language-json small" id="codeRawJson"></code></pre></div>
-
     <footer class="border-top footer text-muted">
-        <div class="container">
+        <div class="container-fluid">
             &copy; 2024 - MultiplayerSessionList
         </div>
     </footer>
     <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+    <!--<script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>-->
+    <script src="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <script>
+function encodeAttr(text) {
+  const elem = document.createElement('p');
+  elem.setAttribute('title', text);
+  const elemHtml = elem.outerHTML; // <p title="encodedText"> or maybe <p title='encodedText'>
+  // Find out whether the browser used single or double quotes before encodedText
+  const quote = elemHtml[elemHtml.search(/['"]/)];
+  // Split up the generated HTML using the quote character; take item 1
+  return elemHtml.split(new RegExp(quote))[1];
+}
+function escapeHtml(unsafe)
+{
+    if (!unsafe)
+        return unsafe;
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+ }
+
+
+        var ListData = {};
+
         var tableColSpan = 8;
-
-        function DecorateWithDataCache(data) {
-            if (data == null || data["DataCache"] == null)
-                return data;
-
-            var keys = Object.keys(data);
-            for (var i = 0; i < keys.length; i++) {
-                if (keys[i] == "DataCache") continue;
-                if (keys[i].endsWith("Default")) continue;
-                data[keys[i]] = DecorateWithDataDefault(data[keys[i]], data[keys[i] + "Default"]);
-                data[keys[i]] = DecorateWithDataCacheRecurse(data[keys[i]], data["DataCache"]);
-            }
-            return data;
-        }
-
-        function DecorateWithDataDefault(data, defaultData) {
-            if (defaultData == null)
-                return data;
-
-            // if we are an array, recall for each array sub-items
-            if (Array.isArray(data)) {
-                for (var i = 0; i < data.length; i++)
-                    data[i] = DecorateWithDataDefault(data[i], defaultData);
-                return data;
-            }
-
-            return $.extend(true, {}, data, defaultData);
-        }
-
-        function DecorateWithDataCacheRecurse(data, cache) {
-            // if we are an array, recall for each array sub-items
-            if (Array.isArray(data)) {
-                for (var i = 0; i < data.length; i++)
-                    data[i] = DecorateWithDataCacheRecurse(data[i], cache);
-                return data;
-            }
-
-            //console.log({ data, cache });
-
-            // for all member fields do a recursive call for look for deeper cache entries
-            var keys = Object.keys(data);
-            for (var i = 0; i < keys.length; i++) {
-                if (cache[keys[i]] != null && typeof (data[keys[i]]) == "object" && data[keys[i]] != null) {
-                    // if the field value is an object and either not an array, or the first item of the array is an object
-                    if (typeof data[keys[i]] == "object" && (!Array.isArray( data[keys[i]]) || (data[keys[i]].length > 0 && typeof data[keys[i]][0] == "object")))
-                        DecorateWithDataCacheRecurse(data[keys[i]], cache[keys[i]]);
-                }
-            }
-
-            // if we have an ID field and it is a string check the cache for a match and merge the data if present
-            if (data["ID"] != null && typeof (data["ID"]) == "string" && cache[data["ID"]] != null && typeof (cache[data["ID"]]) == "object") {
-                var keys = Object.keys(cache[data["ID"]]);
-                for (var i = 0; i < keys.length; i++) {
-                    if (data[keys[i]] == null) {
-                        data[keys[i]] = cache[data["ID"]][keys[i]];
-                    }
-                }
-            }
-            //console.log('-------------');
-
-            return data;
-        }
 
         function DrawModNode(Mod) {
             if (Mod.Url != null) {
@@ -178,7 +174,7 @@
             var windowSearch = window.location.search;
             if (windowSearch.length > 0)
                 windowSearch = '?' + windowSearch.substring(1);
-            $.ajax({ url: '/api/1.0/games' + windowSearch })
+            $.ajax({ url: '/api/2.0/games' + windowSearch })
                 .done(function (data) {
                     $('#dropdownMenuContainer').empty();
                     for (var i = 0; i < data.length; i++) {
@@ -190,7 +186,8 @@
                         var sessionRow = $('<a class="dropdown-item" href="#"/>');
                         sessionRow.text(dat.Name);
                         sessionRow.data('value', dat.Key)
-                        $('#dropdownMenuContainer').append(sessionRow);
+                        $('#dropdownMenuContainer').append($('<li>').append(sessionRow));
+
                         //}
                     }
                 });
@@ -198,501 +195,1288 @@
 
         $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
             e.preventDefault();
-            $('#dropdownMenuContainer>.dropdown-item').removeClass('active');
+            //$('#dropdownMenuContainer .dropdown-item').removeClass('active');
             var item = $(e.target);
             if (item.hasClass('dropdown-item')) {
-                item.addClass('active')
-                $('#dropdownMenuLink').text(item.text());
-                $('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
-                $('#btnRefresh').trigger('click');
+                if (item.hasClass('active')) {
+                    item.removeClass('active');
+                } else {
+                    item.addClass('active')
+                }
+                if ($('#dropdownMenuContainer .dropdown-item.active').length > 0) {
+                    $('#btnRefresh').removeAttr("disabled");
+                } else {
+                    $('#btnRefresh').attr("disabled", "disabled");
+                }
+                //$('#dropdownMenuLink').text(item.text());
+                //$('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
+                //$('#btnRefresh').trigger('click');
             }
         });
+
+        function isObject(item) {
+            return (item && typeof item === 'object' && !Array.isArray(item));
+        }
+
+        //var tmpArr = []
+        // this function merges all the sources into the destination object, and returns the destination object
+        // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
+        /*function MergeIntoFirstObject(target, ...sources) {
+            console.log(sources.length, sources);
+            if (sources.length == 0) {
+                // no sources left to merge
+
+                if (isObject(target)) {
+                    //console.log(tmpArr, target);
+                    for (const key in target) {
+                        //tmpArr.push(key);
+                        if (isObject(target[key])) {
+                            if (target[key].$ref) {
+                                // we're a ref object, so forget the destination entirely and just use the source's reference
+                                var split = target[key].$ref.split('/');
+                                target[key] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
+                            }
+                        } else if (Array.isArray(target[key])) {
+                            for (var i = 0; i < target[key].length; i++) {
+                                if (isObject(target[key][i])) {
+                                    if (target[key][i].$ref) {
+                                        // we're a ref object, so forget the destination entirely and just use the source's reference
+                                        var split = target[key][i].$ref.split('/');
+                                        target[key][i] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
+                                    } else {
+                                        MergeIntoFirstObject(target[key][i]);
+                                    }
+                                }
+                            }
+                        }
+                        //tmpArr.pop();
+                    }
+                }
+
+                return target;
+            }
+            const source = sources.shift();
+            if (source === undefined) return MergeIntoFirstObject(target, ...sources); // next source
+            //console.log(tmpArr, target, source);
+
+            if (isObject(target) && isObject(source)) {
+                for (const key in source) {
+                    //tmpArr.push(key);
+                    if (isObject(source[key])) {
+                        //if (source[key].$ref) {
+                        //    // we're a ref object, so forget the destination entirely and just use the source's reference
+                        //    var split = source[key].$ref.split('/');
+                        //    target[key] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
+                        //} else {
+                            if (!target[key]) Object.assign(target, { [key]: {} });
+                            MergeIntoFirstObject(target[key], source[key]);
+                        //}
+                    } else if (Array.isArray(source[key])) {
+                        // assign the array, but then iterate it to look for those references
+                        Object.assign(target, { [key]: source[key] });
+                        for (var i = 0; i < source[key].length; i++) {
+                            if (isObject(source[key][i])) {
+                                //tmpArr.push(i);
+                                MergeIntoFirstObject(target[key][i], source[key][i]);
+                                //tmpArr.pop();
+                            }
+                        }
+                    } else {
+                        Object.assign(target, { [key]: source[key] });
+                    }
+                    //tmpArr.pop();
+                }
+            }
+
+            return MergeIntoFirstObject(target, ...sources); // next source
+        }*/
+
+        // this function merges all the sources into the destination object, and returns the destination object
+        // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
+        function MergeIntoFirstObject(target, ...sources) {
+            const source = sources.shift();
+            if (source === undefined) return MergeIntoFirstObject(target, ...sources); // next source
+            if (isObject(target) && isObject(source)) {
+                for (const key in source) {
+                    if (isObject(source[key])) {
+                        if (!target[key]) Object.assign(target, { [key]: {} });
+                        MergeIntoFirstObject(target[key], source[key]);
+                    } else if (Array.isArray(source[key])) {
+                        // assign the array, but then iterate it to look for those references
+                        Object.assign(target, { [key]: source[key] });
+                        for (var i = 0; i < source[key].length; i++) {
+                            if (isObject(source[key][i])) {
+                                MergeIntoFirstObject(target[key][i], source[key][i]);
+                            }
+                        }
+                    } else {
+                        Object.assign(target, { [key]: source[key] });
+                    }
+                }
+            }
+            // no sources left to merge, clean up references
+            if (sources.length == 0)
+                return MergeReferences(target);
+            return MergeIntoFirstObject(target, ...sources); // next source
+        }
+
+        function MergeReferences(target) {
+            if (!isObject(target))
+                return target;
+
+            for (const key in target) {
+                // Detect Object or Array
+                if (isObject(target[key])) {
+                    if (target[key].$ref) {
+                        // we're a ref object, so forget the destination entirely and just use the source's reference
+                        var split = target[key].$ref.split('/');
+                        target[key] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
+                    }
+                } else if (Array.isArray(target[key])) {
+                    for (var i = 0; i < target[key].length; i++) {
+                        if (isObject(target[key][i])) {
+                            if (target[key][i].$ref) {
+                                // we're a ref object, so forget the destination entirely and just use the source's reference
+                                var split = target[key][i].$ref.split('/');
+                                target[key][i] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
+                            } else {
+                                MergeReferences(target[key][i]);
+                            }
+                        }
+                    }
+                }
+            }
+            return target;
+        }
 
         var GetGamesAjax = null;
         $('#btnRefresh').click(function (e) {
             e.preventDefault();
-            var key = $('#btnRefresh').data('key');
+            //var key = $('#btnRefresh').data('key');
 
-            $('#tblGames>tbody').empty();
+            $('#lobbyList').empty();
             $('#codeRawJson').empty();
-            $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-refresh fa-spin"></i> Loading <i class="fa fa-refresh fa-spin"></i></td></tr>');
+            $('#codeRawJsonLines').empty();
+            //$('#lobbyList').append('<tr id="LoadingRow"><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-refresh fa-spin"></i> Loading <i class="fa fa-refresh fa-spin"></i></td></tr>');
             if (GetGamesAjax != null) {
                 GetGamesAjax.abort();
             }
             var windowSearch = window.location.search;
             if (windowSearch.length > 0)
                 windowSearch = '&' + windowSearch.substring(1);
-            GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key + windowSearch }).done(function (data) {
-                $('#tblGames>tbody').empty();
-                $('#codeRawJson').empty();
 
-                data = DecorateWithDataCache(data);
-
-                if (data.Sessions.length > 0) {
-                    var heroes = data.Heroes;
-                    //if (data.DataCache != null) {
-                    //    if (heroes) {
-                    //        DecorateWithDataCacheRecurse(heroes, data.DataCache);
-                    //    }
-                    //}
-                    for (var i = 0; i < data.Sessions.length; i++) {
-                        //var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
-                        var session = data.Sessions[i];
-
-                        //if (data.DataCache != null)
-                        //    DecorateWithDataCacheRecurse(session, data.DataCache);
-
-                        $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
-
-                        var sessionRow = $('<tr/>');
-                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.ID));
-                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.Type));
-                        sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
-                        {
-                            var cell = $('<td/>');
-                            if (session.PlayerTypes != null) {
-                                for (var k = 0; k < session.PlayerTypes.length; k++) {
-                                    var elem = $('<span/>');
-                                    if (k > 0)
-                                        cell.append('<br/>');
-
-                                    for (var L = 0; L < session.PlayerTypes[k].Types.length; L++) {
-                                        var playerType = session.PlayerTypes[k].Types[L];
-                                        if (L > 0)
-                                            cell.append(' ');
-                                        elem.append((session.PlayerCount[playerType] + 0) + ' ' + playerType);
-                                    }
-                                    if (session.PlayerTypes[k].Max) {
-                                        elem.append(' / ' + session.PlayerTypes[k].Max);
-                                    }
-                                    cell.append(elem);
-                                }
-                            }
-                            sessionRow.append(cell);
-                        }
-                        sessionRow.append($('<td/>').text(session.Status && session.Status.IsLocked));
-                        sessionRow.append($('<td/>').text(session.Status && session.Status.HasPassword));
-                        sessionRow.append($('<td/>').text(session.Status && session.Status.State));
-                        sessionRow.append($('<td/>').text(''));
-                        $('#tblGames>tbody').append(sessionRow);
-
-                        // address
-                        if (session.Address != null) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Address</td></tr>');
-
-                            var contentRow = $('<div class="row"/>');
-
-                            {
-                                var keys = Object.keys(session.Address);
-                                for (var k = 0; k < keys.length; k++) {
-                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
-
-                                    col.append(keys[k] + ": ");
-                                    var val = session.Address[keys[k]];
-                                    col.append(JSON.stringify(val));
-
-                                    contentRow.append(col);
-                                }
-                            }
-
-                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-                        }
-
-                        // message
-                        if (session.Message) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Message</td></tr>');
-
-                            var messagePanel = $('<div class="container-fluid bg-white text-dark text-center">').append(session.Message);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(messagePanel)));
-                        }
-
-                        // level
-                        {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Level</td></tr>');
-
-                            //var contentRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
-                            var contentRow = $('<div class="row"/>');
-
-                            if (session.Level.Image) {
-                                var col = $('<div class="col-xs-4" />');
-                                var card = $('<div class="card" />');
-                                //var img = $('<img src="https://discord.battlezone.report/resources/logos/nomap.png" class="card-img" />').attr('alt', session.Level.MapFile);
-                                var img = $('<img src="' + session.Level.Image + '" class="card-img" style="height:auto;width:100px;" />').attr('alt', session.Level.MapFile);
-                                card.append(img);
-                                col.append(card);
-                                contentRow.append(col);
-                            }
-                            {
-                                var wrapper = $('<div class="col row" />');
-
-                                {
-                                    //var col = $('<div class="col-md-6 col-lg-4" />');
-                                    var col = $('<div class="col-12" />');
-                                    col.append("ID: " + session.Level.ID);
-                                    wrapper.append(col);
-                                }
-
-                                {
-                                    var keys = Object.keys(session.Level);
-                                    for (var k = 0; k < keys.length; k++) {
-                                        if (keys[k] == "ID") continue; // omit ID as we printed it above
-                                        if (keys[k] == "Attributes") continue; // omit attributes as we print them below
-
-                                        if (keys[k] == "Mod") {
-                                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
-                                            col.append("Mod: ");
-                                            if (data.Mods != null && data.Mods[session.Level[keys[k]]] != null) {
-                                                var Mod = data.Mods[session.Level[keys[k]]];
-                                                col.append(DrawModNode(Mod));
-                                            } else {
-                                                col.append(JSON.stringify(session.Level[keys[k]]))
-                                            }
-                                            wrapper.append(col);
-                                            continue;
-                                        }
-                                        if (keys[k] == "Mods") {
-                                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
-                                            col.append("Mods: [");
-                                            var mod_collection = session.Level[keys[k]];
-                                            for (var l = 0; l < mod_collection.length; l++) {
-                                                if (l != 0)
-                                                    col.append(",");
-                                                if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
-                                                    var Mod = data.Mods[mod_collection[l]];
-                                                    col.append(DrawModNode(Mod));
-                                                } else {
-                                                    col.append(JSON.stringify(mod_collection[l]));
-                                                }
-                                            }
-                                            col.append("]");
-                                            wrapper.append(col);
-                                            continue;
-                                        }
-
-                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-
-                                        col.append(keys[k] + ": ");
-                                        var val = session.Level[keys[k]];
-                                        col.append(JSON.stringify(val));
-
-                                        wrapper.append(col);
-                                    }
-                                }
-
-                                if (session.Level.Attributes) {
-                                    var keys = Object.keys(session.Level.Attributes);
-                                    for (var k = 0; k < keys.length; k++) {
-                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-
-                                        col.append("Attribute: " + keys[k] + ": ");
-                                        var val = session.Level.Attributes[keys[k]];
-                                        col.append(JSON.stringify(val));
-
-                                        wrapper.append(col);
-                                    }
-                                }
-
-                                contentRow.append(wrapper);
-                            }
-
-
-                            /*<div class="col mb-4">
-                              <div class="card">
-                                <img src="..." class="card-img-top" alt="...">
-                                <div class="card-body">
-                                  <h5 class="card-title">Card title</h5>
-                                  <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                                </div>
-                              </div>
-                            </div>*/
-
-                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-                        }
-
-                        // players
-                        if (session.PlayerTypes != null && session.Players != null) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
-
-                            var avatars = [];
-
-                            var playerTable = $('<table/>');
-                            //playerTable.addClass('table-dark');
-                            //playerTable.addClass('small');
-                            playerTable.addClass('table-sm');
-                            playerTable.addClass('table-light');
-                            playerTable.addClass('text-dark');
-                            //playerTable.addClass('border-left');
-                            //playerTable.addClass('border-right');
-                            //playerTable.addClass('border-dark');
-                            playerTable.css('width', '100%');
-                            //playerTable.css('border-width', '1em !important');
-                            var playerTableHeader = $('<thead/>');
-                            var playerTableBody = $('<tbody/>');
-                            playerTable.append(playerTableHeader)
-                            playerTable.append(playerTableBody)
-
-                            var ColumnNames = ["Name", "ID", "Hero", "Attributes"];
-                            for (var j = 0; j < session.Players.length; j++) {
-                                var playerRow = $('<tr/>');
-
-                                // name
-                                playerRow.append($('<th/>').text(session.Players[j].Name));
-
-                                // ids
-                                {
-                                    var cell = $('<td/>');
-                                    var keys = Object.keys(session.Players[j].IDs);
-                                    for (var k = 0; k < keys.length; k++) {
-                                        var elem = $('<span/>');
-                                        if (k > 0)
-                                            cell.append('<br/>');
-                                        switch (keys[k]) {
-                                            case "Slot":
-                                                elem.append('<i class="icon icon-hash" aria-hidden="true"></i> ');
-                                                elem.append(session.Players[j].IDs[keys[k]].ID);
-                                                break;
-                                            case "BZRNet":
-                                                elem.append('<i class="fa fa-gamepad" aria-hidden="true"></i> ');
-                                                elem.append(session.Players[j].IDs[keys[k]].ID);
-                                                break;
-                                            case "Steam":
-                                                elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
-                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
-                                                break;
-                                            case "Gog":
-                                                elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
-                                                elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
-                                                break;
-                                            default:
-                                                elem.append(keys[k] + ": ");
-                                                if (session.Players[j].IDs[keys[k]].ProfileUrl) {
-                                                    if (session.Players[j].IDs[keys[k]].Username) {
-                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
-                                                    } else {
-                                                        elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].ID + '</a>');
-                                                    }
-                                                } else {
-                                                    elem.append(session.Players[j].IDs[keys[k]].ID);
-                                                }
-                                                break;
-                                        }
-                                        if (session.Players[j].IDs[keys[k]].AvatarUrl) {
-                                            avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname, type: keys[k] });
-                                        }
-                                        cell.append(elem);
-                                    }
-                                    playerRow.append(cell);
-                                }
-
-                                // hero
-                                {
-                                    var cell = $('<td/>');
-                                    if (session.Players[j].Hero != null) {
-                                        {
-                                            var elem = $('<span/>');
-                                            elem.text(session.Players[j].Hero.ID);
-                                            cell.append(elem);
-                                        }
-                                        if (heroes[session.Players[j].Hero.ID] != null) {
-                                            if (heroes[session.Players[j].Hero.ID].Name) {
-                                                var elem = $('<span/>');
-                                                elem.text(heroes[session.Players[j].Hero.ID].Name);
-                                                cell.append('<br/>');
-                                                cell.append(elem);
-                                            }
-                                            if (heroes[session.Players[j].Hero.ID].Description) {
-                                                var elem = $('<div class="p-1 border border-dark" style="white-space:pre;display:inline-block;"/>');
-                                                elem.text(heroes[session.Players[j].Hero.ID].Description);
-                                                cell.append('<br/>');
-                                                cell.append(elem);
-                                            }
-                                        }
-                                    }
-                                    playerRow.append(cell);
-                                }
-
-                                // attributes
-                                {
-                                    var cell = $('<td/>');
-                                    if (session.Players[j].Attributes != null) {
-                                        {
-                                            var keys = Object.keys(session.Players[j].Attributes);
-                                            for (var k = 0; k < keys.length; k++) {
-                                                //if (keys[k] == "ID") continue;
-
-                                                var col = $('<div style="line-break:anywhere;" />');
-
-                                                col.append(keys[k] + ": ");
-                                                var val = session.Players[j].Attributes[keys[k]];
-                                                col.append(JSON.stringify(val));
-
-                                                cell.append(col);
-                                            }
-                                        }
-                                    }
-                                    playerRow.append(cell);
-                                }
-
-                                playerTableBody.append(playerRow);
-                            }
-                            var playerHeaderRow = $('<tr/>');
-                            playerTableHeader.append(playerHeaderRow);
-                            for (var j = 0; j < ColumnNames.length; j++) {
-                                playerHeaderRow.append($('<th/>').text(ColumnNames[j]));
-                            }
-
-                            var playerAvatarBar = $('<div class="player_avatars" />');
-                            for (var j = 0; j < avatars.length; j++) {
-                                var wrapper = null;
-                                if (avatars[j].href) {
-                                    wrapper = $('<a/>');
-                                    wrapper.attr('href', avatars[j].href);
-                                    wrapper.attr('target', "_blank");
-                                    wrapper.attr('rel', "noopener noreferrer");
-                                    if (avatars[j].name) {
-                                        wrapper.attr('title', avatars[j].name);
-                                    }
-                                }
-                                var avatarImage = $('<img src="' + avatars[j].src + '" />');
-                                if (avatars[j].name) {
-                                    avatarImage.attr('alt', avatars[j].name);
-                                }
-                                if (avatars[j].type == "Steam") {
-                                    avatarImage.attr('onError', "this.src='https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'");
-                                }
-                                if (wrapper != null) {
-                                    wrapper.append(avatarImage);
-                                } else {
-                                    wrapper = avatarImage;
-                                }
-                                playerAvatarBar.append(wrapper);
-                            }
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerAvatarBar)));
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerTable)));
-                        }
-
-                        // game
-                        if (session.Game != null) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Game</td></tr>');
-
-                            var contentRow = $('<div class="row"/>');
-
-                            {
-                                var keys = Object.keys(session.Game);
-                                for (var k = 0; k < keys.length; k++) {
-                                    //if (keys[k] == "ID") continue;
-                                    //if (keys[k] == "Attributes") continue;
-
-                                    if (keys[k] == "Mod") {
-                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-                                        col.append("Mod: ");
-                                        if (data.Mods != null && data.Mods[session.Game[keys[k]]] != null) {
-                                            var Mod = data.Mods[session.Game[keys[k]]];
-                                            col.append(DrawModNode(Mod));
-                                        } else {
-                                            col.append(JSON.stringify(session.Game[keys[k]]))
-                                        }
-                                        contentRow.append(col);
-                                        continue;
-                                    }
-                                    if (keys[k] == "Mods") {
-                                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-                                        col.append("Mods: [");
-                                        var mod_collection = session.Game[keys[k]];
-                                        for (var l = 0; l < mod_collection.length; l++) {
-                                            if (l != 0)
-                                                col.append(",");
-                                            if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
-                                                var Mod = data.Mods[mod_collection[l]];
-                                                col.append(DrawModNode(Mod));
-                                            } else {
-                                                col.append(JSON.stringify(mod_collection[l]));
-                                            }
-                                        }
-                                        col.append("]");
-                                        contentRow.append(col);
-                                        continue;
-                                    }
-
-                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
-
-                                    col.append(keys[k] + ": ");
-                                    var val = session.Game[keys[k]];
-                                    col.append(JSON.stringify(val));
-
-                                    contentRow.append(col);
-                                }
-                            }
-
-                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-                        }
-
-                        // time
-                        if (session.Time != null) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Time</td></tr>');
-
-                            var contentRow = $('<div class="row"/>');
-
-                            {
-                                var keys = Object.keys(session.Time);
-                                for (var k = 0; k < keys.length; k++) {
-                                    //if (keys[k] == "ID") continue;
-
-                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
-
-                                    col.append(keys[k] + ": ");
-                                    var val = session.Time[keys[k]];
-                                    col.append(JSON.stringify(val));
-
-                                    contentRow.append(col);
-                                }
-                            }
-
-                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-                        }
-
-                        // attributes
-                        if (session.Attributes != null) {
-                            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Attributes</td></tr>');
-
-                            var contentRow = $('<div class="row"/>');
-
-                            {
-                                var keys = Object.keys(session.Attributes);
-                                for (var k = 0; k < keys.length; k++) {
-                                    //if (keys[k] == "ID") continue;
-
-                                    var col = $('<div class="col-12" style="line-break:anywhere;" />');
-
-                                    col.append(keys[k] + ": ");
-                                    var val = session.Attributes[keys[k]];
-                                    col.append(JSON.stringify(val));
-
-                                    contentRow.append(col);
-                                }
-                            }
-
-                            var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-                            $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-                        }
-
-                        $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">-</td></tr>');
+            // what ugly shit this is
+            var keys = [].concat(...$('#dropdownMenuContainer .dropdown-item.active')).map(function (elem) { return 'game=' + $(elem).data('value') }).join('&');
+
+            GetGamesAjax = new XMLHttpRequest();
+            //GetGamesAjax.open("GET", 'api/2.0/sessions?game=' + key + windowSearch);
+            GetGamesAjax.open("GET", 'api/2.0/sessions?' + keys + windowSearch);
+            var last_index = 0;
+            GetGamesAjax.onprogress = function () {
+                //var curr_index = GetGamesAjax.responseText.length;
+                //var s = GetGamesAjax.responseText.substring(last_index, curr_index);
+                
+                //last_index = curr_index;
+                //var parts = s.trim().split('\n');
+                //console.log('--------------');
+                var UpdatedThisPass = new Set();
+
+                var end = 0;
+                while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
+                    var s = GetGamesAjax.responseText.substring(last_index, end + 1);
+                    //console.log(last_index, end + 1, s);
+
+                    document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
+
+                    var data = JSON.parse(s);
+                    if (data.$type == 'debug') {
+                        console.log(data.$data);
+                    } else {
+                        ListData[data.$type] = ListData[data.$type] || {};
+                        ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, (ListData['default'] || {})[data.$type], data.$data));
+                        UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
                     }
-                    $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
+
+                    last_index = end + 1;
+                }
+
+                //for (var i = 0; i < parts.length; i++) {
+                //    //console.log("DATUM:", parts[i]);
+                //    var data = JSON.parse(parts[i]);
+                //    ListData[data.$type] = ListData[data.$type] || {};
+                //    //ListData[data.$type][data.$id] = Object.assign({}, (ListData['default'] || {})[data.$type], ListData[data.$type][data.$id], data.$data);
+                //    ListData[data.$type][data.$id] = MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, (ListData['default'] || {})[data.$type], data.$data);
+                //    UpdatedThisPass.add(`${data.$type}/${data.$id}`);
+                //}
+                //console.log(UpdatedThisPass);
+                if (UpdatedThisPass.size > 0)
+                    UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
+            };
+            GetGamesAjax.onload = function () {
+                //console.log('==============');
+                //console.log(ListData);
+                if (ListData.session && Object.keys(ListData.session).length === 0) {
+                    //$('#lobbyList').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
                 } else {
-                    $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
+                    //AddPadRow();
+                    //$('#LoadingRow').remove();
                 }
-                {
-                    $('#codeRawJson').text(JSON.stringify(data, null, 2));
-                    hljs.highlightAll();
-                }
-            });
+            }
+            ListData = {};
+            GetGamesAjax.send();
         });
-                                                                            //});
+
+        var parent = document.querySelector('#lobbyList');
+
+        //function AddPadRow() {
+        //    var $pad = document.createElement("tr");
+        //    $td = document.createElement("td");
+        //    $td.setAttribute("style", "padding: 3px;");
+        //    $td.classList.add('bg-white');
+        //    $td.setAttribute("colspan", tableColSpan);
+        //    $pad.appendChild($td);
+        //    parent.appendChild($pad);
+        //}
+
+        function GenerateHtml_IdentitySteam(identity) {
+            let platform_name = identity.nickname || identity.$id;
+            let platform_profile = identity.profile_url;
+            if (platform_profile) {
+                return `<div class="force-ellipsis" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-steam" aria-hidden="true"></i> <a href="${platform_profile}" title="${encodeAttr(platform_name)}" target="_blank" rel="noopener noreferrer">${escapeHtml(platform_name)}</a></div>`;
+            } else {
+                return `<div class="force-ellipsis" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-steam" aria-hidden="true"></i> ${escapeHtml(platform_name)}</div>`;
+            }
+        }
+
+        function GenerateHtml_IdentityGog(identity) {
+            let platform_name = identity.username || identity.$id;
+            let platform_profile = identity.profile_url;
+            if (platform_profile) {
+                return `<div class="force-ellipsis" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-gog" aria-hidden="true"></i> <a href="${platform_profile}" title="${encodeAttr(platform_name)}" target="_blank" rel="noopener noreferrer">${escapeHtml(identity.username)}</a></div>`;
+            } else {
+                return `<div class="force-ellipsis" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-gog" aria-hidden="true"></i> ${escapeHtml(platform_name)}</div>`;
+            }
+        }
+
+        function CreateOrUpdateSessionOther($type, $id, data) {
+            switch ($type) {
+                case 'map':
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="image"]`).forEach(scr => scr.setAttribute("src", data[$type][$id].image || ""));
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="map_file"]`).forEach(scr => scr.textContent = data[$type][$id].map_file || " ");
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="map_name"]`).forEach(scr => {
+                        scr.textContent = data[$type][$id].name || " ";
+                        scr.setAttribute("title", data[$type][$id].map_file || " ");
+                    });
+
+                    // game type and mode, which is complex because it could be from the map OR the level object data
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="game_type"]`).forEach(scr => {
+                        scr.textContent = (data[$type][$id].game_type || {}).id || scr.textContent;
+                    });
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="game_mode"]`).forEach(scr => {
+                        scr.textContent = (data[$type][$id].game_mode || {}).id || scr.textContent;
+                    });
+
+                    {
+                        if (data[$type][$id].teams) {
+                            for (let team in data[$type][$id].teams) {
+                                if (data[$type][$id].teams[team].name) {
+                                    parent.querySelectorAll(`[data-path="team_name"][data-id-map="${CSS.escape($id)}"][data-id-team="${CSS.escape(team)}"]`).forEach(elem => elem.textContent = data[$type][$id].teams[team].name);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 'identity/steam':
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.outerHTML = GenerateHtml_IdentitySteam(data[$type][$id]));
+                    parent.querySelectorAll(`[data-path="avatar"][data-source="steam"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.setAttribute("src", data[$type][$id].avatar_url || ""));
+                    break;
+                case 'identity/gog':
+                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.outerHTML = GenerateHtml_IdentityGog(data[$type][$id]));
+                    break;
+            }
+        }
+        function CreateOrUpdateSessionDom($id, data) {
+            var session = data.session[$id];
+            var sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
+
+            if (!sessionDom) {
+                parent.insertAdjacentHTML('beforeend', `
+<div id="/session/${encodeAttr($id)}" class="col-12 col-xl-6 mb-3">
+    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
+        </div>
+        <ul class="list-group list-group-flush">
+            <li data-path="session.message" class="list-group-item" style="white-space:pre;"></li>
+        </ul>
+        <div class="container-fluid pb-1">
+            <div class="row border-bottom">
+                <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
+                    <div class="ratio ratio-1x1">
+                        <img data-path="image" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                    </div>
+                    <div class="shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate">
+                        <small data-path="map_file" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">
+                    <ul class="list-group list-group-flush text-secondary">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Map</strong>
+                            <span data-path="map_name" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}" title=""></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Type</strong>
+                            <span data-path="game_type" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}"></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Mode</strong>
+                            <span data-path="game_mode" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}"></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Time</strong>
+                            <span data-path="session.time"></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Player Count</strong>
+                            <span data-path="player_count" class="text-secondary"></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Name</strong>
+                            <span data-path="session.name" class="text-secondary"></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid h-100 pb-1">
+            <div data-path="players" class="row"></div>
+        </div>
+    </div>
+</div>
+                `);
+                //sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
+                sessionDom = parent.lastElementChild;
+            }
+            // fully qualified the names of the objects that are always part of the session since that's easy
+            sessionDom.querySelector('[data-path="session.name"]').textContent = session.name || " ";
+            sessionDom.querySelector('[data-path="session.message"]').textContent = session.message || " ";
+
+            // these come from a map which can be a referenced object, so we used entirely relative data tied to its id
+            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="image"]`).setAttribute("src", session.level.map.image || "");
+            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="map_file"]`).textContent = session.level.map.map_file || " ";
+            //sessionDom.querySelectorAll('[data-path="session.name"]').forEach(scr => scr.textContent = session.name || " ");
+
+            // map name
+            let map_name_elem = sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="map_name"]`);
+            map_name_elem.setAttribute('title', "${encodeAttr(session.level.map.map_file)}");
+            map_name_elem.textContent = session.level.map.name || session.level.map.map_file || '';
+
+            // game type and mode, which is complex because it could be from the map OR the level object data
+            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_type"]`).textContent = (session.level.map.game_type || {}).id || (session.level.game_type || {}).id || '';
+            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_mode"]`).textContent = (session.level.map.game_mode || {}).id || (session.level.game_mode || {}).id || '';
+
+            if (session.time) {
+                let timeElem = sessionDom.querySelector(`[data-path="session.time"]`);
+
+                // minute resolutions
+                if (session.time.resolution == 60) {
+                    timeElem.textContent = `${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds / 60}${session.time.max ? '+' : ''} minutes`;
+                } else {
+                    timeElem.textContent = `${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds}${session.time.max ? '+' : ''} seconds`;
+                }
+            }
+
+            if (session.player_types != null) {
+                let player_count_string = '';
+                for (var k = 0; k < session.player_types.length; k++) {
+                    for (var L = 0; L < session.player_types[k].types.length; L++) {
+                        var playerType = session.player_types[k].types[L];
+                        if (L > 0)
+                            player_count_string += ' ';
+                        player_count_string += (session.player_count[playerType] + 0) + ' ' + playerType;
+                    }
+                    if (session.player_types[k].max) {
+                        player_count_string += ` / ${session.player_types[k].max}`;
+                    }
+                }
+                sessionDom.querySelector(`[data-path="player_count"]`).textContent = player_count_string;
+            }
+            
+            function microSort(a, b) {
+                if (a < b) return -1;
+                if (a > b) return 1;
+                return 0;
+            }
+            /*let PlayersGrouped = session.players.sort((a, b) => {
+                let c = microSort((a.team || {}).id || -1, (b.team || {}).id || -1);
+                if (c != 0) return c;
+                c = microSort((a.team || {}).slot || -1, (b.team || {}).slot || -1);
+                if (c != 0) return c;
+                return microSort(a.slot || -1, b.slot || -1);
+            });*/
+            let Teams = new Set();
+            for (var i = 0; i < session.players.length; i++) {
+                if (session.players[i].team) {
+                    Teams.add(session.players[i].team.id);
+                } else {
+                    Teams.add(null);
+                }
+            }
+            if (session.teams) {
+                for (var t in session.teams) {
+                    Teams.add(t);
+                }
+            }
+            Teams = Array.from(Teams).sort();
+            let team_balance = -1;
+            if (session.player_types) {
+                let team_count = Teams.filter(dr => dr != null && !(session.teams && session.teams[dr] && session.teams[dr].computer === true && !session.teams[dr].human)).length;
+                if (team_count > 1) {
+                    let matchingTypes = session.player_types.filter(dr => dr.types.indexOf('player') >= 0);
+                    if (matchingTypes.length > 0 && matchingTypes[0].max) {
+                        team_balance = Math.floor(matchingTypes[0].max / team_count);
+                    }
+                }
+
+            }
+            let playerListDom = sessionDom.querySelector('[data-path="players"]');
+            playerListDom.innerHTML = '';
+            for (let team of Teams) {
+                //let teamName = ((session.teams || {})[team] || {}).name || (((((session || {}).level || {}).map || {}).teams || {})[team] || {}).name || `Team ${team}`;
+                let teamName = `Team ${team}`;
+                if (session.level && session.level.map && session.level.map.teams && session.level.map.teams[team]) {
+                    teamName = session.level.map.teams[team].name || teamName;
+                } else if (session.teams && session.teams[team]) {
+                    teamName = session.teams[team].name || teamName;
+                }  
+                let teamPlayers = session.players.filter(p => (p.team || {}).id == team).sort((a, b) => {
+                    let c = microSort((a.team || {}).index || -1, (b.team || {}).index || -1);
+                    if (c != 0) return c;
+                    return microSort(a.index || -1, b.index || -1);
+                });
+                //console.log(teamPlayers);
+
+                let playerHtmlEntries = '';
+
+                //let platform_type = null;
+                var player_count = teamPlayers.length;
+                if (session.teams && session.teams[team])
+                    player_count = Math.max(session.teams[team].max || player_count, teamPlayers.length, team_balance);
+                for (var i = 0; i < player_count; i++) {
+                    if (i < teamPlayers.length) {
+                        let player = teamPlayers[i];
+
+                        let is_over_limit = session.teams && session.teams[team] && session.teams[team].max && i > session.teams[team].max;
+
+                        let is_leader = null;
+
+                        let plaform_avatar = '';
+                        let player_avatar_source = '';
+                        let player_avatar_id = '';
+                        for (let id in player.ids) {
+                            if (id == "steam") {
+                                plaform_avatar = player.ids[id].identity.avatar_url || plaform_avatar;
+                                player_avatar_id = player.ids[id].identity.$id;
+                                player_avatar_source = id;
+                                break;
+                            }
+                            if (id == "gog") {
+                                plaform_avatar = player.ids[id].identity.avatar_url || plaform_avatar;
+                                player_avatar_id = player.ids[id].identity.$id;
+                                player_avatar_source = id;
+                                break;
+                            }
+                        }
+
+                        if (team) {
+                            playerHtmlEntries += '<div class="col-12 p-0 pb-2">';
+                            is_leader = player.team.leader;
+                        } else {
+                            playerHtmlEntries += '<div class="col-12 col-md-6 p-0 p-2">';
+                        }
+                        playerHtmlEntries += `
+    <div class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
+        <div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
+            <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
+        </div>
+        <div class=" m-2 d-block">
+            <div class="mb-1">
+                <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
+
+                        for (let id in player.ids) {
+                            switch (id) {
+                                case "slot":
+                                    {
+                                        let platform_id = '' + player.ids[id].id;
+                                        playerHtmlEntries += `<div class="force-ellipsis"><i class="icon icon-hash" aria-hidden="true"></i> ${escapeHtml(platform_id)}</a></div>`;
+                                    }
+                                    break;
+                                case "bzr_net":
+                                    {
+                                        let platform_id = '' + player.ids[id].id;
+                                        playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-gamepad" aria-hidden="true"></i> ${escapeHtml(platform_id)}</a></div>`;
+                                    }
+                                    break;
+                                case "steam":
+                                    {
+                                        playerHtmlEntries += GenerateHtml_IdentitySteam(player.ids[id].identity);
+                                    }
+                                    break;
+                                case "gog":
+                                    {
+                                        playerHtmlEntries += GenerateHtml_IdentityGog(player.ids[id].identity);
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        playerHtmlEntries += `
+            </div>
+            ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
+            ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
+            <span class="d-inline d-sm-none"><br></span>
+        </div>
+    </div>
+</div>`;
+                    } else {
+                        let is_beyond_balance = team_balance >= 0 && i >= team_balance;
+
+                        playerHtmlEntries += `
+<div class="col-12 p-0 pb-2">
+    <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
+        <span class="text-nowrap overflow-hidden align-middle">
+            <i class="fa fa-user" aria-hidden="true"></i> Open
+        </span>
+    </div>
+</div>`;
+                    }
+                }
+                if (session.teams && session.teams[team] && !session.teams[team].human && session.teams[team].computer === true) {
+                    playerHtmlEntries += `
+<div class="col-12 p-0 pb-2">
+    <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
+        <span class="text-nowrap overflow-hidden align-middle">
+            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
+        </span>
+    </div>
+</div>`;
+                }
+
+                if (team) {
+                    if (session.teams && session.teams[team] && !session.teams[team].human && session.teams[team].computer === true) {
+                        playerListDom.insertAdjacentHTML('beforeend', `
+<div class="col-12 col-md-6 p-0 p-2">
+    <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
+        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level && session.level.map && session.level.map.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
+        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+    </div>
+</div>`);
+                    } else {
+                        playerListDom.insertAdjacentHTML('beforeend', `
+<div class="col-12 col-md-6 p-0 p-2">
+    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level && session.level.map && session.level.map.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
+        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+    </div>
+</div>`);
+                    }
+                } else {
+                    playerListDom.insertAdjacentHTML('beforeend', playerHtmlEntries);
+                }
+            }
+
+            //var sessionNew0 = false;
+            //if (!sessionRow0) {
+            //    sessionRow0 = document.createElement("tr");
+            //    function CreateBasicHeader(text) {
+            //        var $th = document.createElement("th");
+            //        $th.setAttribute("scope", "row");
+            //        $th.classList.add("pre");
+            //        $th.appendChild(document.createTextNode(text));
+            //        return $th;
+            //    }
+            //    sessionRow0.append(CreateBasicHeader(session.id));
+            //    sessionRow0.append(CreateBasicHeader(session.type));
+            //    sessionRow0.append(CreateBasicHeader(session.name));
+            //    {
+            //        var cell = document.createElement('td');
+            //        if (session.player_types != null) {
+            //            for (var k = 0; k < session.player_types.length; k++) {
+            //                var elem = document.createElement('span');
+            //                if (k > 0)
+            //                    cell.append(document.createElement('br'));
+            //
+            //                for (var L = 0; L < session.player_types[k].types.length; L++) {
+            //                    var playerType = session.player_types[k].types[L];
+            //                    if (L > 0)
+            //                        cell.append(document.createTextNode(' '));
+            //                    elem.append((session.player_count[playerType] + 0) + ' ' + playerType);
+            //                }
+            //                if (session.player_types[k].Max) {
+            //                    elem.append(document.createTextNode(` / ${session.player_types[k].Max}`));
+            //                }
+            //                cell.append(elem);
+            //            }
+            //        }
+            //        sessionRow0.append(cell);
+            //    }
+            //    sessionRow0.append(CreateBasicHeader(session.status && session.status.is_locked));
+            //    sessionRow0.append(CreateBasicHeader(session.status && session.status.has_password));
+            //    sessionRow0.append(CreateBasicHeader(session.status && session.status.state));
+            //    sessionRow0.append(CreateBasicHeader(''));
+            //    sessionRow0.setAttribute("id", "/session/0/" + $id);
+            //
+            //    sessionNew0 = true;
+            //}
+            //
+            //function CreateFullWidthHeader(text) {
+            //    var $tr = document.createElement("tr")
+            //    var $td = document.createElement("td");
+            //    $td.classList.add("pt-0");
+            //    $td.classList.add("pb-0");
+            //    $td.classList.add("text-center");
+            //    $td.classList.add("text-monospace");
+            //    $td.classList.add("font-weight-bold");
+            //    $td.setAttribute("colspan", tableColSpan);
+            //    $td.appendChild(document.createTextNode(text));
+            //    $tr.appendChild($td);
+            //    return $tr;
+            //}
+            //
+            //function CreateTextDumpRow(text) {
+            //    var rowRetVal = document.createElement("tr");
+            //
+            //    var contentPanel = document.createElement("div");
+            //    contentPanel.classList.add("container-fluid")
+            //    contentPanel.classList.add("bg-white")
+            //    contentPanel.classList.add("text-dark")
+            //    contentPanel.classList.add("text-center")
+            //    contentPanel.appendChild(document.createTextNode(text));
+            //
+            //    var contentTD = document.createElement('td');
+            //    contentTD.classList.add("p-0");
+            //    contentTD.classList.add("pl-3");
+            //    contentTD.classList.add("pr-3");
+            //    contentTD.setAttribute("colspan", tableColSpan);
+            //    contentTD.appendChild(contentPanel);
+            //
+            //    rowRetVal.appendChild(contentTD);
+            //
+            //    return rowRetVal;
+            //}
+            //
+            //function CreateFieldDumpRow(obj) {
+            //    var rowRetVal = document.createElement("tr");
+            //    var contentRow = document.createElement("div");
+            //    contentRow.classList.add("row");
+            //    var keys = Object.keys(obj);
+            //    for (var k = 0; k < keys.length; k++) {
+            //        var col = document.createElement('div');
+            //        col.classList.add("col-12");
+            //        col.setAttribute("style", "line-break:anywhere;");
+            //        col.appendChild(document.createTextNode(keys[k] + ": "));
+            //        var val = obj[keys[k]];
+            //        col.appendChild(document.createTextNode(JSON.stringify(val)));
+            //        contentRow.appendChild(col);
+            //    }
+            //    var contentPanel = document.createElement("div");
+            //    contentPanel.classList.add("container-fluid")
+            //    contentPanel.classList.add("bg-white")
+            //    contentPanel.classList.add("text-dark")
+            //    contentPanel.appendChild(contentRow);
+            //
+            //    var contentTD = document.createElement('td');
+            //    contentTD.classList.add("p-0");
+            //    contentTD.classList.add("pl-3");
+            //    contentTD.classList.add("pr-3");
+            //    contentTD.setAttribute("colspan", tableColSpan);
+            //    contentTD.appendChild(contentPanel);
+            //
+            //    rowRetVal.appendChild(contentTD);
+            //
+            //    return rowRetVal;
+            //}
+            //
+            //var sessionRow1a = parent.querySelector(`#\\/session\\/1a\\/${CSS.escape($id)}`);
+            //var sessionRow1b = parent.querySelector(`#\\/session\\/1b\\/${CSS.escape($id)}`);
+            //var sessionNew1 = false;
+            //if (!sessionRow1a && session.address) {
+            //    sessionRow1a = CreateFullWidthHeader("Address");
+            //    sessionRow1a.setAttribute("id", "/session/1a/" + $id);
+            //
+            //    sessionRow1b = CreateFieldDumpRow(session.address);
+            //    sessionRow1b.setAttribute("id", "/session/1b/" + $id);
+            //
+            //    sessionNew1 = true;
+            //}
+            //
+            //var sessionRow2a = parent.querySelector(`#\\/session\\/2a\\/${CSS.escape($id)}`);
+            //var sessionRow2b = parent.querySelector(`#\\/session\\/2b\\/${CSS.escape($id)}`);
+            //var sessionNew2 = false;
+            //if (!sessionRow2a && session.message) {
+            //    sessionRow2a = CreateFullWidthHeader("Message");
+            //    sessionRow2a.setAttribute("id", "/session/2a/" + $id);
+            //
+            //    sessionRow2b = CreateTextDumpRow(session.message);
+            //    sessionRow2b.setAttribute("id", "/session/2b/" + $id);
+            //
+            //    sessionNew2 = true;
+            //}
+            //
+            //var sessionRow3a = parent.querySelector(`#\\/session\\/3a\\/${CSS.escape($id)}`);
+            //var sessionRow3b = parent.querySelector(`#\\/session\\/3b\\/${CSS.escape($id)}`);
+            //var sessionNew3 = false;
+            //if (!sessionRow3a && session.level) {
+            //    sessionRow3a = CreateFullWidthHeader("Level");
+            //    sessionRow3a.setAttribute("id", "/session/3a/" + $id);
+            //
+            //    sessionRow3b = CreateFieldDumpRow(session.level);
+            //    sessionRow3b.setAttribute("id", "/session/3b/" + $id);
+            //
+            //    sessionNew3 = true;
+            //}
+            //
+            ////var $session = $('#session-' + session.id);
+            ////if ($session.length == 0)
+            ////$session = $('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>').data('id', key).appendTo('#lobbyList');
+            ////console.log($session.data('id'));
+            //if (sessionNew0) {
+            //    AddPadRow();
+            //    parent.appendChild(sessionRow0);
+            //}
+            //if (sessionNew1) {
+            //    sessionRow0.insertAdjacentElement('afterend', sessionRow1a);
+            //    sessionRow1a.insertAdjacentElement('afterend', sessionRow1b);
+            //}
+            //if (sessionNew2) {
+            //    (sessionRow1b || sessionRow0).insertAdjacentElement('afterend', sessionRow2a);
+            //    sessionRow2a.insertAdjacentElement('afterend', sessionRow2b);
+            //}
+            //if (sessionNew3) {
+            //    (sessionRow2b || sessionRow1b || sessionRow0).insertAdjacentElement('afterend', sessionRow3a);
+            //    sessionRow3a.insertAdjacentElement('afterend', sessionRow3b);
+            //}
+        }
+
+        function UpdateSessionListWithDataFragments(data, modified) {
+            //console.log('START', modified);
+
+            ////if (fresh && data.session.length > 0) {
+            ////    parent.replaceChildren();
+            ////    AddPadRow();
+            //    $('#codeRawJson').empty();
+            ////}
+
+            for (const mod of modified) {
+                var $parts = mod.split('\t', 2);
+                var $type = $parts[0];
+                var $id = $parts[1];
+                //console.log($type, $id);
+
+                switch ($type) {
+                    case 'session':
+                        CreateOrUpdateSessionDom($id, data);
+                        break;
+                    case 'map':
+                    case 'identity/steam':
+                    case 'identity/gog':
+                        CreateOrUpdateSessionOther($type, $id, data);
+                        break;
+                    case 'source': break; // source status
+                    case 'debug': break; // debugging output
+                    case 'default': break; // default object properties, this is merged for us
+                    default:
+                        console.log(`unhandled datum type "${$type}"`);
+                }
+            }
+
+            {
+                $('#codeRawJson').text(JSON.stringify(data, null, 2));
+                //hljs.highlightAll();
+                let codeElem = document.getElementById('codeRawJson');
+                let codeElem2 = document.getElementById('codeRawJsonLines');
+                delete codeElem.dataset.highlighted
+                delete codeElem2.dataset.highlighted
+                hljs.configure({ ignoreUnescapedHTML: true }); // hljs misunderstands the multiple text-node children of the codeRawJsonLines element and thinks its HTML
+                hljs.highlightElement(codeElem);
+                hljs.highlightElement(codeElem2);
+            }
+
+            //console.log('END', modified);
+        }
+
+            //GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key + windowSearch }).done(function (data) {
+            //    $('#lobbyList').empty();
+            //    $('#codeRawJson').empty();
+            //
+            //    data = DecorateWithDataCache(data);
+            //
+            //    if (data.Sessions.length > 0) {
+            //        var heroes = data.Heroes;
+            //        //if (data.DataCache != null) {
+            //        //    if (heroes) {
+            //        //        DecorateWithDataCacheRecurse(heroes, data.DataCache);
+            //        //    }
+            //        //}
+            //        for (var i = 0; i < data.Sessions.length; i++) {
+            //            //var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
+            //            var session = data.Sessions[i];
+            //
+            //            //if (data.DataCache != null)
+            //            //    DecorateWithDataCacheRecurse(session, data.DataCache);
+            //
+            //            $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
+            //
+            //            var sessionRow = $('<tr/>');
+            //            sessionRow.append($('<th scope="row" class="pre"/>').text(session.ID));
+            //            sessionRow.append($('<th scope="row" class="pre"/>').text(session.Type));
+            //            sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
+            //            {
+            //                var cell = $('<td/>');
+            //                if (session.PlayerTypes != null) {
+            //                    for (var k = 0; k < session.PlayerTypes.length; k++) {
+            //                        var elem = $('<span/>');
+            //                        if (k > 0)
+            //                            cell.append('<br/>');
+            //
+            //                        for (var L = 0; L < session.PlayerTypes[k].Types.length; L++) {
+            //                            var playerType = session.PlayerTypes[k].Types[L];
+            //                            if (L > 0)
+            //                                cell.append(' ');
+            //                            elem.append((session.PlayerCount[playerType] + 0) + ' ' + playerType);
+            //                        }
+            //                        if (session.PlayerTypes[k].Max) {
+            //                            elem.append(' / ' + session.PlayerTypes[k].Max);
+            //                        }
+            //                        cell.append(elem);
+            //                    }
+            //                }
+            //                sessionRow.append(cell);
+            //            }
+            //            sessionRow.append($('<td/>').text(session.Status && session.Status.IsLocked));
+            //            sessionRow.append($('<td/>').text(session.Status && session.Status.HasPassword));
+            //            sessionRow.append($('<td/>').text(session.Status && session.Status.State));
+            //            sessionRow.append($('<td/>').text(''));
+            //            $('#tblGames>tbody').append(sessionRow);
+            //
+            //            // address
+            //            if (session.Address != null) {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Address</td></tr>');
+            //
+            //                var contentRow = $('<div class="row"/>');
+            //
+            //                {
+            //                    var keys = Object.keys(session.Address);
+            //                    for (var k = 0; k < keys.length; k++) {
+            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //
+            //                        col.append(keys[k] + ": ");
+            //                        var val = session.Address[keys[k]];
+            //                        col.append(JSON.stringify(val));
+            //
+            //                        contentRow.append(col);
+            //                    }
+            //                }
+            //
+            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
+            //            }
+            //
+            //            // message
+            //            if (session.Message) {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Message</td></tr>');
+            //
+            //                var messagePanel = $('<div class="container-fluid bg-white text-dark text-center">').append(session.Message);
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(messagePanel)));
+            //            }
+            //
+            //            // level
+            //            {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Level</td></tr>');
+            //
+            //                //var contentRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
+            //                var contentRow = $('<div class="row"/>');
+            //
+            //                if (session.Level.Image) {
+            //                    var col = $('<div class="col-xs-4" />');
+            //                    var card = $('<div class="card" />');
+            //                    //var img = $('<img src="https://discord.battlezone.report/resources/logos/nomap.png" class="card-img" />').attr('alt', session.Level.MapFile);
+            //                    var img = $('<img src="' + session.Level.Image + '" class="card-img" style="height:auto;width:100px;" />').attr('alt', session.Level.MapFile);
+            //                    card.append(img);
+            //                    col.append(card);
+            //                    contentRow.append(col);
+            //                }
+            //                {
+            //                    var wrapper = $('<div class="col row" />');
+            //
+            //                    {
+            //                        //var col = $('<div class="col-md-6 col-lg-4" />');
+            //                        var col = $('<div class="col-12" />');
+            //                        col.append("ID: " + session.Level.ID);
+            //                        wrapper.append(col);
+            //                    }
+            //
+            //                    {
+            //                        var keys = Object.keys(session.Level);
+            //                        for (var k = 0; k < keys.length; k++) {
+            //                            if (keys[k] == "ID") continue; // omit ID as we printed it above
+            //                            if (keys[k] == "Attributes") continue; // omit attributes as we print them below
+            //
+            //                            if (keys[k] == "Mod") {
+            //                                var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //                                col.append("Mod: ");
+            //                                if (data.Mods != null && data.Mods[session.Level[keys[k]]] != null) {
+            //                                    var Mod = data.Mods[session.Level[keys[k]]];
+            //                                    col.append(DrawModNode(Mod));
+            //                                } else {
+            //                                    col.append(JSON.stringify(session.Level[keys[k]]))
+            //                                }
+            //                                wrapper.append(col);
+            //                                continue;
+            //                            }
+            //                            if (keys[k] == "Mods") {
+            //                                var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //                                col.append("Mods: [");
+            //                                var mod_collection = session.Level[keys[k]];
+            //                                for (var l = 0; l < mod_collection.length; l++) {
+            //                                    if (l != 0)
+            //                                        col.append(",");
+            //                                    if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
+            //                                        var Mod = data.Mods[mod_collection[l]];
+            //                                        col.append(DrawModNode(Mod));
+            //                                    } else {
+            //                                        col.append(JSON.stringify(mod_collection[l]));
+            //                                    }
+            //                                }
+            //                                col.append("]");
+            //                                wrapper.append(col);
+            //                                continue;
+            //                            }
+            //
+            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //
+            //                            col.append(keys[k] + ": ");
+            //                            var val = session.Level[keys[k]];
+            //                            col.append(JSON.stringify(val));
+            //
+            //                            wrapper.append(col);
+            //                        }
+            //                    }
+            //
+            //                    if (session.Level.Attributes) {
+            //                        var keys = Object.keys(session.Level.Attributes);
+            //                        for (var k = 0; k < keys.length; k++) {
+            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //
+            //                            col.append("Attribute: " + keys[k] + ": ");
+            //                            var val = session.Level.Attributes[keys[k]];
+            //                            col.append(JSON.stringify(val));
+            //
+            //                            wrapper.append(col);
+            //                        }
+            //                    }
+            //
+            //                    contentRow.append(wrapper);
+            //                }
+            //
+            //
+            //                /*<div class="col mb-4">
+            //                  <div class="card">
+            //                    <img src="..." class="card-img-top" alt="...">
+            //                    <div class="card-body">
+            //                      <h5 class="card-title">Card title</h5>
+            //                      <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+            //                    </div>
+            //                  </div>
+            //                </div>*/
+            //
+            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
+            //            }
+            //
+            //            // players
+            //            if (session.PlayerTypes != null && session.Players != null) {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
+            //
+            //                var avatars = [];
+            //
+            //                var playerTable = $('<table/>');
+            //                //playerTable.addClass('table-dark');
+            //                //playerTable.addClass('small');
+            //                playerTable.addClass('table-sm');
+            //                playerTable.addClass('table-light');
+            //                playerTable.addClass('text-dark');
+            //                //playerTable.addClass('border-left');
+            //                //playerTable.addClass('border-right');
+            //                //playerTable.addClass('border-dark');
+            //                playerTable.css('width', '100%');
+            //                //playerTable.css('border-width', '1em !important');
+            //                var playerTableHeader = $('<thead/>');
+            //                var playerTableBody = $('<tbody/>');
+            //                playerTable.append(playerTableHeader)
+            //                playerTable.append(playerTableBody)
+            //
+            //                var ColumnNames = ["Name", "ID", "Hero", "Attributes"];
+            //                for (var j = 0; j < session.Players.length; j++) {
+            //                    var playerRow = $('<tr/>');
+            //
+            //                    // name
+            //                    playerRow.append($('<th/>').text(session.Players[j].Name));
+            //
+            //                    // ids
+            //                    {
+            //                        var cell = $('<td/>');
+            //                        var keys = Object.keys(session.Players[j].IDs);
+            //                        for (var k = 0; k < keys.length; k++) {
+            //                            var elem = $('<span/>');
+            //                            if (k > 0)
+            //                                cell.append('<br/>');
+            //                            switch (keys[k]) {
+            //                                case "Slot":
+            //                                    elem.append('<i class="icon icon-hash" aria-hidden="true"></i> ');
+            //                                    elem.append(session.Players[j].IDs[keys[k]].ID);
+            //                                    break;
+            //                                case "BZRNet":
+            //                                    elem.append('<i class="fa fa-gamepad" aria-hidden="true"></i> ');
+            //                                    elem.append(session.Players[j].IDs[keys[k]].ID);
+            //                                    break;
+            //                                case "Steam":
+            //                                    elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
+            //                                    elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
+            //                                    break;
+            //                                case "Gog":
+            //                                    elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
+            //                                    elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
+            //                                    break;
+            //                                default:
+            //                                    elem.append(keys[k] + ": ");
+            //                                    if (session.Players[j].IDs[keys[k]].ProfileUrl) {
+            //                                        if (session.Players[j].IDs[keys[k]].Username) {
+            //                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
+            //                                        } else {
+            //                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].ID + '</a>');
+            //                                        }
+            //                                    } else {
+            //                                        elem.append(session.Players[j].IDs[keys[k]].ID);
+            //                                    }
+            //                                    break;
+            //                            }
+            //                            if (session.Players[j].IDs[keys[k]].AvatarUrl) {
+            //                                avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname, type: keys[k] });
+            //                            }
+            //                            cell.append(elem);
+            //                        }
+            //                        playerRow.append(cell);
+            //                    }
+            //
+            //                    // hero
+            //                    {
+            //                        var cell = $('<td/>');
+            //                        if (session.Players[j].Hero != null) {
+            //                            {
+            //                                var elem = $('<span/>');
+            //                                elem.text(session.Players[j].Hero.ID);
+            //                                cell.append(elem);
+            //                            }
+            //                            if (heroes[session.Players[j].Hero.ID] != null) {
+            //                                if (heroes[session.Players[j].Hero.ID].Name) {
+            //                                    var elem = $('<span/>');
+            //                                    elem.text(heroes[session.Players[j].Hero.ID].Name);
+            //                                    cell.append('<br/>');
+            //                                    cell.append(elem);
+            //                                }
+            //                                if (heroes[session.Players[j].Hero.ID].Description) {
+            //                                    var elem = $('<div class="p-1 border border-dark" style="white-space:pre;display:inline-block;"/>');
+            //                                    elem.text(heroes[session.Players[j].Hero.ID].Description);
+            //                                    cell.append('<br/>');
+            //                                    cell.append(elem);
+            //                                }
+            //                            }
+            //                        }
+            //                        playerRow.append(cell);
+            //                    }
+            //
+            //                    // attributes
+            //                    {
+            //                        var cell = $('<td/>');
+            //                        if (session.Players[j].Attributes != null) {
+            //                            {
+            //                                var keys = Object.keys(session.Players[j].Attributes);
+            //                                for (var k = 0; k < keys.length; k++) {
+            //                                    //if (keys[k] == "ID") continue;
+            //
+            //                                    var col = $('<div style="line-break:anywhere;" />');
+            //
+            //                                    col.append(keys[k] + ": ");
+            //                                    var val = session.Players[j].Attributes[keys[k]];
+            //                                    col.append(JSON.stringify(val));
+            //
+            //                                    cell.append(col);
+            //                                }
+            //                            }
+            //                        }
+            //                        playerRow.append(cell);
+            //                    }
+            //
+            //                    playerTableBody.append(playerRow);
+            //                }
+            //                var playerHeaderRow = $('<tr/>');
+            //                playerTableHeader.append(playerHeaderRow);
+            //                for (var j = 0; j < ColumnNames.length; j++) {
+            //                    playerHeaderRow.append($('<th/>').text(ColumnNames[j]));
+            //                }
+            //
+            //                var playerAvatarBar = $('<div class="player_avatars" />');
+            //                for (var j = 0; j < avatars.length; j++) {
+            //                    var wrapper = null;
+            //                    if (avatars[j].href) {
+            //                        wrapper = $('<a/>');
+            //                        wrapper.attr('href', avatars[j].href);
+            //                        wrapper.attr('target', "_blank");
+            //                        wrapper.attr('rel', "noopener noreferrer");
+            //                        if (avatars[j].name) {
+            //                            wrapper.attr('title', avatars[j].name);
+            //                        }
+            //                    }
+            //                    var avatarImage = $('<img src="' + avatars[j].src + '" />');
+            //                    if (avatars[j].name) {
+            //                        avatarImage.attr('alt', avatars[j].name);
+            //                    }
+            //                    if (avatars[j].type == "Steam") {
+            //                        avatarImage.attr('onError', "this.src='https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'");
+            //                    }
+            //                    if (wrapper != null) {
+            //                        wrapper.append(avatarImage);
+            //                    } else {
+            //                        wrapper = avatarImage;
+            //                    }
+            //                    playerAvatarBar.append(wrapper);
+            //                }
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerAvatarBar)));
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerTable)));
+            //            }
+            //
+            //            // game
+            //            if (session.Game != null) {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Game</td></tr>');
+            //
+            //                var contentRow = $('<div class="row"/>');
+            //
+            //                {
+            //                    var keys = Object.keys(session.Game);
+            //                    for (var k = 0; k < keys.length; k++) {
+            //                        //if (keys[k] == "ID") continue;
+            //                        //if (keys[k] == "Attributes") continue;
+            //
+            //                        if (keys[k] == "Mod") {
+            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //                            col.append("Mod: ");
+            //                            if (data.Mods != null && data.Mods[session.Game[keys[k]]] != null) {
+            //                                var Mod = data.Mods[session.Game[keys[k]]];
+            //                                col.append(DrawModNode(Mod));
+            //                            } else {
+            //                                col.append(JSON.stringify(session.Game[keys[k]]))
+            //                            }
+            //                            contentRow.append(col);
+            //                            continue;
+            //                        }
+            //                        if (keys[k] == "Mods") {
+            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //                            col.append("Mods: [");
+            //                            var mod_collection = session.Game[keys[k]];
+            //                            for (var l = 0; l < mod_collection.length; l++) {
+            //                                if (l != 0)
+            //                                    col.append(",");
+            //                                if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
+            //                                    var Mod = data.Mods[mod_collection[l]];
+            //                                    col.append(DrawModNode(Mod));
+            //                                } else {
+            //                                    col.append(JSON.stringify(mod_collection[l]));
+            //                                }
+            //                            }
+            //                            col.append("]");
+            //                            contentRow.append(col);
+            //                            continue;
+            //                        }
+            //
+            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //
+            //                        col.append(keys[k] + ": ");
+            //                        var val = session.Game[keys[k]];
+            //                        col.append(JSON.stringify(val));
+            //
+            //                        contentRow.append(col);
+            //                    }
+            //                }
+            //
+            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
+            //            }
+            //
+            //            // time
+            //            if (session.Time != null) {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Time</td></tr>');
+            //
+            //                var contentRow = $('<div class="row"/>');
+            //
+            //                {
+            //                    var keys = Object.keys(session.Time);
+            //                    for (var k = 0; k < keys.length; k++) {
+            //                        //if (keys[k] == "ID") continue;
+            //
+            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //
+            //                        col.append(keys[k] + ": ");
+            //                        var val = session.Time[keys[k]];
+            //                        col.append(JSON.stringify(val));
+            //
+            //                        contentRow.append(col);
+            //                    }
+            //                }
+            //
+            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
+            //            }
+            //
+            //            // attributes
+            //            if (session.Attributes != null) {
+            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Attributes</td></tr>');
+            //
+            //                var contentRow = $('<div class="row"/>');
+            //
+            //                {
+            //                    var keys = Object.keys(session.Attributes);
+            //                    for (var k = 0; k < keys.length; k++) {
+            //                        //if (keys[k] == "ID") continue;
+            //
+            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
+            //
+            //                        col.append(keys[k] + ": ");
+            //                        var val = session.Attributes[keys[k]];
+            //                        col.append(JSON.stringify(val));
+            //
+            //                        contentRow.append(col);
+            //                    }
+            //                }
+            //
+            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
+            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
+            //            }
+            //
+            //            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">-</td></tr>');
+            //        }
+            //        $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
+            //    } else {
+            //        $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
+            //    }
+            //    {
+            //        $('#codeRawJson').text(JSON.stringify(data, null, 2));
+            //        hljs.highlightAll();
+            //    }
+            //});
+            //});
     </script>
 
 </body>

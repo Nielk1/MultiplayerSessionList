@@ -5,12 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Modules
 {
-    public static class GAMELIST_TERMS
+    public static class GAMELIST_TERMS_OLD
     {
         public const string TYPE_LISTEN = "Listen";
         public const string TYPE_DEDICATED = "Dedicated";
@@ -25,8 +27,23 @@ namespace MultiplayerSessionList.Modules
         public const string PLAYERTYPE_SPECTATOR = "Spectator";
         public const string PLAYERTYPE_BOT = "Bot";
     }
+    public static class GAMELIST_TERMS
+    {
+        public const string TYPE_LISTEN = "listen";
+        public const string TYPE_DEDICATED = "dedicated";
 
-    public interface IGameListModule
+        //public const string ATTRIBUTE_LISTSERVER = "list_server";
+
+        public const string STATUS_LOCKED = "is_locked";
+        public const string STATUS_PASSWORD = "has_password";
+        public const string STATUS_STATE = "state";
+
+        public const string PLAYERTYPE_PLAYER = "player";
+        public const string PLAYERTYPE_SPECTATOR = "spectator";
+        public const string PLAYERTYPE_BOT = "bot";
+    }
+
+    public interface IGameListModuleOld
     {
         string GameID { get; }
         string Title { get; }
@@ -57,13 +74,22 @@ namespace MultiplayerSessionList.Modules
         //void ExceptionTest(string input);
     }
 
+    public interface IGameListModule
+    {
+        string GameID { get; }
+        string Title { get; }
+        bool IsPublic { get; }
+
+        IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, CancellationToken cancellationToken = default);
+    }
+
     public class GameListData
     {
-        public DataCache Metadata { get; set; }
+        public DataCacheOld Metadata { get; set; }
         public SessionItem SessionsDefault { get; set; }
-        public DataCache DataCache { get; set; }
-        public DataCache Heroes { get; set; }
-        public DataCache Mods { get; set; }
+        public DataCacheOld DataCache { get; set; }
+        public DataCacheOld Heroes { get; set; }
+        public DataCacheOld Mods { get; set; }
         public IEnumerable<SessionItem> Sessions { get; set; }
         public string Raw { get; set; }
     }

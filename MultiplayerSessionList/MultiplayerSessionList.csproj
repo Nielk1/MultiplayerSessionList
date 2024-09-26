@@ -5,11 +5,32 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.26" />
+    <PackageReference Include="Ndjson.AsyncStreams.AspNetCore.Mvc.NewtonsoftJson" Version="1.3.0" />
     <PackageReference Include="Okolni.Source.Query" Version="2.1.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Deps\SteamWebAPI2\src\Steam.Models\Steam.Models.csproj" />
     <ProjectReference Include="..\Deps\SteamWebAPI2\src\SteamWebAPI2\SteamWebAPI2.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="D:\.nuget\bootstrap\5.3.3\contentFiles\any\any\wwwroot\css\bootstrap-grid.css">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <Content Update="D:\.nuget\bootstrap\5.3.3\contentFiles\any\any\wwwroot\css\bootstrap-reboot.css">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <Content Update="D:\.nuget\bootstrap\5.3.3\contentFiles\any\any\wwwroot\css\bootstrap-utilities.css">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <Content Update="D:\.nuget\bootstrap\5.3.3\contentFiles\any\any\wwwroot\css\bootstrap.css">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\img\" />
   </ItemGroup>
 </Project>
