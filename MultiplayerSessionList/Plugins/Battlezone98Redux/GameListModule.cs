@@ -153,8 +153,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
                     {
                         DelayedDatumTasks.Add(Task.Run(async () => {
+                            var session = raw;
                             List<PendingDatum> retVal = new List<PendingDatum>();
-                            MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID}");
+                            MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods=0,{modID}");
                             if (mapData != null)
                             {
                                 Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
@@ -376,10 +377,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                         }
                                     }
                                     //mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
-                                }
 
-                                if (mapData?.map?.vehicles != null)
-                                {
                                     List<DatumRef> heroDatumList = new List<DatumRef>();
                                     foreach (var vehicle in mapData.map.vehicles)
                                     {
@@ -387,6 +385,21 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                         retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"), $"hero\t{vehicle}", true));
 
                                         heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"));
+                                    }
+
+                                    foreach (var dr in session.users.Values)
+                                    {
+                                        string vehicle = mapData.map.vehicles.Where(v => v.EndsWith($":{dr.Vehicle}")).FirstOrDefault();
+                                        if (vehicle != null)
+                                        {
+                                            // stub the hero just in case, even though this stub should NEVER actually occur
+                                            retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"), $"hero\t{vehicle}", true));
+
+                                            // make the player data and shove in our hero
+                                            Datum player = new Datum("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
+                                            player["hero"] = new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}");
+                                            retVal.Add(new PendingDatum(player, null, false));
+                                        }
                                     }
                                     mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
                                 }
@@ -432,10 +445,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     session.AddObjectPath("status:state", ServerState); // TODO limit this state to our state enumeration
                     session.AddObjectPath("status:other:state", ServerState);
 
-                    List<DataCache> Players = new List<DataCache>();
+                    List<DatumRef> Players = new List<DatumRef>();
                     foreach (var dr in raw.users.Values)
                     {
-                        DataCache player = new DataCache();
+                        Datum player = new Datum("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
 
                         player["name"] = dr.name;
                         player["type"] = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
@@ -455,16 +468,18 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         }
 
                         //player.Attributes.Add("Vehicle", dr.Vehicle);
-                        if (dr.Vehicle != null)
-                        {
-                            string heroId = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
-                            yield return new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}", new DataCache()
-                            {
-                                //{ "other", new DataCache2() { { "odf", dr.Vehicle } } },
-                            });
-                            DontSendStub.Add($"hero\t{heroId}"); // we already sent the a stub don't send another
-                            player.AddObjectPath("hero", new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}"));
-                        }
+                        //if (dr.Vehicle != null)
+                        //{
+                        //    // the issue here is that the vehicle ID can easily be wrong, due to the workshop prefix
+                        //    // we need to find a way to correct this
+                        //    string heroId = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
+                        //    yield return new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}", new DataCache()
+                        //    {
+                        //        //{ "other", new DataCache2() { { "odf", dr.Vehicle } } },
+                        //    });
+                        //    DontSendStub.Add($"hero\t{heroId}"); // we already sent the a stub don't send another
+                        //    player["hero"] = new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}");
+                        //}
 
                         if (!string.IsNullOrWhiteSpace(dr.id))
                         {
@@ -544,7 +559,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             }
                         }
 
-                        Players.Add(player);
+                        yield return player;
+
+                        Players.Add(new DatumRef("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}"));
                     }
                     session["players"] = Players;
 
