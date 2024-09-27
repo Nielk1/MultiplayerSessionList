@@ -776,18 +776,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     {
                         // don't send datums if we already sent the big guy
                         if (datum.key != null)
-                        {
                             if (datum.stub)
-                            {
-                                if (DontSendStub.Contains(datum.key)) // it's a stub and we are now blocking stubs
+                                if (DontSendStub.Contains(datum.key))
                                     continue;
-                            }
-                            else
-                            {
-                                DontSendStub.Add(datum.key); // if it's not a stub, remember no more stubs!
-                            }
-                        }
                         yield return datum.data;
+                        DontSendStub.Add(datum.key);
                     }
                     DelayedDatumTasks.Remove(doneTask);
                 }

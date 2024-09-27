@@ -332,13 +332,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                     //    mapDatum.AddObjectPath("mods", modDatumList.Skip(1));
                                 }
 
-                                List<DatumRef> heroDatumList = new List<DatumRef>();
+                                //List<DatumRef> heroDatumList = new List<DatumRef>();
                                 if (mapData?.vehicles != null)
                                 {
                                     foreach (var vehicle in mapData.vehicles)
                                     {
                                         // breakpoint here to make sure the vehicle has the mod prefix
-                                        heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"));
+                                        //heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"));
 
                                         await heroesAlreadyReturnedLock.WaitAsync();
                                         try
@@ -365,14 +365,28 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                             }
                                             else
                                             {
+                                                // removed this since we're just sending stubs every time now instead via the actualy allowed_heroes list
                                                 // to deal with interlacing spit out some stubs too
-                                                retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"), $"hero\t{vehicle.Key}", true));
+                                                //retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"), $"hero\t{vehicle.Key}", true));
                                             }
                                         }
                                         finally
                                         {
                                             heroesAlreadyReturnedLock.Release();
                                         }
+                                    }
+                                    //mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
+                                }
+
+                                if (mapData?.map?.vehicles != null)
+                                {
+                                    List<DatumRef> heroDatumList = new List<DatumRef>();
+                                    foreach (var vehicle in mapData.map.vehicles)
+                                    {
+                                        // dump a stub for each unit before we add it to our list, just in case, extras will get supressed on the output
+                                        retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"), $"hero\t{vehicle}", true));
+
+                                        heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"));
                                     }
                                     mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
                                 }
@@ -554,18 +568,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     {
                         // don't send datums if we already sent the big guy
                         if (datum.key != null)
-                        {
                             if (datum.stub)
-                            {
-                                if (DontSendStub.Contains(datum.key)) // it's a stub and we are now blocking stubs
+                                if (DontSendStub.Contains(datum.key))
                                     continue;
-                            }
-                            else
-                            {
-                                DontSendStub.Add(datum.key); // if it's not a stub, remember no more stubs!
-                            }
-                        }
                         yield return datum.data;
+                        DontSendStub.Add(datum.key);
                     }
                     DelayedDatumTasks.Remove(doneTask);
                 }
