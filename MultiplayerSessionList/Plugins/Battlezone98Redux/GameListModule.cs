@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using static MultiplayerSessionList.Services.GogInterface;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.Arm;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
@@ -43,12 +42,6 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         {
             using (var http = new HttpClient())
             {
-                if (!multiGame)
-                    yield return new Datum("default", "session", new DataCache() {
-                        { "type", GAMELIST_TERMS.TYPE_LISTEN },
-                        { "sources", new DataCache() { {"Rebellion", true } } },
-                    }, true);
-
                 var res_raw = await http.GetAsync(queryUrl).ConfigureAwait(false);
                 var res = await res_raw.Content.ReadAsStringAsync();
                 var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
@@ -59,6 +52,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     //{ "success", proxyStatus.Value.success },
                     { "timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime },
                 });
+
+                if (!multiGame)
+                    yield return new Datum("default", "session", new DataCache() {
+                        { "type", GAMELIST_TERMS.TYPE_LISTEN },
+                        { "sources", new DataCache() { {"Rebellion", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } } },
+                    }, true);
 
                 HashSet<string> DontSendStub = new HashSet<string>();
 
@@ -109,7 +108,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                     if (multiGame) {
                         session["type"] = GAMELIST_TERMS.TYPE_LISTEN;
-                        session["sources"] = new DataCache() { { $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion", true } };
+                        session["sources"] = new DataCache() { { $"Rebellion", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } };
                     }
 
                     session["name"] = raw.Name;

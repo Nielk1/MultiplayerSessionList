@@ -319,7 +319,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 break;
                         }
 
-                    session.AddObjectPath($"sources:{(raw.proxySource ?? "IonDriver")}", true);
+                    //session.AddObjectPath($"sources:{(raw.proxySource ?? "IonDriver")}", true);
+                    session.AddObjectPath($"sources:{(raw.proxySource ?? "IonDriver")}", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(raw.proxySource ?? "IonDriver")}"));
 
                     bool m_TeamsOn = false;
                     bool m_OnlyOneTeam = false;
