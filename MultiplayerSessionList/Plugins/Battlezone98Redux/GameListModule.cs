@@ -153,7 +153,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
                     {
                         DelayedDatumTasks.Add(Task.Run(async () => {
-                            var session = raw;
+                            var session = raw; // TODO this is just a race condition isn't it? what should we do, stagger with a semaphore?
                             List<PendingDatum> retVal = new List<PendingDatum>();
                             MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods=0,{modID}");
                             if (mapData != null)

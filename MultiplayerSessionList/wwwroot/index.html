@@ -479,11 +479,15 @@ function escapeHtml(unsafe)
             return `
 <div class="${primary ? '' : 'col-3 col-sm-2 col-lg-1 col-xl-2'} p-1">
     <div class="ratio ratio-1x1">
-        <a data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank"><img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;"></a>
+        <a class="ratio ratio-1x1" data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank">
+            <img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+        </a>
     </div>
+    ${primary ? `
     <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
         <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
     </div>
+    ` : ''}
 </div>`;
         }
 
@@ -657,7 +661,7 @@ function escapeHtml(unsafe)
 
             if (!sessionDom) {
                 parent.insertAdjacentHTML('beforeend', `
-<div id="/session/${encodeAttr($id)}" class="col-12 col-xl-6 mb-3">
+<div id="/session/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
     <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
@@ -695,7 +699,7 @@ function escapeHtml(unsafe)
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Player Count</strong>
-                            <span data-path="player_count" class="text-secondary"></span>
+                            <span data-path="player_count"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Name</strong>
@@ -784,12 +788,15 @@ function escapeHtml(unsafe)
             }
             Teams = Array.from(Teams).sort();
             let team_balance = -1;
+            let max_players = -1;
+            let total_players = session.player_count ? session.player_count.player ? session.player_count.player : -1 : -1;
             if (session.player_types) {
                 let team_count = Teams.filter(dr => dr != null && !(session.teams && session.teams[dr] && session.teams[dr].computer === true && !session.teams[dr].human)).length;
                 if (team_count > 1) {
                     let matchingTypes = session.player_types.filter(dr => dr.types.indexOf('player') >= 0);
                     if (matchingTypes.length > 0 && matchingTypes[0].max) {
-                        team_balance = Math.floor(matchingTypes[0].max / team_count);
+                        max_players = matchingTypes[0].max;
+                        team_balance = Math.floor(max_players / team_count);
                     }
                 }
 
@@ -816,7 +823,11 @@ function escapeHtml(unsafe)
                 //let platform_type = null;
                 var player_count = teamPlayers.length;
                 if (session.teams && session.teams[team])
-                    player_count = Math.max(session.teams[team].max || player_count, teamPlayers.length, team_balance);
+                    if (max_players > -1 && total_players > -1 && session.teams[team].max) {
+                        player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
+                    } else {
+                        player_count = Math.max(session.teams[team].max || player_count, teamPlayers.length, team_balance);
+                    }
                 for (var i = 0; i < player_count; i++) {
                     if (i < teamPlayers.length) {
                         let player = teamPlayers[i];
