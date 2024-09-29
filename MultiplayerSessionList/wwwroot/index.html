@@ -615,10 +615,10 @@ function escapeHtml(unsafe)
 
                     // game type and mode, which is complex because it could be from the map OR the level object data
                     parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="game_type"]`).forEach(scr => {
-                        scr.textContent = (data[$type][$id].game_type || {}).id || scr.textContent;
+                        scr.textContent = (data[$type][$id].game_type || {}).name || (data[$type][$id].game_type || {}).$id || scr.textContent;
                     });
                     parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="game_mode"]`).forEach(scr => {
-                        scr.textContent = (data[$type][$id].game_mode || {}).id || scr.textContent;
+                        scr.textContent = (data[$type][$id].game_mode || {}).name || (data[$type][$id].game_mode || {}).$id || scr.textContent;
                     });
 
                     if (data[$type][$id].teams) {
@@ -731,8 +731,8 @@ function escapeHtml(unsafe)
             map_name_elem.textContent = session.level.map.name || session.level.map.map_file || '';
 
             // game type and mode, which is complex because it could be from the map OR the level object data
-            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_type"]`).textContent = (session.level.map.game_type || {}).id || (session.level.game_type || {}).id || '';
-            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_mode"]`).textContent = (session.level.map.game_mode || {}).id || (session.level.game_mode || {}).id || '';
+            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_type"]`).textContent = (session.level.map.game_type || {}).name || (session.level.game_type || {}).name || (session.level.map.game_type || {}).$id || (session.level.game_type || {}).$id || '';
+            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_mode"]`).textContent = (session.level.map.game_mode || {}).name || (session.level.game_mode || {}).name || (session.level.map.game_mode || {}).$id || (session.level.game_mode || {}).$id || '';
 
             if (session.time) {
                 let timeElem = sessionDom.querySelector(`[data-path="session.time"]`);

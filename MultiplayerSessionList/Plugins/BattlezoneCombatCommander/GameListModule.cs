@@ -96,6 +96,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                 HashSet<string> modStubAlreadySent = new HashSet<string>();
                 HashSet<string> mapStubAlreadySent = new HashSet<string>();
+                HashSet<string> gametypeFullAlreadySent = new HashSet<string>();
+                HashSet<string> gametypeStubAlreadySent = new HashSet<string>();
+                HashSet<string> gamemodeFullAlreadySent = new HashSet<string>();
+                HashSet<string> gamemodeStubAlreadySent = new HashSet<string>();
 
                 //yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
                 //modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
@@ -327,7 +331,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     switch (raw.GameType)
                     {
                         case 0:
-                            session.AddObjectPath($"level:game_type:id", "All"); // TODO we saw this on a retaliation MPI, WTF?
+                            // removed this as it's invalid, will probably need to use maps to override it via manual metadata
+                            //session.AddObjectPath($"level:game_type", "All"); // TODO we saw this on a retaliation MPI, WTF?
                             break;
                         case 1:
                             {
@@ -356,148 +361,95 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                         break;
                                 }
 
+                                session.AddObjectPath($"level:game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
+                                if (gametypeFullAlreadySent.Add($"DM"))
+                                {
+                                    yield return new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { "name", "Deathmatch" } });
+                                }
+                                else if (gametypeStubAlreadySent.Add($"DM"))
+                                {
+                                    yield return new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM");
+                                }
+
                                 switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                                 {
                                     case 0: // Deathmatch
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "DM");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"));
+                                        if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM:Name", "Deathmatch");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
+                                        }
                                         break;
                                     case 1: // King of the Hill
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "KOTH");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"));
+                                        if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}KOTH"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}KOTH:Name", "King of the Hill");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}King of the Hill" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH");
+                                        }
                                         break;
                                     case 2: // Capture the Flag
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "CTF");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"));
+                                        if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}CTF"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}CTF:Name", "Capture the Flag");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}Capture the Flag" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF");
+                                        }
                                         break;
                                     case 3: // Loot
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "LOOT");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"));
+                                        if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}LOOT"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}LOOT:Name", "Loot");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}Loot" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT");
+                                        }
                                         break;
                                     case 4: // DM [RESERVED]
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }*/
                                         break;
                                     case 5: // Race
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "RACE");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE:Name", "Race");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }*/
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
+                                        if      (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } }); }
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"); }
                                         break;
                                     case 6: // Race (Vehicle Only)
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "RACE");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
+                                        if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}RACE:Name", "Race");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE");
+                                        }
                                         session.AddObjectPath($"level:rules:vehicle_only", true);
                                         break;
                                     case 7: // DM (Vehicle Only)
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        session.AddObjectPath($"level:game_mode:id", (m_TeamsOn ? "TEAM_" : String.Empty) + "DM");
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"));
+                                        if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM"))
-                                                DataCache.AddObjectPath($"Level:GameMode:{(m_TeamsOn ? "TEAM_" : String.Empty)}DM:Name", "Deathmatch");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { "name", $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
+                                        }
                                         session.AddObjectPath($"level:rules:vehicle_only", true);
                                         break;
                                     default:
-                                        session.AddObjectPath($"level:game_type:id", "DM");
-                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : String.Empty) + "DM [UNKNOWN {raw.GameSubType}]";
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
-                                        {
-                                            if (!DataCache.ContainsPath($"Level:GameType:DM"))
-                                                DataCache.AddObjectPath($"Level:GameType:DM:Name", "Deathmatch");
-                                        }
-                                        finally
-                                        {
-                                            DataCacheLock.Release();
-                                        }*/
+                                        //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : string.Empty) + "DM [UNKNOWN {raw.GameSubType}]";
                                         break;
                                 }
                             }
@@ -505,92 +457,74 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         case 2:
                             {
                                 int GetGameModeOutput = raw.GameSubType.Value % (int)GameMode.GAMEMODE_MAX; // extract if we are team or not
+
+                                session.AddObjectPath($"level:game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                                if (gametypeFullAlreadySent.Add($"STRAT"))
+                                {
+                                    yield return new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { "name", "Strategy" } });
+                                }
+                                else if (gametypeStubAlreadySent.Add($"STRAT"))
+                                {
+                                    yield return new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
+                                }
+
                                 switch ((GameMode)GetGameModeOutput)
                                 {
                                     case GameMode.GAMEMODE_TEAM_STRAT:
-                                        session.AddObjectPath($"level:game_type:id", "STRAT");
-                                        session.AddObjectPath($"level:game_mode:id", "STRAT");
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
                                         m_TeamsOn = true;
                                         m_OnlyOneTeam = false;
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        if (gamemodeFullAlreadySent.Add("STRAT"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameMode:STRAT:Name", "Strategy");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { "name", "Team Strategy" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add("STRAT"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
+                                        }
                                         break;
                                     case GameMode.GAMEMODE_STRAT:
-                                        session.AddObjectPath($"level:game_type:id", "STRAT");
-                                        session.AddObjectPath($"level:game_mode:id", "FFA");
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA"));
                                         m_TeamsOn = false;
                                         m_OnlyOneTeam = false;
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        if (gamemodeFullAlreadySent.Add("FFA"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:FFA"))
-                                                DataCache.AddObjectPath($"Level:GameMode:FFA:Name", "Free for All");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA", new DataCache() { { "name", "Free for All" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add("FFA"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA");
+                                        }
                                         break;
                                     case GameMode.GAMEMODE_MPI:
-                                        session.AddObjectPath($"level:game_type:id", "STRAT");
-                                        session.AddObjectPath($"level:game_mode:id", "MPI");
+                                        session.AddObjectPath($"level:game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI"));
                                         m_TeamsOn = true;
                                         m_OnlyOneTeam = true;
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        if (gamemodeFullAlreadySent.Add("MPI"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
-                                            if (!DataCache.ContainsPath($"Level:GameMode:MPI"))
-                                                DataCache.AddObjectPath($"Level:GameMode:MPI:Name", "MPI");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI", new DataCache() { { "name", "Multiplayer Instant Action" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add("MPI"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI");
+                                        }
                                         break;
                                     default:
                                         //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
-                                        session.AddObjectPath($"level:game_type:id", "STRAT");
-                                        //game.Level["GameMode"] = null;
-                                        /*await DataCacheLock.WaitAsync();
-                                        try
+                                        if (gamemodeFullAlreadySent.Add("STRAT"))
                                         {
-                                            if (!DataCache.ContainsPath($"Level:GameType:STRAT"))
-                                                DataCache.AddObjectPath($"Level:GameType:STRAT:Name", "Strategy");
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}", new DataCache() { { "name", $"{GetGameModeOutput}" } });
                                         }
-                                        finally
+                                        else if (gamemodeStubAlreadySent.Add("STRAT"))
                                         {
-                                            DataCacheLock.Release();
-                                        }*/
+                                            yield return new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}");
+                                        }
                                         break;
                                 }
                             }
                             break;
                         case 3: // impossible, BZCC limits to 0-2
-                            session.AddObjectPath($"level:game_type:id", "MPI"); //  "MPI [Invalid]";
-                            /*await DataCacheLock.WaitAsync();
-                            try
-                            {
-                                if (!DataCache.ContainsPath($"Level:GameType:MPI"))
-                                    DataCache.AddObjectPath($"Level:GameType:MPI:Name", "MPI");
-                            }
-                            finally
-                            {
-                                DataCacheLock.Release();
-                            }*/
+                            session.AddObjectPath($"level:game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI"); //  "MPI [Invalid]";
                             break;
                     }
 
