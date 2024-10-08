@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using MultiplayerSessionList.Services;
 
 namespace MultiplayerSessionList.Models
 {
@@ -55,19 +56,19 @@ namespace MultiplayerSessionList.Models
         //public dynamic Data { get; set; }
         public DataCache Data { get; set; }
         //public Datum(string type, string id, dynamic data)
-        public Datum(string type, string id, bool bare = false) : this(type, id, new DataCache(), bare) { }
-        public Datum(string type, string id, DataCache data, bool bare = false)
+        public Datum(string type, string id, bool bare = false) : this(type, id, new DataCache()) { }//, bare) { }
+        public Datum(string type, string id, DataCache data)//, bool bare = false)
         {
             Type = type;
             ID = id;
             Data = data;
 
             // A bare item doesn't reflect its own identity into its data, useful for templates that get applied to data such as defaults
-            if (!bare)
-            {
-                data["$type"] = type;
-                data["$id"] = ID;
-            }
+            //if (!bare)
+            //{
+            //    data["$type"] = type;
+            //    data["$id"] = ID;
+            //}
         }
 
         public void AddObjectPath(string Path, dynamic Value) => Data.AddObjectPath(Path, Value);
@@ -116,6 +117,34 @@ namespace MultiplayerSessionList.Models
                 mrk = mrk[PathParts[i]] as DataCache;
             }
             return true;
+        }
+    }
+
+    public static class Extensions
+    {
+        public static async Task<List<PendingDatum>> GetPendingDataAsync(this SteamInterface steamInterface, ulong playerID)
+        {
+            Steam.Models.SteamCommunity.PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+            Datum accountDataSteam = new Datum("identity/steam", playerID.ToString(), new DataCache()
+            {
+                { "type", "steam" },
+                { "avatar_url", playerData.AvatarFullUrl },
+                { "nickname", playerData.Nickname },
+                { "profile_url", playerData.ProfileUrl },
+            });
+            return new List<PendingDatum>() { new PendingDatum(accountDataSteam, $"identity/steam/{playerID.ToString()}", false) };
+        }
+        public static async Task<List<PendingDatum>> GetPendingDataAsync(this GogInterface gogInterface, ulong playerID)
+        {
+            GogInterface.GogUserData playerData = await gogInterface.Users(playerID);
+            Datum accountDataGog = new Datum("identity/gog", playerID.ToString(), new DataCache()
+            {
+                { "type", "gog" },
+                { "avatar_url", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large },
+                { "username", playerData.username },
+                { "profile_url", $"https://www.gog.com/u/{playerData.username}" },
+            });
+            return new List<PendingDatum> () { new PendingDatum(accountDataGog, $"identity/gog/{playerID.ToString()}", false) };
         }
     }
 }

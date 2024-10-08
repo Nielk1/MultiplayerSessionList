@@ -393,7 +393,13 @@ function escapeHtml(unsafe)
                         console.log(data.$data);
                     } else {
                         ListData[data.$type] = ListData[data.$type] || {};
-                        ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, (ListData['default'] || {})[data.$type], data.$data));
+                        if (data.$type == 'default') {
+                            // defaults are wonky, no need to copy their ID and Type back into them as it would just break things reading from them
+                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, data.$data));
+                        } else {
+                            // for everything that isn't a default or a debug copy the $type and $id into it so we have an easier time
+                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, (ListData['default'] || {})[data.$type], data.$data));
+                        }
                         UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
                     }
 

@@ -70,8 +70,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         {
             using (var http = new HttpClient())
             {
+                TaskFactory taskFactory = new TaskFactory(cancellationToken);
+
                 if (!multiGame)
-                    yield return new Datum("default", "session", new DataCache() { { "type", GAMELIST_TERMS.TYPE_LISTEN } }, true);
+                    yield return new Datum("default", "session", new DataCache() { { "type", GAMELIST_TERMS.TYPE_LISTEN } });//, true);
 
                 var res = await http.GetStringAsync(queryUrl).ConfigureAwait(false);
                 if (admin) yield return new Datum("debug", "raw", new DataCache () { { "raw", res } });
@@ -155,73 +157,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     if (!string.IsNullOrWhiteSpace(raw.MapFile))
                         if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                        {
-                            //MapDataFetchTasks.Add((modID, mapID), mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}"));
-
-                            //DelayedDatumTasks.Add(GetMapDatum(modID, mapID));
-                            DelayedDatumTasks.Add(Task.Run(async () => {
-                                List<PendingDatum> retVal = new List<PendingDatum>();
-                                MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
-                                if (mapData != null)
-                                {
-                                    Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
-                                        { "name", mapData?.title },
-                                        { "description", mapData?.description },
-                                        { "map_file", mapID + @".bzn" },
-                                    });
-                                    if (mapData.image != null)
-                                        mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
-                                    if ((mapData?.netVars?.Count ?? 0) > 0)
-                                    {
-                                        if (mapData.netVars.ContainsKey("svar1")) mapDatum.AddObjectPath("teams:1:name", mapData.netVars["svar1"]);
-                                        if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath("teams:2:name", mapData.netVars["svar2"]);
-                                    }
-                                    retVal.Add(new PendingDatum(mapDatum, null, false));
-
-                                    if (mapData?.mods != null)
-                                    {
-                                        foreach (var mod in mapData.mods)
-                                        {
-                                            await modsAlreadyReturnedLock.WaitAsync();
-                                            try
-                                            {
-                                                if (!modsAlreadyReturnedFull.Contains(mod.Key))
-                                                {
-                                                    Datum modData = new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}", new DataCache() {
-                                                        { "name", mod.Value?.name ?? mod.Value?.workshop_name },
-                                                    });
-
-                                                    if (mod.Value?.image != null)
-                                                        modData.Data["image"] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
-
-                                                    if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
-                                                        modData.Data["url"] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
-
-                                                    if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
-                                                    {
-                                                        // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
-                                                        foreach (var dep in mod.Value.dependencies)
-                                                            retVal.Add(new PendingDatum(new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"mod\t{dep}", true));
-                                                        modData.AddObjectPath("dependencies", mod.Value.dependencies.Select(dep => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
-                                                    }
-
-                                                    retVal.Add(new PendingDatum(modData, null, false));
-
-                                                    modsAlreadyReturnedFull.Add(mod.Key);
-                                                }
-                                            }
-                                            finally
-                                            {
-                                                modsAlreadyReturnedLock.Release();
-                                            }
-                                        }
-                                    }
-                                }
-                                return retVal;
-                            }));
-
-                            //DelayedDatumTasks
-                        }
+                            DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, multiGame, modsAlreadyReturnedLock, modsAlreadyReturnedFull));
 
                     session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", raw.Locked);
                     session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_PASSWORD}", raw.Passworded);
@@ -604,18 +540,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                     { "identity", new DatumRef("identity/steam", playerID.ToString()) },
                                                 });
 
-                                                DelayedDatumTasks.Add(Task.Run(async () =>
-                                                {
-                                                    PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                    Datum accountDataSteam = new Datum("identity/steam", playerID.ToString(), new DataCache()
-                                                    {
-                                                        { "type", "steam" },
-                                                        { "avatar_url", playerData.AvatarFullUrl },
-                                                        { "nickname", playerData.Nickname },
-                                                        { "profile_url", playerData.ProfileUrl },
-                                                    });
-                                                    return new List<PendingDatum>() { new PendingDatum(accountDataSteam, $"identity/steam\t{playerID.ToString()}", false) };
-                                                }));
+                                                DelayedDatumTasks.Add(steamInterface.GetPendingDataAsync(playerID));
                                             }
                                         }
                                         break;
@@ -632,7 +557,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                                 });
                                                 DontSendStub.Add($"identity/gog\t{playerID.ToString()}"); // we already sent the a stub don't send another
 
-                                                player.AddObjectPath("ids:steam", new DataCache() {
+                                                player.AddObjectPath("ids:gog", new DataCache() {
                                                     { "id", playerID.ToString() },
                                                     { "raw", dr.PlayerID.Substring(1) },
                                                     { "identity", new DatumRef("identity/gog", playerID.ToString()) },
@@ -640,18 +565,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                                                 player.AddObjectPath("ids:gog", new DatumRef("identity/gog", playerID.ToString()));
 
-                                                DelayedDatumTasks.Add(Task.Run(async () =>
-                                                {
-                                                    GogUserData playerData = await gogInterface.Users(playerID);
-                                                    Datum accountDataGog = new Datum("identity/gog", playerID.ToString(), new DataCache()
-                                                    {
-                                                        { "type", "gog" },
-                                                        { "avatar_url", playerData.Avatar.sdk_img_184 ?? playerData.Avatar.large_2x ?? playerData.Avatar.large },
-                                                        { "username", playerData.username },
-                                                        { "profile_url", $"https://www.gog.com/u/{playerData.username}" },
-                                                    });
-                                                    return new List<PendingDatum>() { new PendingDatum(accountDataGog, $"identity/steam\t{playerID.ToString()}", false) };
-                                                }));
+                                                DelayedDatumTasks.Add(gogInterface.GetPendingDataAsync(playerID));
                                             }
                                         }
                                         break;
@@ -760,6 +674,68 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 //}
             }
             yield break;
+        }
+
+        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull)
+        {
+            List<PendingDatum> retVal = new List<PendingDatum>();
+            MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
+            if (mapData != null)
+            {
+                Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
+                    { "name", mapData?.title },
+                    { "description", mapData?.description },
+                    { "map_file", mapID + @".bzn" },
+                });
+                if (mapData.image != null)
+                    mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
+                if ((mapData?.netVars?.Count ?? 0) > 0)
+                {
+                    if (mapData.netVars.ContainsKey("svar1")) mapDatum.AddObjectPath("teams:1:name", mapData.netVars["svar1"]);
+                    if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath("teams:2:name", mapData.netVars["svar2"]);
+                }
+                retVal.Add(new PendingDatum(mapDatum, null, false));
+
+                if (mapData?.mods != null)
+                {
+                    foreach (var mod in mapData.mods)
+                    {
+                        await modsAlreadyReturnedLock.WaitAsync();
+                        try
+                        {
+                            if (!modsAlreadyReturnedFull.Contains(mod.Key))
+                            {
+                                Datum modData = new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}", new DataCache() {
+                                                        { "name", mod.Value?.name ?? mod.Value?.workshop_name },
+                                                    });
+
+                                if (mod.Value?.image != null)
+                                    modData.Data["image"] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
+
+                                if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
+                                    modData.Data["url"] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
+
+                                if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
+                                {
+                                    // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
+                                    foreach (var dep in mod.Value.dependencies)
+                                        retVal.Add(new PendingDatum(new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"mod\t{dep}", true));
+                                    modData.AddObjectPath("dependencies", mod.Value.dependencies.Select(dep => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
+                                }
+
+                                retVal.Add(new PendingDatum(modData, null, false));
+
+                                modsAlreadyReturnedFull.Add(mod.Key);
+                            }
+                        }
+                        finally
+                        {
+                            modsAlreadyReturnedLock.Release();
+                        }
+                    }
+                }
+            }
+            return retVal;
         }
     }
 }
