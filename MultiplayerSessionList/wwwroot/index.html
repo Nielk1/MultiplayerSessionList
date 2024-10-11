@@ -620,11 +620,19 @@ function escapeHtml(unsafe)
                     });
 
                     // game type and mode, which is complex because it could be from the map OR the level object data
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="game_type"]`).forEach(scr => {
-                        scr.textContent = (data[$type][$id].game_type || {}).name || (data[$type][$id].game_type || {}).$id || scr.textContent;
+                    parent.querySelectorAll(`[data-path="game_type"][data-map-id]:not([data-source="rules"])`).forEach(scr => {
+                        let mapId = scr.getAttribute("data-map-id");
+                        if (mapId == $id && data[$type][$id].game_type) {
+                            scr.textContent = (data[$type][$id].game_type || {}).name || (data[$type][$id].game_type || {}).$id || scr.textContent;
+                            scr.setAttribute("data-source", "map");
+                        }
                     });
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="game_mode"]`).forEach(scr => {
-                        scr.textContent = (data[$type][$id].game_mode || {}).name || (data[$type][$id].game_mode || {}).$id || scr.textContent;
+                    parent.querySelectorAll(`[data-path="game_mode"][data-map-id]:not([data-source="rules"])`).forEach(scr => {
+                        let mapId = scr.getAttribute("data-map-id");
+                        if (mapId == $id && data[$type][$id].game_mode) {
+                            scr.textContent = (data[$type][$id].game_mode || {}).name || (data[$type][$id].game_mode || {}).$id || scr.textContent;
+                            scr.setAttribute("data-source", "map");
+                        }
                     });
 
                     if (data[$type][$id].teams) {
@@ -693,11 +701,11 @@ function escapeHtml(unsafe)
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Type</strong>
-                            <span data-path="game_type" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}"></span>
+                            <span data-path="game_type" data-map-id="${encodeAttr(session.level.map.$id)}"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Mode</strong>
-                            <span data-path="game_mode" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}"></span>
+                            <span data-path="game_mode" data-map-id="${encodeAttr(session.level.map.$id)}"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Time</strong>
@@ -736,9 +744,33 @@ function escapeHtml(unsafe)
             map_name_elem.setAttribute('title', "${encodeAttr(session.level.map.map_file)}");
             map_name_elem.textContent = session.level.map.name || session.level.map.map_file || '';
 
-            // game type and mode, which is complex because it could be from the map OR the level object data
-            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_type"]`).textContent = (session.level.map.game_type || {}).name || (session.level.game_type || {}).name || (session.level.map.game_type || {}).$id || (session.level.game_type || {}).$id || '';
-            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="game_mode"]`).textContent = (session.level.map.game_mode || {}).name || (session.level.game_mode || {}).name || (session.level.map.game_mode || {}).$id || (session.level.game_mode || {}).$id || '';
+            // game type and mode, which is complex because it could be from the map OR the level object data OR the rules
+            if (session.level.rules && session.level.rules.game_type) {
+                let element = sessionDom.querySelector(`[data-path="game_type"]`);
+                element.textContent = session.level.rules.game_type.name || session.level.rules.game_type.$id;
+                element.setAttribute("data-source", "rules");
+            } else if (session.level.map && session.level.map.game_type) {
+                let element = sessionDom.querySelector(`[data-path="game_type"]`);
+                element.textContent = session.level.map.game_type.name || session.level.map.game_type.$id;
+                element.setAttribute("data-source", "map");
+            } else {
+                let element = sessionDom.querySelector(`[data-path="game_type"]`);
+                element.textContent = (session.level.game_type || {}).name || (session.level.game_type || {}).$id || '';
+                element.setAttribute("data-source", "level");
+            }
+            if (session.level.rules && session.level.rules.game_mode) {
+                let element = sessionDom.querySelector(`[data-path="game_mode"]`);
+                element.textContent = session.level.rules.game_mode.name || session.level.rules.game_mode.$id;
+                element.setAttribute("data-source", "rules");
+            } else if (session.level.map && session.level.map.game_mode) {
+                let element = sessionDom.querySelector(`[data-path="game_mode"]`);
+                element.textContent = session.level.map.game_mode.name || session.level.map.game_mode.$id;
+                element.setAttribute("data-source", "map");
+            } else {
+                let element = sessionDom.querySelector(`[data-path="game_mode"]`);
+                element.textContent = (session.level.game_mode || {}).name || (session.level.game_mode || {}).$id || '';
+                element.setAttribute("data-source", "level");
+            }
 
             if (session.time) {
                 let timeElem = sessionDom.querySelector(`[data-path="session.time"]`);
