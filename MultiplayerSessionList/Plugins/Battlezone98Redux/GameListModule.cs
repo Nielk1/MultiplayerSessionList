@@ -442,10 +442,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             await gametypeFullAlreadySentLock.WaitAsync();
                             try
                             {
-                                if (gametypeFullAlreadySent.Add($"STRAT"))
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { "name", "Strategy" } }), $"game_type\tSTRAT", false));
+                                if (gametypeFullAlreadySent.Add($"DM"))
+                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { "name", "Deathmatch" } }), $"game_type\tDM", false));
                                 else
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"), $"game_type\tSTRAT", true));
+                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"), $"game_type\tDM", true));
                             }
                             finally
                             {
