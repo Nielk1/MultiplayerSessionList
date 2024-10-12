@@ -382,6 +382,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public int min { get; set; }
         public int max { get; set; }
         public List<string> vehicles { get; set; }
+        public HashSet<string> flags { get; set; }
     }
 
     public class MapData_Vehicle

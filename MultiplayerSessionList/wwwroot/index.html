@@ -824,6 +824,11 @@ function escapeHtml(unsafe)
                     Teams.add(t);
                 }
             }
+            if (session.level && session.level.map && session.level.map.teams) {
+                for (var t in session.level.map.teams) {
+                    Teams.add(t);
+                }
+            }
             Teams = Array.from(Teams).sort();
             let team_balance = -1;
             let max_players = -1;
@@ -875,7 +880,7 @@ function escapeHtml(unsafe)
 
                         if (team) {
                             playerHtmlEntries += '<div class="col-12 p-0 pb-2">';
-                            is_leader = player.team.leader;
+                            is_leader = player.team.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
                         } else {
                             playerHtmlEntries += '<div class="col-12 col-md-6 p-0 p-2">';
                         }

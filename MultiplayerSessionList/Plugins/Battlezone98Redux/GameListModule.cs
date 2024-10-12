@@ -313,176 +313,78 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     {
                         case "D": // Deathmatch
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
+                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
 
-                            await gametypeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gametypeFullAlreadySent.Add($"DM"))
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { "name", "Deathmatch" } }), $"game_type\tDM", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"), $"game_type\tDM", true));
-                            }
-                            finally
-                            {
-                                gametypeFullAlreadySentLock.Release();
-                            }
-                                            
-                            await gamemodeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gamemodeFullAlreadySent.Add($"DM"))
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { "name", "Deathmatch" } }), $"game_mode\tDM", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"), $"game_mode\tDM", true));
-                            }
-                            finally
-                            {
-                                gamemodeFullAlreadySentLock.Release();
-                            }
+                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
+                            retVal.Add(await BuildGameModeDatumAsync("DM", "Deathmatch", multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
 
                             break;
                         case "S": // Strategy
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
-                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
 
-                            await gametypeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gametypeFullAlreadySent.Add($"STRAT"))
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { "name", "Strategy" } }), $"game_type\tSTRAT", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"), $"game_type\tSTRAT", true));
-                            }
-                            finally
-                            {
-                                gametypeFullAlreadySentLock.Release();
-                            }
-                                            
-                            await gamemodeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gamemodeFullAlreadySent.Add($"STRAT"))
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { "name", "Strategy" } }), $"game_mode\tSTRAT", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"), $"game_mode\tSTRAT", true));
-                            }
-                            finally
-                            {
-                                gamemodeFullAlreadySentLock.Release();
-                            }
+                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                            retVal.Add(await BuildGameModeDatumAsync("STRAT", "Strategy", multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
 
                             break;
                         case "K": // King of the Hill
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}KOTH"));
+                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
 
-                            await gametypeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gametypeFullAlreadySent.Add($"DM"))
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { "name", "Deathmatch" } }), $"game_type\tDM", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"), $"game_type\tDM", true));
-                            }
-                            finally
-                            {
-                                gametypeFullAlreadySentLock.Release();
-                            }
-                                            
-                            await gamemodeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gamemodeFullAlreadySent.Add($"KOTH"))
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}KOTH", new DataCache() { { "name", "King of the Hill" } }), $"game_mode\tKOTH", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}KOTH"), $"game_mode\tKOTH", true));
-                            }
-                            finally
-                            {
-                                gamemodeFullAlreadySentLock.Release();
-                            }
+                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}KOTH"));
+                            retVal.Add(await BuildGameModeDatumAsync("KOTH", "King of the Hill", multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
 
                             break;
                         case "M": // Mission MPI
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
-                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}M_MPI"));
+                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
 
-                            await gametypeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gametypeFullAlreadySent.Add($"STRAT"))
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { "name", "Strategy" } }), $"game_type\tSTRAT", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"), $"game_type\tSTRAT", true));
-                            }
-                            finally
-                            {
-                                gametypeFullAlreadySentLock.Release();
-                            }
-                                            
-                            await gamemodeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gamemodeFullAlreadySent.Add($"M_MPI"))
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}M_MPI", new DataCache() { { "name", "Mission MPI" } }), $"game_mode\tM_MPI", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}M_MPI"), $"game_mode\tM_MPI", true));
-                            }
-                            finally
-                            {
-                                gamemodeFullAlreadySentLock.Release();
-                            }
+                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}M_MPI"));
+                            retVal.Add(await BuildGameModeDatumAsync("M_MPI", "Mission MPI", multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
 
                             break;
                         case "A": // Action MPI
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}A_MPI"));
+                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
 
-                            await gametypeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gametypeFullAlreadySent.Add($"DM"))
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { "name", "Deathmatch" } }), $"game_type\tDM", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"), $"game_type\tDM", true));
-                            }
-                            finally
-                            {
-                                gametypeFullAlreadySentLock.Release();
-                            }
-                                            
-                            await gamemodeFullAlreadySentLock.WaitAsync();
-                            try
-                            {
-                                if (gamemodeFullAlreadySent.Add($"A_MPI"))
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}A_MPI", new DataCache() { { "name", "Action MPI" } }), $"game_mode\tA_MPI", false));
-                                else
-                                    retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}A_MPI"), $"game_mode\tA_MPI", true));
-                            }
-                            finally
-                            {
-                                gamemodeFullAlreadySentLock.Release();
-                            }
+                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}A_MPI"));
+                            retVal.Add(await BuildGameModeDatumAsync("A_MPI", "Action MPI", multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
 
                             break;
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
                 {
-                    mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mapData.map.custom_type}"));
+                    if (mapData.map.custom_type == "S" && (mapData.map.flags?.Contains("bad_type") ?? false))
+                    {
+                        // Special case of SBP being knobs and use 'K' for their STRAT maps
+                        mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                        retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
 
-                    await gamemodeFullAlreadySentLock.WaitAsync();
-                    try
-                    {
-                        if (gamemodeFullAlreadySent.Add(mapData.map.custom_type))
-                            retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mapData.map.custom_type}", new DataCache() { { "name", mapData.map.custom_type_name } }), $"game_mode\t{mapData.map.custom_type}", false));
-                        else
-                            retVal.Add(new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{mapData.map.custom_type}"), $"game_mode\t{mapData.map.custom_type}", true));
+                        mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                        retVal.Add(await BuildGameModeDatumAsync("STRAT", "Strategy", multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                     }
-                    finally
+                    else
                     {
-                        gamemodeFullAlreadySentLock.Release();
+                        // Custom type
+                        mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_{mapData.map.custom_type}"));
+                        retVal.Add(await BuildGameModeDatumAsync($"CUST_{mapData.map.custom_type}", mapData.map.custom_type_name, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                        if (mapData.map.custom_type == "TOOL")
+                        {
+                            mapDatum.AddObjectPath("game_type", null);
+                        }
+                    }
+                }
+
+                if (mapData.map.flags?.Contains("sbp_auto_ally_teams") ?? false)
+                {
+                    mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13 });
+                    mapDatum.AddObjectPath("teams:2:member_player_indexes", new int[] { 2, 4, 6, 8, 10, 12, 14 });
+
+                    if (mapData.map.flags?.Contains("sbp_wingman_game") ?? false)
+                    {
+                        mapDatum.AddObjectPath("teams:1:leader_player_indexes", new int[] { 1 });
+                        mapDatum.AddObjectPath("teams:2:leader_player_indexes", new int[] { 2 });
                     }
                 }
 
@@ -619,6 +521,37 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 retVal.Add(new PendingDatum(mapDatum, null, false));
             }
             return retVal;
+        }
+
+        private async Task<PendingDatum> BuildGameTypeDatumAsync(string code, string name, bool multiGame, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent)
+        {
+            await gametypeFullAlreadySentLock.WaitAsync();
+            try
+            {
+                if (gametypeFullAlreadySent.Add(code))
+                    return new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", new DataCache() { { "name", name } }), $"game_type\t{code}", false);
+                else
+                    return new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_type\t{code}", true);
+            }
+            finally
+            {
+                gametypeFullAlreadySentLock.Release();
+            }
+        }
+        private async Task<PendingDatum> BuildGameModeDatumAsync(string code, string name, bool multiGame, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent)
+        {
+            await gamemodeFullAlreadySentLock.WaitAsync();
+            try
+            {
+                if (gamemodeFullAlreadySent.Add(code))
+                    return new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", new DataCache() { { "name", name } }), $"game_mode\t{code}", false);
+                else
+                    return new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_mode\t{code}", true);
+            }
+            finally
+            {
+                gamemodeFullAlreadySentLock.Release();
+            }
         }
     }
 }
