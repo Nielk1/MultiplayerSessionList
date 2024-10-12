@@ -3,7 +3,6 @@ using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
-using Steam.Models.SteamCommunity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +10,6 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using static MultiplayerSessionList.Services.GogInterface;
 
 namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
