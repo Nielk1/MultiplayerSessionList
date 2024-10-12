@@ -867,7 +867,7 @@ function escapeHtml(unsafe)
 
                     break;
                 case 'hero':
-                    parent.querySelectorAll(`[data-path="hero_name"][data-type="hero"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.textContent = data[$type][$id].Name || $id);
+                    parent.querySelectorAll(`[data-path="hero_name"][data-type="hero"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.textContent = data[$type][$id].name || $id);
                     break;
                 case 'player':
                     parent.querySelectorAll(`[data-path="player"][data-type="player"][data-id="${CSS.escape($id)}"]`).forEach(elem => {
