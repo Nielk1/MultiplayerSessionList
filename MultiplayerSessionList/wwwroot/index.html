@@ -537,13 +537,13 @@ function escapeHtml(unsafe)
             let player_avatar_id = '';
             for (let id in player.ids) {
                 if (id == "steam") {
-                    plaform_avatar = player.ids[id].identity.avatar_url || plaform_avatar;
+                    plaform_avatar = (player.ids[id].identity || {}).avatar_url || plaform_avatar;
                     player_avatar_id = player.ids[id].identity.$id;
                     player_avatar_source = id;
                     break;
                 }
                 if (id == "gog") {
-                    plaform_avatar = player.ids[id].identity.avatar_url || plaform_avatar;
+                    plaform_avatar = (player.ids[id].identity || {}).avatar_url || plaform_avatar;
                     player_avatar_id = player.ids[id].identity.$id;
                     player_avatar_source = id;
                     break;
@@ -804,7 +804,7 @@ function escapeHtml(unsafe)
                         if (data[$type][$id].url) {
                             scr.setAttribute("href", data[$type][$id].url);
                         } else {
-                            scr.removeAttr("href")
+                            scr.removeAttribute("href")
                         }
                     });
                     break;
