@@ -245,8 +245,6 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                                 { "identity", new DatumRef("identity/gog", playerID.ToString()) },
                                             });
 
-                                            player.AddObjectPath("ids:gog", new DatumRef("identity/gog", playerID.ToString()));
-
                                             DelayedDatumTasks.Add(gogInterface.GetPendingDataAsync(playerID));
                                         }
                                     }
