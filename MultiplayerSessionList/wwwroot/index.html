@@ -510,7 +510,7 @@ team index lists allow for team membership to be set after the player data alrea
                         player_count_string += ` / ${session.player_types[k].max}`;
                     }
                 }
-                sessionDom.querySelector(`[data-path="player_count"]`).textContent = player_count_string;
+                sessionDom.querySelector(`[data-path="session.player_count"]`).textContent = player_count_string;
             }
 
             function microSort(a, b) {
@@ -584,43 +584,29 @@ team index lists allow for team membership to be set after the player data alrea
                 return retVal;
             });
             for (let team of Teams) {
-                //let teamName = ((session.teams || {})[team] || {}).name || (((((session || {}).level || {}).map || {}).teams || {})[team] || {}).name || `Team ${team}`;
-                let teamName = `Team ${team}`;
-                if (session.level && session.level.map && session.level.map.teams && session.level.map.teams[team]) {
-                    teamName = session.level.map.teams[team].name || teamName;
-                } else if (session.teams && session.teams[team]) {
-                    teamName = session.teams[team].name || teamName;
-                }
+                let teamName = session.teams?.[team]?.name || session.level?.map?.teams?.[team]?.name || `Team ${team}`;
                 let teamPlayers = wrappedPlayers
                     .filter(p => p.team == team)
-                    //.map(p => p.player)
-                    //.sort((a, b) => {
-                    //    let c = microSort((a.team || {}).index || -1, (b.team || {}).index || -1);
-                    //    if (c != 0) return c;
-                    //    return microSort(a.index || -1, b.index || -1);
-                    //});
-                    .sort((a, b) => { // TODO revisit this sort
-                        let c = microSort((a.player.team || {}).index || -1, (b.player.team || {}).index || -1);
+                    .sort((a, b) => {
+                        let c = microSort(a.player?.team?.index ?? -1, b.player?.team?.index ?? -1);
                         if (c != 0) return c;
-                        return microSort(a.player.index || -1, b.player.index || -1);
+                        return microSort(a.player?.index ?? -1, b.player?.index ?? -1);
                     });
-                //console.log(team, teamPlayers);
 
                 let playerHtmlEntries = '';
 
-                //let platform_type = null;
                 var player_count = teamPlayers.length;
-                if (session.teams && session.teams[team])
+                if (session.teams?.[team])
                     if (max_players > -1 && total_players > -1 && session.teams[team].max) {
                         player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
                     } else {
-                        player_count = Math.max(session.teams[team].max || player_count, teamPlayers.length, team_balance);
+                        player_count = Math.max(session.teams[team].max ?? player_count, teamPlayers.length, team_balance);
                     }
                 for (var i = 0; i < player_count; i++) {
                     if (i < teamPlayers.length) {
                         let player = teamPlayers[i];
 
-                        let is_over_limit = session.teams && session.teams[team] && session.teams[team].max && i > session.teams[team].max;
+                        let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
                         let is_leader = null;
 
                         if (team) {
@@ -644,7 +630,7 @@ team index lists allow for team membership to be set after the player data alrea
 </div>`;
                     }
                 }
-                if (session.teams && session.teams[team] && !session.teams[team].human && session.teams[team].computer === true) {
+                if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
                     playerHtmlEntries += `
 <div class="col-12 p-0 pb-2">
     <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
@@ -656,11 +642,11 @@ team index lists allow for team membership to be set after the player data alrea
                 }
 
                 if (team) {
-                    if (session.teams && session.teams[team] && !session.teams[team].human && session.teams[team].computer === true) {
+                    if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
                         playerListDom.insertAdjacentHTML('beforeend', `
 <div class="col-12 col-md-6 p-0 p-2">
     <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
-        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level && session.level.map && session.level.map.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
+        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
         <div class="row m-2 mb-0">${playerHtmlEntries}</div>
     </div>
 </div>`);
@@ -668,7 +654,7 @@ team index lists allow for team membership to be set after the player data alrea
                         playerListDom.insertAdjacentHTML('beforeend', `
 <div class="col-12 col-md-6 p-0 p-2">
     <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level && session.level.map && session.level.map.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
+        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
         <div class="row m-2 mb-0">${playerHtmlEntries}</div>
     </div>
 </div>`);
@@ -685,7 +671,7 @@ team index lists allow for team membership to be set after the player data alrea
 
             if (!sessionDom) {
                 parent.insertAdjacentHTML('beforeend', `
-<div id="/session/${encodeAttr($id)}" data-id="${encodeAttr($id)}" data-id-level-map="${encodeAttr(session.level.map.$id)}" data-type="session" class="col-12 col-xl-6 mb-4">
+<div id="/session/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
     <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
@@ -697,25 +683,25 @@ team index lists allow for team membership to be set after the player data alrea
             <div class="row border-bottom">
                 <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
                     <div class="ratio ratio-1x1">
-                        <img data-path="image" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                        <img data-path="session.level.map.image" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
                     </div>
                     <div class="shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate">
-                        <small data-path="map_file" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
+                        <small data-path="session.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
                     </div>
                 </div>
                 <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">
                     <ul class="list-group list-group-flush text-secondary">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Map</strong>
-                            <span data-path="map_name" data-id="${encodeAttr(session.level.map.$id)}" data-type="${encodeAttr(session.level.map.$type)}" title=""></span>
+                            <span data-path="session.level.map.name" title=""></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Type</strong>
-                            <span data-path="game_type" data-map-id="${encodeAttr(session.level.map.$id)}"></span>
+                            <span data-path="session.level.game_type"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Mode</strong>
-                            <span data-path="game_mode" data-map-id="${encodeAttr(session.level.map.$id)}"></span>
+                            <span data-path="session.level.game_mode"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">State</strong>
@@ -726,7 +712,7 @@ team index lists allow for team membership to be set after the player data alrea
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Player Count</strong>
-                            <span data-path="player_count"></span>
+                            <span data-path="session.player_count"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Name</strong>
@@ -735,40 +721,46 @@ team index lists allow for team membership to be set after the player data alrea
                     </ul>
                 </div>
             </div>
-            <div data-path="mods-container" data-id-level-map="${encodeAttr(session.level.map.$id)}" ${session.game && session.game.mod && session.game.mod.$id ? `data-id-game-mod="${encodeAttr(session.game.mod.$id)}"` : ''} class="row border-bottom" style="display:none;"></div>
+            <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
             <div data-path="players" class="row"></div>
     </div>
 </div>
                 `);
-                //sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
                 sessionDom = parent.lastElementChild;
             }
-            // fully qualified the names of the objects that are always part of the session since that's easy
+
+            // Map Image
+            sessionDom.querySelector('[data-path="session.level.map.image"]').setAttribute("src", session.level?.map?.image ?? "");
+
+            // Map Filename
+            sessionDom.querySelector('[data-path="session.level.map.map_file"]').textContent = session.level?.map?.map_file ?? " ";
+
+            // Map Name
+            let map_name_elem = sessionDom.querySelector('[data-path="session.level.map.name"]');
+            map_name_elem.setAttribute('title', session.level?.map?.map_file);
+            map_name_elem.textContent = session.level?.map?.name ?? session.level?.map?.map_file ?? '';
+
+            // Session Name
             sessionDom.querySelector('[data-path="session.name"]').textContent = session.name || " ";
+
+            // Session Message
             sessionDom.querySelector('[data-path="session.message"]').textContent = session.message || " ";
 
-            // these come from a map which can be a referenced object, so we used entirely relative data tied to its id
-            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="image"]`).setAttribute("src", session.level.map.image || "");
-            sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="map_file"]`).textContent = session.level.map.map_file || " ";
-            //sessionDom.querySelectorAll('[data-path="session.name"]').forEach(scr => scr.textContent = session.name || " ");
-
-            // map name
-            let map_name_elem = sessionDom.querySelector(`[data-type="${CSS.escape(session.level.map.$type)}"][data-id="${CSS.escape(session.level.map.$id)}"][data-path="map_name"]`);
-            map_name_elem.setAttribute('title', "${encodeAttr(session.level.map.map_file)}");
-            map_name_elem.textContent = session.level.map.name || session.level.map.map_file || '';
-
-            let game_mode_element = sessionDom.querySelector(`[data-path="game_mode"]`);
+            // Session Game Mode
+            let game_mode_element = sessionDom.querySelector(`[data-path="session.level.game_mode"]`);
             game_mode_element.textContent =
                 session.level?.rules?.game_mode?.name ?? session.level?.rules?.game_mode?.$id ??
                 session.level?.map?.game_mode?.name ?? session.level?.map?.game_mode?.$id ??
                 session.level?.game_mode?.name ?? session.level?.game_mode?.$id;
 
-            let game_type_element = sessionDom.querySelector(`[data-path="game_type"]`);
+            // Session Game Type
+            let game_type_element = sessionDom.querySelector(`[data-path="session.level.game_type"]`);
             game_type_element.textContent =
                 session.level?.rules?.game_type?.name ?? session.level?.rules?.game_type?.$id ??
                 session.level?.map?.game_type?.name ?? session.level?.map?.game_type?.$id ??
                 session.level?.game_type?.name ?? session.level?.game_type?.$id;
 
+            // Session Time
             if (session.time) {
                 let timeElem = sessionDom.querySelector(`[data-path="session.time"]`);
 
@@ -780,17 +772,21 @@ team index lists allow for team membership to be set after the player data alrea
                 }
             }
 
-            if (session.status && session.status.state) {
+            // Session Status
+            if (session.status?.state) {
                 let timeElem = sessionDom.querySelector(`[data-path="session.status.state"]`);
                 timeElem.textContent = session.status.state;
             }
 
+            // Players
             UpdateDomSessionPlayers(session, sessionDom);
 
-            if (session.game && (session.game.mod || session.game.mods)) {
+            if (session.game?.mod || session.game?.mods) {
                 let modWrapperDom = sessionDom.querySelector('[data-path="mods-container"]');
                 modWrapperDom.style.display = 'flex';
-                modWrapperDom.innerHTML  = '';
+                modWrapperDom.innerHTML = '';
+
+                // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
                 modWrapperDom.insertAdjacentHTML('beforeend', GenerateHtml_ModsRow(session.game.mod, session.game.mods, session.level.map.$id));
             }
         }
