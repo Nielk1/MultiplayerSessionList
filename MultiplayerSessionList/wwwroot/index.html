@@ -156,6 +156,9 @@ function escapeHtml(unsafe)
 
         var ListData = {};
 
+        // parent data relations so we can walk up to the session when data updates come in
+        var DataRefs = {};
+
         var tableColSpan = 8;
 
         function DrawModNode(Mod) {
@@ -335,10 +338,10 @@ function escapeHtml(unsafe)
             return MergeIntoFirstObject(target, ...sources); // next source
         }
 
-        function MergeReferences(target) {
+        function MergeReferences(target, parent_type, parent_id) {
             if (!isObject(target))
                 return target;
-            
+
             for (const key in target) {
                 // Detect Object or Array
                 if (isObject(target[key])) {
@@ -348,9 +351,13 @@ function escapeHtml(unsafe)
                         let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                         let frag_id = split[2].replace('~1', '/').replace('~0', '~');
                         target[key] = ListData[frag_type][frag_id];
-                        console.log(frag_type, frag_id);//DataRefs
+                        //console.log(frag_type, frag_id);//DataRefs
+                        if (!DataRefs[[frag_type, frag_id]])
+                            DataRefs[[frag_type, frag_id]] = new Set();
+                        DataRefs[[frag_type, frag_id]].add({ $type: target.$type || parent_type, $id: target.$id || parent_id });
+                    } else {
+                        MergeReferences(target[key], target.$type || parent_type, target.$id || parent_id);
                     }
-                    MergeReferences(target[key]);
                 } else if (Array.isArray(target[key])) {
                     for (var i = 0; i < target[key].length; i++) {
                         if (isObject(target[key][i])) {
@@ -360,9 +367,13 @@ function escapeHtml(unsafe)
                                 let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                                 let frag_id = split[2].replace('~1', '/').replace('~0', '~');
                                 target[key][i] = ListData[frag_type][frag_id];
-                                console.log(frag_type, frag_id);//DataRefs
+                                //console.log(frag_type, frag_id);//DataRefs
+                                if (!DataRefs[[frag_type, frag_id]])
+                                    DataRefs[[frag_type, frag_id]] = new Set();
+                                DataRefs[[frag_type, frag_id]].add({ $type: target.$type || parent_type, $id: target.$id || parent_id });
+                            } else {
+                                MergeReferences(target[key][i], target.$type || parent_type, target.$id || parent_id);
                             }
-                            MergeReferences(target[key][i]);
                         }
                     }
                 }
@@ -382,6 +393,9 @@ function escapeHtml(unsafe)
             if (GetGamesAjax != null) {
                 GetGamesAjax.abort();
             }
+
+            DataRefs = {};
+
             var windowSearch = window.location.search;
             if (windowSearch.length > 0)
                 windowSearch = '&' + windowSearch.substring(1);
