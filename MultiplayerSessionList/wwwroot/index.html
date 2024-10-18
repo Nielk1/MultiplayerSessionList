@@ -330,32 +330,39 @@ function escapeHtml(unsafe)
             }
             // no sources left to merge, clean up references
             if (sources.length == 0)
-                return MergeReferences(target);
+                //return MergeReferences(target); // is this redundant now?
+                return target;
             return MergeIntoFirstObject(target, ...sources); // next source
         }
 
         function MergeReferences(target) {
             if (!isObject(target))
                 return target;
-
+            
             for (const key in target) {
                 // Detect Object or Array
                 if (isObject(target[key])) {
                     if (target[key].$ref) {
                         // we're a ref object, so forget the destination entirely and just use the source's reference
                         var split = target[key].$ref.split('/');
-                        target[key] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
+                        let frag_type = split[1].replace('~1', '/').replace('~0', '~');
+                        let frag_id = split[2].replace('~1', '/').replace('~0', '~');
+                        target[key] = ListData[frag_type][frag_id];
+                        console.log(frag_type, frag_id);//DataRefs
                     }
+                    MergeReferences(target[key]);
                 } else if (Array.isArray(target[key])) {
                     for (var i = 0; i < target[key].length; i++) {
                         if (isObject(target[key][i])) {
                             if (target[key][i].$ref) {
                                 // we're a ref object, so forget the destination entirely and just use the source's reference
                                 var split = target[key][i].$ref.split('/');
-                                target[key][i] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
-                            } else {
-                                MergeReferences(target[key][i]);
+                                let frag_type = split[1].replace('~1', '/').replace('~0', '~');
+                                let frag_id = split[2].replace('~1', '/').replace('~0', '~');
+                                target[key][i] = ListData[frag_type][frag_id];
+                                console.log(frag_type, frag_id);//DataRefs
                             }
+                            MergeReferences(target[key][i]);
                         }
                     }
                 }
@@ -710,7 +717,7 @@ function escapeHtml(unsafe)
                         if (c != 0) return c;
                         return microSort(a.player.index || -1, b.player.index || -1);
                     });
-                console.log(team, teamPlayers);
+                //console.log(team, teamPlayers);
 
                 let playerHtmlEntries = '';
 
@@ -922,8 +929,11 @@ function escapeHtml(unsafe)
                             <span data-path="game_mode" data-map-id="${encodeAttr(session.level.map.$id)}"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Time</strong>
-                            <span data-path="session.time"></span>
+                            <strong class="text-muted">State</strong>
+                            <span>
+                                <span data-path="session.status.state"></span>
+                                <span data-path="session.time"></span>
+                            </span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Player Count</strong>
@@ -991,10 +1001,15 @@ function escapeHtml(unsafe)
 
                 // minute resolutions
                 if (session.time.resolution == 60) {
-                    timeElem.textContent = `${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds / 60}${session.time.max ? '+' : ''} minutes`;
+                    timeElem.textContent = `(${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds / 60}${session.time.max ? '+' : ''} minutes)`;
                 } else {
-                    timeElem.textContent = `${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds}${session.time.max ? '+' : ''} seconds`;
+                    timeElem.textContent = `(${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds}${session.time.max ? '+' : ''} seconds)`;
                 }
+            }
+
+            if (session.status && session.status.state) {
+                let timeElem = sessionDom.querySelector(`[data-path="session.status.state"]`);
+                timeElem.textContent = session.status.state;
             }
 
             UpdateDomSessionPlayers(session, sessionDom);
