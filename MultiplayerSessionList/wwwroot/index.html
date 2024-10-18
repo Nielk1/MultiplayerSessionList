@@ -132,59 +132,32 @@ team index lists allow for team membership to be set after the player data alrea
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <script>
-function encodeAttr(text) {
-  const elem = document.createElement('p');
-  elem.setAttribute('title', text);
-  const elemHtml = elem.outerHTML; // <p title="encodedText"> or maybe <p title='encodedText'>
-  // Find out whether the browser used single or double quotes before encodedText
-  const quote = elemHtml[elemHtml.search(/['"]/)];
-  // Split up the generated HTML using the quote character; take item 1
-  return elemHtml.split(new RegExp(quote))[1];
-}
-function escapeHtml(unsafe)
-{
-    if (!unsafe)
-        return unsafe;
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
- }
+        function encodeAttr(text) {
+            const elem = document.createElement('p');
+            elem.setAttribute('title', text);
+            const elemHtml = elem.outerHTML; // <p title="encodedText"> or maybe <p title='encodedText'>
+            // Find out whether the browser used single or double quotes before encodedText
+            const quote = elemHtml[elemHtml.search(/['"]/)];
+            // Split up the generated HTML using the quote character; take item 1
+            return elemHtml.split(new RegExp(quote))[1];
+        }
 
+        function escapeHtml(unsafe) {
+            if (!unsafe)
+                return unsafe;
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
+        // local copy of list data
         var ListData = {};
 
         // parent data relations so we can walk up to the session when data updates come in
         var DataRefs = {};
-
-        var tableColSpan = 8;
-
-        function DrawModNode(Mod) {
-            if (Mod.Url != null) {
-                var elem = $('<a/>');
-                elem.attr('href', Mod.Url);
-                elem.data('id', Mod.ID);
-                elem.attr('target', "_blank");
-                elem.attr('rel', "noopener noreferrer");
-                if (Mod.Name != null) {
-                    elem.text(Mod.Name);
-                } else {
-                    elem.text(Mod.ID);
-                }
-                return elem;
-            } else {
-                var elem = $('<span/>');
-                elem.data('id', Mod.ID);
-                if (Mod.Name != null) {
-                    elem.text(Mod.Name);
-                } else {
-                    elem.text(Mod.ID);
-                }
-                return elem;
-            }
-        }
 
         //$(document).ready(function () {
         {
@@ -196,23 +169,16 @@ function escapeHtml(unsafe)
                     $('#dropdownMenuContainer').empty();
                     for (var i = 0; i < data.length; i++) {
                         var dat = data[i];
-                        //if (i == 0) {
-                        //    $('#dropdownMenuLink').text(dat.Name);
-                        //    $('#dropdownMenuContainer').append('<a class="dropdown-item active" href="#" data-value="' + dat.Key + '">' + dat.Name + '</a>');
-                        //} else {
                         var sessionRow = $('<a class="dropdown-item" href="#"/>');
                         sessionRow.text(dat.Name);
                         sessionRow.data('value', dat.Key)
                         $('#dropdownMenuContainer').append($('<li>').append(sessionRow));
-
-                        //}
                     }
                 });
         }
 
         $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
             e.preventDefault();
-            //$('#dropdownMenuContainer .dropdown-item').removeClass('active');
             var item = $(e.target);
             if (item.hasClass('dropdown-item')) {
                 if (item.hasClass('active')) {
@@ -225,88 +191,12 @@ function escapeHtml(unsafe)
                 } else {
                     $('#btnRefresh').attr("disabled", "disabled");
                 }
-                //$('#dropdownMenuLink').text(item.text());
-                //$('#btnRefresh').data('key', item.data('value')).removeAttr("disabled");
-                //$('#btnRefresh').trigger('click');
             }
         });
 
         function isObject(item) {
             return (item && typeof item === 'object' && !Array.isArray(item));
         }
-
-        //var tmpArr = []
-        // this function merges all the sources into the destination object, and returns the destination object
-        // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
-        /*function MergeIntoFirstObject(target, ...sources) {
-            console.log(sources.length, sources);
-            if (sources.length == 0) {
-                // no sources left to merge
-
-                if (isObject(target)) {
-                    //console.log(tmpArr, target);
-                    for (const key in target) {
-                        //tmpArr.push(key);
-                        if (isObject(target[key])) {
-                            if (target[key].$ref) {
-                                // we're a ref object, so forget the destination entirely and just use the source's reference
-                                var split = target[key].$ref.split('/');
-                                target[key] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
-                            }
-                        } else if (Array.isArray(target[key])) {
-                            for (var i = 0; i < target[key].length; i++) {
-                                if (isObject(target[key][i])) {
-                                    if (target[key][i].$ref) {
-                                        // we're a ref object, so forget the destination entirely and just use the source's reference
-                                        var split = target[key][i].$ref.split('/');
-                                        target[key][i] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
-                                    } else {
-                                        MergeIntoFirstObject(target[key][i]);
-                                    }
-                                }
-                            }
-                        }
-                        //tmpArr.pop();
-                    }
-                }
-
-                return target;
-            }
-            const source = sources.shift();
-            if (source === undefined) return MergeIntoFirstObject(target, ...sources); // next source
-            //console.log(tmpArr, target, source);
-
-            if (isObject(target) && isObject(source)) {
-                for (const key in source) {
-                    //tmpArr.push(key);
-                    if (isObject(source[key])) {
-                        //if (source[key].$ref) {
-                        //    // we're a ref object, so forget the destination entirely and just use the source's reference
-                        //    var split = source[key].$ref.split('/');
-                        //    target[key] = ListData[split[1].replace('~1', '/').replace('~0', '~')][split[2].replace('~1', '/').replace('~0', '~')];
-                        //} else {
-                            if (!target[key]) Object.assign(target, { [key]: {} });
-                            MergeIntoFirstObject(target[key], source[key]);
-                        //}
-                    } else if (Array.isArray(source[key])) {
-                        // assign the array, but then iterate it to look for those references
-                        Object.assign(target, { [key]: source[key] });
-                        for (var i = 0; i < source[key].length; i++) {
-                            if (isObject(source[key][i])) {
-                                //tmpArr.push(i);
-                                MergeIntoFirstObject(target[key][i], source[key][i]);
-                                //tmpArr.pop();
-                            }
-                        }
-                    } else {
-                        Object.assign(target, { [key]: source[key] });
-                    }
-                    //tmpArr.pop();
-                }
-            }
-
-            return MergeIntoFirstObject(target, ...sources); // next source
-        }*/
 
         // this function merges all the sources into the destination object, and returns the destination object
         // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
@@ -331,10 +221,11 @@ function escapeHtml(unsafe)
                     }
                 }
             }
+
             // no sources left to merge, clean up references
             if (sources.length == 0)
-                //return MergeReferences(target); // is this redundant now?
                 return target;
+
             return MergeIntoFirstObject(target, ...sources); // next source
         }
 
@@ -351,7 +242,6 @@ function escapeHtml(unsafe)
                         let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                         let frag_id = split[2].replace('~1', '/').replace('~0', '~');
                         target[key] = ListData[frag_type][frag_id];
-                        //console.log(frag_type, frag_id);//DataRefs
                         if (!DataRefs[[frag_type, frag_id]])
                             DataRefs[[frag_type, frag_id]] = new Set();
                         DataRefs[[frag_type, frag_id]].add({ $type: target.$type || parent_type, $id: target.$id || parent_id });
@@ -367,7 +257,6 @@ function escapeHtml(unsafe)
                                 let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                                 let frag_id = split[2].replace('~1', '/').replace('~0', '~');
                                 target[key][i] = ListData[frag_type][frag_id];
-                                //console.log(frag_type, frag_id);//DataRefs
                                 if (!DataRefs[[frag_type, frag_id]])
                                     DataRefs[[frag_type, frag_id]] = new Set();
                                 DataRefs[[frag_type, frag_id]].add({ $type: target.$type || parent_type, $id: target.$id || parent_id });
@@ -404,12 +293,11 @@ function escapeHtml(unsafe)
         var GetGamesAjax = null;
         $('#btnRefresh').click(function (e) {
             e.preventDefault();
-            //var key = $('#btnRefresh').data('key');
 
             $('#lobbyList').empty();
             $('#codeRawJson').empty();
             $('#codeRawJsonLines').empty();
-            //$('#lobbyList').append('<tr id="LoadingRow"><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-refresh fa-spin"></i> Loading <i class="fa fa-refresh fa-spin"></i></td></tr>');
+
             if (GetGamesAjax != null) {
                 GetGamesAjax.abort();
             }
@@ -424,22 +312,14 @@ function escapeHtml(unsafe)
             var keys = [].concat(...$('#dropdownMenuContainer .dropdown-item.active')).map(function (elem) { return 'game=' + $(elem).data('value') }).join('&');
 
             GetGamesAjax = new XMLHttpRequest();
-            //GetGamesAjax.open("GET", 'api/2.0/sessions?game=' + key + windowSearch);
             GetGamesAjax.open("GET", 'api/2.0/sessions?' + keys + windowSearch);
             var last_index = 0;
             GetGamesAjax.onprogress = function () {
-                //var curr_index = GetGamesAjax.responseText.length;
-                //var s = GetGamesAjax.responseText.substring(last_index, curr_index);
-                
-                //last_index = curr_index;
-                //var parts = s.trim().split('\n');
-                //console.log('--------------');
                 var UpdatedThisPass = new Set();
 
                 var end = 0;
                 while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
                     var s = GetGamesAjax.responseText.substring(last_index, end + 1);
-                    //console.log(last_index, end + 1, s);
 
                     document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
 
@@ -460,44 +340,17 @@ function escapeHtml(unsafe)
 
                     last_index = end + 1;
                 }
-
-                //for (var i = 0; i < parts.length; i++) {
-                //    //console.log("DATUM:", parts[i]);
-                //    var data = JSON.parse(parts[i]);
-                //    ListData[data.$type] = ListData[data.$type] || {};
-                //    //ListData[data.$type][data.$id] = Object.assign({}, (ListData['default'] || {})[data.$type], ListData[data.$type][data.$id], data.$data);
-                //    ListData[data.$type][data.$id] = MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, (ListData['default'] || {})[data.$type], data.$data);
-                //    UpdatedThisPass.add(`${data.$type}/${data.$id}`);
-                //}
-                //console.log(UpdatedThisPass);
                 if (UpdatedThisPass.size > 0)
                     UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
             };
             GetGamesAjax.onload = function () {
-                //console.log('==============');
-                //console.log(ListData);
-                if (ListData.session && Object.keys(ListData.session).length === 0) {
-                    //$('#lobbyList').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
-                } else {
-                    //AddPadRow();
-                    //$('#LoadingRow').remove();
-                }
+
             }
             ListData = {};
             GetGamesAjax.send();
         });
 
         var parent = document.querySelector('#lobbyList');
-
-        //function AddPadRow() {
-        //    var $pad = document.createElement("tr");
-        //    $td = document.createElement("td");
-        //    $td.setAttribute("style", "padding: 3px;");
-        //    $td.classList.add('bg-white');
-        //    $td.setAttribute("colspan", tableColSpan);
-        //    $pad.appendChild($td);
-        //    parent.appendChild($pad);
-        //}
 
         function GenerateHtml_ModBoxes(mod, mods) {
             let modBoxes = '';
@@ -826,104 +679,6 @@ function escapeHtml(unsafe)
             }
         }
 
-        function CreateOrUpdateSessionOther($type, $id, data) {
-            switch ($type) {
-                case 'mod':
-                    parent.querySelectorAll(`[data-path="mods"][data-id-mod="${CSS.escape($id)}"]`).forEach(modWrapperDom => {
-                        modWrapperDom.innerHTML  = '';
-                        modWrapperDom.insertAdjacentHTML('beforeend', GenerateHtml_ModBoxes(data[$type][$id], null));
-                    });
-
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="mod_box_image"]`).forEach(scr => {
-                        scr.setAttribute("src", data[$type][$id].image || "");
-                        scr.setAttribute("title", data[$type][$id].name || "");
-                    });
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="mod_box_name"]`).forEach(scr => {
-                        scr.textContent = data[$type][$id].name || $id;
-                    });
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="mod_box_link"]`).forEach(scr => {
-                        if (data[$type][$id].url) {
-                            scr.setAttribute("href", data[$type][$id].url);
-                        } else {
-                            scr.removeAttribute("href")
-                        }
-                    });
-                    break;
-                case 'map':
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="image"]`).forEach(scr => scr.setAttribute("src", data[$type][$id].image || ""));
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="map_file"]`).forEach(scr => scr.textContent = data[$type][$id].map_file || " ");
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"][data-path="map_name"]`).forEach(scr => {
-                        scr.textContent = data[$type][$id].name || " ";
-                        scr.setAttribute("title", data[$type][$id].map_file || " ");
-                    });
-
-                    // game type and mode, which is complex because it could be from the map OR the level object data
-                    parent.querySelectorAll(`[data-path="game_type"][data-map-id]:not([data-source="rules"])`).forEach(scr => {
-                        let mapId = scr.getAttribute("data-map-id");
-                        if (mapId == $id && data[$type][$id].game_type) {
-                            scr.textContent = (data[$type][$id].game_type || {}).name || (data[$type][$id].game_type || {}).$id || scr.textContent;
-                            scr.setAttribute("data-source", "map");
-                        }
-                    });
-                    parent.querySelectorAll(`[data-path="game_mode"][data-map-id]:not([data-source="rules"])`).forEach(scr => {
-                        let mapId = scr.getAttribute("data-map-id");
-                        if (mapId == $id && data[$type][$id].game_mode) {
-                            scr.textContent = (data[$type][$id].game_mode || {}).name || (data[$type][$id].game_mode || {}).$id || scr.textContent;
-                            scr.setAttribute("data-source", "map");
-                        }
-                    });
-
-                    // this shouldn't ever happen anymore actually, since we don't have mods at map level anymore as we found it was an error
-                    //if (data[$type][$id].mod || data[$type][$id].mods) {
-                    //    parent.querySelectorAll(`[data-path="mods-container"][data-id-level-map="${CSS.escape($id)}"]`).forEach(modWrapperDom => {
-                    //        modWrapperDom.style.display = 'flex';
-                    //        modWrapperDom.innerHTML  = '';
-                    //        modWrapperDom.insertAdjacentHTML('beforeend', GenerateHtml_ModsRow(data[$type][$id].mod, data[$type][$id].mods, $id));
-                    //    });
-                    //}
-
-                    if (data[$type][$id].teams) {
-                        let rebuildEntireSection = false;
-                        // update team names if that's all there is
-                        for (let team_idx in data[$type][$id].teams) {
-                            let team = data[$type][$id].teams[team_idx];
-                            if (team.member_player_indexes || team.leader_player_indexes) {
-                                // we have data that requires a full rebuild of the player dom section
-                                rebuildEntireSection = true;
-                                break;
-                            }
-                            if (team.name) {
-                                parent.querySelectorAll(`[data-path="team_name"][data-id-map="${CSS.escape($id)}"][data-id-team="${CSS.escape(team)}"]`).forEach(elem => elem.textContent = team.name);
-                            }
-                        }
-                        if (rebuildEntireSection) {
-                            let sessionsForMap = parent.querySelectorAll(`[data-type="session"][data-id-level-map="${CSS.escape($id)}"]`);
-                            for (let sessionDom of sessionsForMap) {
-                                let session = data.session[sessionDom.getAttribute('data-id')];
-                                if (session)
-                                    UpdateDomSessionPlayers(session, sessionDom);
-                            }
-                        }
-                    }
-
-                    break;
-                case 'hero':
-                    parent.querySelectorAll(`[data-path="hero_name"][data-type="hero"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.textContent = data[$type][$id].name || $id);
-                    break;
-                case 'player':
-                    parent.querySelectorAll(`[data-path="player"][data-type="player"][data-id="${CSS.escape($id)}"]`).forEach(elem => {
-                        elem.outerHTML = GenerateHtml_Player(data[$type][$id], elem.getAttribute('data-extra-leader') == 'true', elem.getAttribute('data-extra-overlimit') == 'true');
-                    });
-                    break;
-                case 'identity/steam':
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.outerHTML = GenerateHtml_IdentitySteam(data[$type][$id]));
-                    parent.querySelectorAll(`[data-path="avatar"][data-source="steam"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.setAttribute("src", data[$type][$id].avatar_url || ""));
-                    break;
-                case 'identity/gog':
-                    parent.querySelectorAll(`[data-type="${CSS.escape($type)}"][data-id="${CSS.escape($id)}"]`).forEach(scr => scr.outerHTML = GenerateHtml_IdentityGog(data[$type][$id]));
-                    break;
-            }
-        }
         function CreateOrUpdateSessionDom($id, data) {
             var session = data.session[$id];
             var sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
@@ -1002,33 +757,17 @@ function escapeHtml(unsafe)
             map_name_elem.setAttribute('title', "${encodeAttr(session.level.map.map_file)}");
             map_name_elem.textContent = session.level.map.name || session.level.map.map_file || '';
 
-            // game type and mode, which is complex because it could be from the map OR the level object data OR the rules
-            if (session.level.rules && session.level.rules.game_type) {
-                let element = sessionDom.querySelector(`[data-path="game_type"]`);
-                element.textContent = session.level.rules.game_type.name || session.level.rules.game_type.$id;
-                element.setAttribute("data-source", "rules");
-            } else if (session.level.map && session.level.map.game_type) {
-                let element = sessionDom.querySelector(`[data-path="game_type"]`);
-                element.textContent = session.level.map.game_type.name || session.level.map.game_type.$id;
-                element.setAttribute("data-source", "map");
-            } else {
-                let element = sessionDom.querySelector(`[data-path="game_type"]`);
-                element.textContent = (session.level.game_type || {}).name || (session.level.game_type || {}).$id || '';
-                element.setAttribute("data-source", "level");
-            }
-            if (session.level.rules && session.level.rules.game_mode) {
-                let element = sessionDom.querySelector(`[data-path="game_mode"]`);
-                element.textContent = session.level.rules.game_mode.name || session.level.rules.game_mode.$id;
-                element.setAttribute("data-source", "rules");
-            } else if (session.level.map && session.level.map.game_mode) {
-                let element = sessionDom.querySelector(`[data-path="game_mode"]`);
-                element.textContent = session.level.map.game_mode.name || session.level.map.game_mode.$id;
-                element.setAttribute("data-source", "map");
-            } else {
-                let element = sessionDom.querySelector(`[data-path="game_mode"]`);
-                element.textContent = (session.level.game_mode || {}).name || (session.level.game_mode || {}).$id || '';
-                element.setAttribute("data-source", "level");
-            }
+            let game_mode_element = sessionDom.querySelector(`[data-path="game_mode"]`);
+            game_mode_element.textContent =
+                session.level?.rules?.game_mode?.name ?? session.level?.rules?.game_mode?.$id ??
+                session.level?.map?.game_mode?.name ?? session.level?.map?.game_mode?.$id ??
+                session.level?.game_mode?.name ?? session.level?.game_mode?.$id;
+
+            let game_type_element = sessionDom.querySelector(`[data-path="game_type"]`);
+            game_type_element.textContent =
+                session.level?.rules?.game_type?.name ?? session.level?.rules?.game_type?.$id ??
+                session.level?.map?.game_type?.name ?? session.level?.map?.game_type?.$id ??
+                session.level?.game_type?.name ?? session.level?.game_type?.$id;
 
             if (session.time) {
                 let timeElem = sessionDom.querySelector(`[data-path="session.time"]`);
@@ -1054,194 +793,13 @@ function escapeHtml(unsafe)
                 modWrapperDom.innerHTML  = '';
                 modWrapperDom.insertAdjacentHTML('beforeend', GenerateHtml_ModsRow(session.game.mod, session.game.mods, session.level.map.$id));
             }
-
-            //var sessionNew0 = false;
-            //if (!sessionRow0) {
-            //    sessionRow0 = document.createElement("tr");
-            //    function CreateBasicHeader(text) {
-            //        var $th = document.createElement("th");
-            //        $th.setAttribute("scope", "row");
-            //        $th.classList.add("pre");
-            //        $th.appendChild(document.createTextNode(text));
-            //        return $th;
-            //    }
-            //    sessionRow0.append(CreateBasicHeader(session.id));
-            //    sessionRow0.append(CreateBasicHeader(session.type));
-            //    sessionRow0.append(CreateBasicHeader(session.name));
-            //    {
-            //        var cell = document.createElement('td');
-            //        if (session.player_types != null) {
-            //            for (var k = 0; k < session.player_types.length; k++) {
-            //                var elem = document.createElement('span');
-            //                if (k > 0)
-            //                    cell.append(document.createElement('br'));
-            //
-            //                for (var L = 0; L < session.player_types[k].types.length; L++) {
-            //                    var playerType = session.player_types[k].types[L];
-            //                    if (L > 0)
-            //                        cell.append(document.createTextNode(' '));
-            //                    elem.append((session.player_count[playerType] + 0) + ' ' + playerType);
-            //                }
-            //                if (session.player_types[k].Max) {
-            //                    elem.append(document.createTextNode(` / ${session.player_types[k].Max}`));
-            //                }
-            //                cell.append(elem);
-            //            }
-            //        }
-            //        sessionRow0.append(cell);
-            //    }
-            //    sessionRow0.append(CreateBasicHeader(session.status && session.status.is_locked));
-            //    sessionRow0.append(CreateBasicHeader(session.status && session.status.has_password));
-            //    sessionRow0.append(CreateBasicHeader(session.status && session.status.state));
-            //    sessionRow0.append(CreateBasicHeader(''));
-            //    sessionRow0.setAttribute("id", "/session/0/" + $id);
-            //
-            //    sessionNew0 = true;
-            //}
-            //
-            //function CreateFullWidthHeader(text) {
-            //    var $tr = document.createElement("tr")
-            //    var $td = document.createElement("td");
-            //    $td.classList.add("pt-0");
-            //    $td.classList.add("pb-0");
-            //    $td.classList.add("text-center");
-            //    $td.classList.add("text-monospace");
-            //    $td.classList.add("font-weight-bold");
-            //    $td.setAttribute("colspan", tableColSpan);
-            //    $td.appendChild(document.createTextNode(text));
-            //    $tr.appendChild($td);
-            //    return $tr;
-            //}
-            //
-            //function CreateTextDumpRow(text) {
-            //    var rowRetVal = document.createElement("tr");
-            //
-            //    var contentPanel = document.createElement("div");
-            //    contentPanel.classList.add("container-fluid")
-            //    contentPanel.classList.add("bg-white")
-            //    contentPanel.classList.add("text-dark")
-            //    contentPanel.classList.add("text-center")
-            //    contentPanel.appendChild(document.createTextNode(text));
-            //
-            //    var contentTD = document.createElement('td');
-            //    contentTD.classList.add("p-0");
-            //    contentTD.classList.add("pl-3");
-            //    contentTD.classList.add("pr-3");
-            //    contentTD.setAttribute("colspan", tableColSpan);
-            //    contentTD.appendChild(contentPanel);
-            //
-            //    rowRetVal.appendChild(contentTD);
-            //
-            //    return rowRetVal;
-            //}
-            //
-            //function CreateFieldDumpRow(obj) {
-            //    var rowRetVal = document.createElement("tr");
-            //    var contentRow = document.createElement("div");
-            //    contentRow.classList.add("row");
-            //    var keys = Object.keys(obj);
-            //    for (var k = 0; k < keys.length; k++) {
-            //        var col = document.createElement('div');
-            //        col.classList.add("col-12");
-            //        col.setAttribute("style", "line-break:anywhere;");
-            //        col.appendChild(document.createTextNode(keys[k] + ": "));
-            //        var val = obj[keys[k]];
-            //        col.appendChild(document.createTextNode(JSON.stringify(val)));
-            //        contentRow.appendChild(col);
-            //    }
-            //    var contentPanel = document.createElement("div");
-            //    contentPanel.classList.add("container-fluid")
-            //    contentPanel.classList.add("bg-white")
-            //    contentPanel.classList.add("text-dark")
-            //    contentPanel.appendChild(contentRow);
-            //
-            //    var contentTD = document.createElement('td');
-            //    contentTD.classList.add("p-0");
-            //    contentTD.classList.add("pl-3");
-            //    contentTD.classList.add("pr-3");
-            //    contentTD.setAttribute("colspan", tableColSpan);
-            //    contentTD.appendChild(contentPanel);
-            //
-            //    rowRetVal.appendChild(contentTD);
-            //
-            //    return rowRetVal;
-            //}
-            //
-            //var sessionRow1a = parent.querySelector(`#\\/session\\/1a\\/${CSS.escape($id)}`);
-            //var sessionRow1b = parent.querySelector(`#\\/session\\/1b\\/${CSS.escape($id)}`);
-            //var sessionNew1 = false;
-            //if (!sessionRow1a && session.address) {
-            //    sessionRow1a = CreateFullWidthHeader("Address");
-            //    sessionRow1a.setAttribute("id", "/session/1a/" + $id);
-            //
-            //    sessionRow1b = CreateFieldDumpRow(session.address);
-            //    sessionRow1b.setAttribute("id", "/session/1b/" + $id);
-            //
-            //    sessionNew1 = true;
-            //}
-            //
-            //var sessionRow2a = parent.querySelector(`#\\/session\\/2a\\/${CSS.escape($id)}`);
-            //var sessionRow2b = parent.querySelector(`#\\/session\\/2b\\/${CSS.escape($id)}`);
-            //var sessionNew2 = false;
-            //if (!sessionRow2a && session.message) {
-            //    sessionRow2a = CreateFullWidthHeader("Message");
-            //    sessionRow2a.setAttribute("id", "/session/2a/" + $id);
-            //
-            //    sessionRow2b = CreateTextDumpRow(session.message);
-            //    sessionRow2b.setAttribute("id", "/session/2b/" + $id);
-            //
-            //    sessionNew2 = true;
-            //}
-            //
-            //var sessionRow3a = parent.querySelector(`#\\/session\\/3a\\/${CSS.escape($id)}`);
-            //var sessionRow3b = parent.querySelector(`#\\/session\\/3b\\/${CSS.escape($id)}`);
-            //var sessionNew3 = false;
-            //if (!sessionRow3a && session.level) {
-            //    sessionRow3a = CreateFullWidthHeader("Level");
-            //    sessionRow3a.setAttribute("id", "/session/3a/" + $id);
-            //
-            //    sessionRow3b = CreateFieldDumpRow(session.level);
-            //    sessionRow3b.setAttribute("id", "/session/3b/" + $id);
-            //
-            //    sessionNew3 = true;
-            //}
-            //
-            ////var $session = $('#session-' + session.id);
-            ////if ($session.length == 0)
-            ////$session = $('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>').data('id', key).appendTo('#lobbyList');
-            ////console.log($session.data('id'));
-            //if (sessionNew0) {
-            //    AddPadRow();
-            //    parent.appendChild(sessionRow0);
-            //}
-            //if (sessionNew1) {
-            //    sessionRow0.insertAdjacentElement('afterend', sessionRow1a);
-            //    sessionRow1a.insertAdjacentElement('afterend', sessionRow1b);
-            //}
-            //if (sessionNew2) {
-            //    (sessionRow1b || sessionRow0).insertAdjacentElement('afterend', sessionRow2a);
-            //    sessionRow2a.insertAdjacentElement('afterend', sessionRow2b);
-            //}
-            //if (sessionNew3) {
-            //    (sessionRow2b || sessionRow1b || sessionRow0).insertAdjacentElement('afterend', sessionRow3a);
-            //    sessionRow3a.insertAdjacentElement('afterend', sessionRow3b);
-            //}
         }
 
         function UpdateSessionListWithDataFragments(data, modified) {
-            //console.log('START', modified);
-
-            ////if (fresh && data.session.length > 0) {
-            ////    parent.replaceChildren();
-            ////    AddPadRow();
-            //    $('#codeRawJson').empty();
-            ////}
-
             for (const mod of modified) {
                 var $parts = mod.split('\t', 2);
                 var $type = $parts[0];
                 var $id = $parts[1];
-                //console.log($type, $id);
 
                 // set of all affected items by the incoming datum
                 let affected_set = ExpandDataRefs($type, $id);
@@ -1253,25 +811,6 @@ function escapeHtml(unsafe)
                         }
                     }
                 }
-
-                //switch ($type) {
-                //    case 'session':
-                //        CreateOrUpdateSessionDom($id, data);
-                //        break;
-                //    case 'mod':
-                //    case 'map':
-                //    case 'hero':
-                //    case 'player':
-                //    case 'identity/steam':
-                //    case 'identity/gog':
-                //        CreateOrUpdateSessionOther($type, $id, data);
-                //        break;
-                //    case 'source': break; // source status
-                //    case 'debug': break; // debugging output
-                //    case 'default': break; // default object properties, this is merged for us
-                //    default:
-                //        console.log(`unhandled datum type "${$type}"`);
-                //}
             }
 
             {
@@ -1285,481 +824,7 @@ function escapeHtml(unsafe)
                 hljs.highlightElement(codeElem);
                 hljs.highlightElement(codeElem2);
             }
-
-            //console.log('END', modified);
         }
-
-            //GetGamesAjax = $.ajax({ url: 'api/1.0/sessions?game=' + key + windowSearch }).done(function (data) {
-            //    $('#lobbyList').empty();
-            //    $('#codeRawJson').empty();
-            //
-            //    data = DecorateWithDataCache(data);
-            //
-            //    if (data.Sessions.length > 0) {
-            //        var heroes = data.Heroes;
-            //        //if (data.DataCache != null) {
-            //        //    if (heroes) {
-            //        //        DecorateWithDataCacheRecurse(heroes, data.DataCache);
-            //        //    }
-            //        //}
-            //        for (var i = 0; i < data.Sessions.length; i++) {
-            //            //var session = $.extend(true, {}, data.SessionDefault, data.Sessions[i]);
-            //            var session = data.Sessions[i];
-            //
-            //            //if (data.DataCache != null)
-            //            //    DecorateWithDataCacheRecurse(session, data.DataCache);
-            //
-            //            $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
-            //
-            //            var sessionRow = $('<tr/>');
-            //            sessionRow.append($('<th scope="row" class="pre"/>').text(session.ID));
-            //            sessionRow.append($('<th scope="row" class="pre"/>').text(session.Type));
-            //            sessionRow.append($('<th scope="row" class="pre"/>').text(session.Name));
-            //            {
-            //                var cell = $('<td/>');
-            //                if (session.PlayerTypes != null) {
-            //                    for (var k = 0; k < session.PlayerTypes.length; k++) {
-            //                        var elem = $('<span/>');
-            //                        if (k > 0)
-            //                            cell.append('<br/>');
-            //
-            //                        for (var L = 0; L < session.PlayerTypes[k].Types.length; L++) {
-            //                            var playerType = session.PlayerTypes[k].Types[L];
-            //                            if (L > 0)
-            //                                cell.append(' ');
-            //                            elem.append((session.PlayerCount[playerType] + 0) + ' ' + playerType);
-            //                        }
-            //                        if (session.PlayerTypes[k].Max) {
-            //                            elem.append(' / ' + session.PlayerTypes[k].Max);
-            //                        }
-            //                        cell.append(elem);
-            //                    }
-            //                }
-            //                sessionRow.append(cell);
-            //            }
-            //            sessionRow.append($('<td/>').text(session.Status && session.Status.IsLocked));
-            //            sessionRow.append($('<td/>').text(session.Status && session.Status.HasPassword));
-            //            sessionRow.append($('<td/>').text(session.Status && session.Status.State));
-            //            sessionRow.append($('<td/>').text(''));
-            //            $('#tblGames>tbody').append(sessionRow);
-            //
-            //            // address
-            //            if (session.Address != null) {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Address</td></tr>');
-            //
-            //                var contentRow = $('<div class="row"/>');
-            //
-            //                {
-            //                    var keys = Object.keys(session.Address);
-            //                    for (var k = 0; k < keys.length; k++) {
-            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //
-            //                        col.append(keys[k] + ": ");
-            //                        var val = session.Address[keys[k]];
-            //                        col.append(JSON.stringify(val));
-            //
-            //                        contentRow.append(col);
-            //                    }
-            //                }
-            //
-            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-            //            }
-            //
-            //            // message
-            //            if (session.Message) {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Message</td></tr>');
-            //
-            //                var messagePanel = $('<div class="container-fluid bg-white text-dark text-center">').append(session.Message);
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(messagePanel)));
-            //            }
-            //
-            //            // level
-            //            {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Level</td></tr>');
-            //
-            //                //var contentRow = $('<div class="row row-cols-1 row-cols-md-3"/>');
-            //                var contentRow = $('<div class="row"/>');
-            //
-            //                if (session.Level.Image) {
-            //                    var col = $('<div class="col-xs-4" />');
-            //                    var card = $('<div class="card" />');
-            //                    //var img = $('<img src="https://discord.battlezone.report/resources/logos/nomap.png" class="card-img" />').attr('alt', session.Level.MapFile);
-            //                    var img = $('<img src="' + session.Level.Image + '" class="card-img" style="height:auto;width:100px;" />').attr('alt', session.Level.MapFile);
-            //                    card.append(img);
-            //                    col.append(card);
-            //                    contentRow.append(col);
-            //                }
-            //                {
-            //                    var wrapper = $('<div class="col row" />');
-            //
-            //                    {
-            //                        //var col = $('<div class="col-md-6 col-lg-4" />');
-            //                        var col = $('<div class="col-12" />');
-            //                        col.append("ID: " + session.Level.ID);
-            //                        wrapper.append(col);
-            //                    }
-            //
-            //                    {
-            //                        var keys = Object.keys(session.Level);
-            //                        for (var k = 0; k < keys.length; k++) {
-            //                            if (keys[k] == "ID") continue; // omit ID as we printed it above
-            //                            if (keys[k] == "Attributes") continue; // omit attributes as we print them below
-            //
-            //                            if (keys[k] == "Mod") {
-            //                                var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //                                col.append("Mod: ");
-            //                                if (data.Mods != null && data.Mods[session.Level[keys[k]]] != null) {
-            //                                    var Mod = data.Mods[session.Level[keys[k]]];
-            //                                    col.append(DrawModNode(Mod));
-            //                                } else {
-            //                                    col.append(JSON.stringify(session.Level[keys[k]]))
-            //                                }
-            //                                wrapper.append(col);
-            //                                continue;
-            //                            }
-            //                            if (keys[k] == "Mods") {
-            //                                var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //                                col.append("Mods: [");
-            //                                var mod_collection = session.Level[keys[k]];
-            //                                for (var l = 0; l < mod_collection.length; l++) {
-            //                                    if (l != 0)
-            //                                        col.append(",");
-            //                                    if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
-            //                                        var Mod = data.Mods[mod_collection[l]];
-            //                                        col.append(DrawModNode(Mod));
-            //                                    } else {
-            //                                        col.append(JSON.stringify(mod_collection[l]));
-            //                                    }
-            //                                }
-            //                                col.append("]");
-            //                                wrapper.append(col);
-            //                                continue;
-            //                            }
-            //
-            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //
-            //                            col.append(keys[k] + ": ");
-            //                            var val = session.Level[keys[k]];
-            //                            col.append(JSON.stringify(val));
-            //
-            //                            wrapper.append(col);
-            //                        }
-            //                    }
-            //
-            //                    if (session.Level.Attributes) {
-            //                        var keys = Object.keys(session.Level.Attributes);
-            //                        for (var k = 0; k < keys.length; k++) {
-            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //
-            //                            col.append("Attribute: " + keys[k] + ": ");
-            //                            var val = session.Level.Attributes[keys[k]];
-            //                            col.append(JSON.stringify(val));
-            //
-            //                            wrapper.append(col);
-            //                        }
-            //                    }
-            //
-            //                    contentRow.append(wrapper);
-            //                }
-            //
-            //
-            //                /*<div class="col mb-4">
-            //                  <div class="card">
-            //                    <img src="..." class="card-img-top" alt="...">
-            //                    <div class="card-body">
-            //                      <h5 class="card-title">Card title</h5>
-            //                      <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-            //                    </div>
-            //                  </div>
-            //                </div>*/
-            //
-            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-            //            }
-            //
-            //            // players
-            //            if (session.PlayerTypes != null && session.Players != null) {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Players</td></tr>');
-            //
-            //                var avatars = [];
-            //
-            //                var playerTable = $('<table/>');
-            //                //playerTable.addClass('table-dark');
-            //                //playerTable.addClass('small');
-            //                playerTable.addClass('table-sm');
-            //                playerTable.addClass('table-light');
-            //                playerTable.addClass('text-dark');
-            //                //playerTable.addClass('border-left');
-            //                //playerTable.addClass('border-right');
-            //                //playerTable.addClass('border-dark');
-            //                playerTable.css('width', '100%');
-            //                //playerTable.css('border-width', '1em !important');
-            //                var playerTableHeader = $('<thead/>');
-            //                var playerTableBody = $('<tbody/>');
-            //                playerTable.append(playerTableHeader)
-            //                playerTable.append(playerTableBody)
-            //
-            //                var ColumnNames = ["Name", "ID", "Hero", "Attributes"];
-            //                for (var j = 0; j < session.Players.length; j++) {
-            //                    var playerRow = $('<tr/>');
-            //
-            //                    // name
-            //                    playerRow.append($('<th/>').text(session.Players[j].Name));
-            //
-            //                    // ids
-            //                    {
-            //                        var cell = $('<td/>');
-            //                        var keys = Object.keys(session.Players[j].IDs);
-            //                        for (var k = 0; k < keys.length; k++) {
-            //                            var elem = $('<span/>');
-            //                            if (k > 0)
-            //                                cell.append('<br/>');
-            //                            switch (keys[k]) {
-            //                                case "Slot":
-            //                                    elem.append('<i class="icon icon-hash" aria-hidden="true"></i> ');
-            //                                    elem.append(session.Players[j].IDs[keys[k]].ID);
-            //                                    break;
-            //                                case "BZRNet":
-            //                                    elem.append('<i class="fa fa-gamepad" aria-hidden="true"></i> ');
-            //                                    elem.append(session.Players[j].IDs[keys[k]].ID);
-            //                                    break;
-            //                                case "Steam":
-            //                                    elem.append('<i class="icon icon-steam" aria-hidden="true"></i> ');
-            //                                    elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Nickname + '</a>');
-            //                                    break;
-            //                                case "Gog":
-            //                                    elem.append('<i class="icon icon-gog" aria-hidden="true"></i> ');
-            //                                    elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
-            //                                    break;
-            //                                default:
-            //                                    elem.append(keys[k] + ": ");
-            //                                    if (session.Players[j].IDs[keys[k]].ProfileUrl) {
-            //                                        if (session.Players[j].IDs[keys[k]].Username) {
-            //                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].Username + '</a>');
-            //                                        } else {
-            //                                            elem.append('<a href="' + session.Players[j].IDs[keys[k]].ProfileUrl + '" title="' + session.Players[j].IDs[keys[k]].ID + '" target="_blank" rel="noopener noreferrer">' + session.Players[j].IDs[keys[k]].ID + '</a>');
-            //                                        }
-            //                                    } else {
-            //                                        elem.append(session.Players[j].IDs[keys[k]].ID);
-            //                                    }
-            //                                    break;
-            //                            }
-            //                            if (session.Players[j].IDs[keys[k]].AvatarUrl) {
-            //                                avatars.push({ src: session.Players[j].IDs[keys[k]].AvatarUrl, href: session.Players[j].IDs[keys[k]].ProfileUrl, name: session.Players[j].IDs[keys[k]].Nickname, type: keys[k] });
-            //                            }
-            //                            cell.append(elem);
-            //                        }
-            //                        playerRow.append(cell);
-            //                    }
-            //
-            //                    // hero
-            //                    {
-            //                        var cell = $('<td/>');
-            //                        if (session.Players[j].Hero != null) {
-            //                            {
-            //                                var elem = $('<span/>');
-            //                                elem.text(session.Players[j].Hero.ID);
-            //                                cell.append(elem);
-            //                            }
-            //                            if (heroes[session.Players[j].Hero.ID] != null) {
-            //                                if (heroes[session.Players[j].Hero.ID].Name) {
-            //                                    var elem = $('<span/>');
-            //                                    elem.text(heroes[session.Players[j].Hero.ID].Name);
-            //                                    cell.append('<br/>');
-            //                                    cell.append(elem);
-            //                                }
-            //                                if (heroes[session.Players[j].Hero.ID].Description) {
-            //                                    var elem = $('<div class="p-1 border border-dark" style="white-space:pre;display:inline-block;"/>');
-            //                                    elem.text(heroes[session.Players[j].Hero.ID].Description);
-            //                                    cell.append('<br/>');
-            //                                    cell.append(elem);
-            //                                }
-            //                            }
-            //                        }
-            //                        playerRow.append(cell);
-            //                    }
-            //
-            //                    // attributes
-            //                    {
-            //                        var cell = $('<td/>');
-            //                        if (session.Players[j].Attributes != null) {
-            //                            {
-            //                                var keys = Object.keys(session.Players[j].Attributes);
-            //                                for (var k = 0; k < keys.length; k++) {
-            //                                    //if (keys[k] == "ID") continue;
-            //
-            //                                    var col = $('<div style="line-break:anywhere;" />');
-            //
-            //                                    col.append(keys[k] + ": ");
-            //                                    var val = session.Players[j].Attributes[keys[k]];
-            //                                    col.append(JSON.stringify(val));
-            //
-            //                                    cell.append(col);
-            //                                }
-            //                            }
-            //                        }
-            //                        playerRow.append(cell);
-            //                    }
-            //
-            //                    playerTableBody.append(playerRow);
-            //                }
-            //                var playerHeaderRow = $('<tr/>');
-            //                playerTableHeader.append(playerHeaderRow);
-            //                for (var j = 0; j < ColumnNames.length; j++) {
-            //                    playerHeaderRow.append($('<th/>').text(ColumnNames[j]));
-            //                }
-            //
-            //                var playerAvatarBar = $('<div class="player_avatars" />');
-            //                for (var j = 0; j < avatars.length; j++) {
-            //                    var wrapper = null;
-            //                    if (avatars[j].href) {
-            //                        wrapper = $('<a/>');
-            //                        wrapper.attr('href', avatars[j].href);
-            //                        wrapper.attr('target', "_blank");
-            //                        wrapper.attr('rel', "noopener noreferrer");
-            //                        if (avatars[j].name) {
-            //                            wrapper.attr('title', avatars[j].name);
-            //                        }
-            //                    }
-            //                    var avatarImage = $('<img src="' + avatars[j].src + '" />');
-            //                    if (avatars[j].name) {
-            //                        avatarImage.attr('alt', avatars[j].name);
-            //                    }
-            //                    if (avatars[j].type == "Steam") {
-            //                        avatarImage.attr('onError', "this.src='https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'");
-            //                    }
-            //                    if (wrapper != null) {
-            //                        wrapper.append(avatarImage);
-            //                    } else {
-            //                        wrapper = avatarImage;
-            //                    }
-            //                    playerAvatarBar.append(wrapper);
-            //                }
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerAvatarBar)));
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(playerTable)));
-            //            }
-            //
-            //            // game
-            //            if (session.Game != null) {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Game</td></tr>');
-            //
-            //                var contentRow = $('<div class="row"/>');
-            //
-            //                {
-            //                    var keys = Object.keys(session.Game);
-            //                    for (var k = 0; k < keys.length; k++) {
-            //                        //if (keys[k] == "ID") continue;
-            //                        //if (keys[k] == "Attributes") continue;
-            //
-            //                        if (keys[k] == "Mod") {
-            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //                            col.append("Mod: ");
-            //                            if (data.Mods != null && data.Mods[session.Game[keys[k]]] != null) {
-            //                                var Mod = data.Mods[session.Game[keys[k]]];
-            //                                col.append(DrawModNode(Mod));
-            //                            } else {
-            //                                col.append(JSON.stringify(session.Game[keys[k]]))
-            //                            }
-            //                            contentRow.append(col);
-            //                            continue;
-            //                        }
-            //                        if (keys[k] == "Mods") {
-            //                            var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //                            col.append("Mods: [");
-            //                            var mod_collection = session.Game[keys[k]];
-            //                            for (var l = 0; l < mod_collection.length; l++) {
-            //                                if (l != 0)
-            //                                    col.append(",");
-            //                                if (data.Mods != null && data.Mods[mod_collection[l]] != null) {
-            //                                    var Mod = data.Mods[mod_collection[l]];
-            //                                    col.append(DrawModNode(Mod));
-            //                                } else {
-            //                                    col.append(JSON.stringify(mod_collection[l]));
-            //                                }
-            //                            }
-            //                            col.append("]");
-            //                            contentRow.append(col);
-            //                            continue;
-            //                        }
-            //
-            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //
-            //                        col.append(keys[k] + ": ");
-            //                        var val = session.Game[keys[k]];
-            //                        col.append(JSON.stringify(val));
-            //
-            //                        contentRow.append(col);
-            //                    }
-            //                }
-            //
-            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-            //            }
-            //
-            //            // time
-            //            if (session.Time != null) {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Time</td></tr>');
-            //
-            //                var contentRow = $('<div class="row"/>');
-            //
-            //                {
-            //                    var keys = Object.keys(session.Time);
-            //                    for (var k = 0; k < keys.length; k++) {
-            //                        //if (keys[k] == "ID") continue;
-            //
-            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //
-            //                        col.append(keys[k] + ": ");
-            //                        var val = session.Time[keys[k]];
-            //                        col.append(JSON.stringify(val));
-            //
-            //                        contentRow.append(col);
-            //                    }
-            //                }
-            //
-            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-            //            }
-            //
-            //            // attributes
-            //            if (session.Attributes != null) {
-            //                $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">Attributes</td></tr>');
-            //
-            //                var contentRow = $('<div class="row"/>');
-            //
-            //                {
-            //                    var keys = Object.keys(session.Attributes);
-            //                    for (var k = 0; k < keys.length; k++) {
-            //                        //if (keys[k] == "ID") continue;
-            //
-            //                        var col = $('<div class="col-12" style="line-break:anywhere;" />');
-            //
-            //                        col.append(keys[k] + ": ");
-            //                        var val = session.Attributes[keys[k]];
-            //                        col.append(JSON.stringify(val));
-            //
-            //                        contentRow.append(col);
-            //                    }
-            //                }
-            //
-            //                var contentPanel = $('<div class="container-fluid bg-white text-dark">').append(contentRow);
-            //                $('#tblGames>tbody').append($('<tr/>').append($('<td colspan="' + tableColSpan + '" class="p-0 pl-3 pr-3" />').append(contentPanel)));
-            //            }
-            //
-            //            $('#tblGames>tbody').append('<tr><td class="pt-0 pb-0 text-center text-monospace font-weight-bold" colspan="' + tableColSpan + '">-</td></tr>');
-            //        }
-            //        $('#tblGames>tbody').append('<tr><td style="padding: 3px;" class="bg-white" colspan="' + tableColSpan + '"></td></tr>');
-            //    } else {
-            //        $('#tblGames>tbody').append('<tr><td class="text-center bg-light text-dark" colspan="' + tableColSpan + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i> No Games <i class="fa fa-exclamation-circle" aria-hidden="true"></i></td></tr>');
-            //    }
-            //    {
-            //        $('#codeRawJson').text(JSON.stringify(data, null, 2));
-            //        hljs.highlightAll();
-            //    }
-            //});
-            //});
     </script>
-
 </body>
 </html>
