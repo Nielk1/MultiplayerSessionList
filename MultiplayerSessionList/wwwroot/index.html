@@ -381,6 +381,26 @@ function escapeHtml(unsafe)
             return target;
         }
 
+        function ExpandDataRefs($type, $id, memo) {
+            let local_memo = memo || new Set();
+
+            // if we already have this one end this recursion path
+            if (local_memo.has({ $type: $type, $id: $id }))
+                return local_memo;
+
+            // add ourself to the memo
+            local_memo.add({ $type: $type, $id: $id })
+            
+            if (DataRefs[[$type, $id]]) {
+                for (let v of DataRefs[[$type, $id]]) {
+                    ExpandDataRefs(v.$type, v.$id, local_memo);
+                }
+            }
+
+            // return the memo as it's all our unique keys
+            return local_memo;
+        }
+
         var GetGamesAjax = null;
         $('#btnRefresh').click(function (e) {
             e.preventDefault();
@@ -1223,24 +1243,35 @@ function escapeHtml(unsafe)
                 var $id = $parts[1];
                 //console.log($type, $id);
 
-                switch ($type) {
-                    case 'session':
-                        CreateOrUpdateSessionDom($id, data);
-                        break;
-                    case 'mod':
-                    case 'map':
-                    case 'hero':
-                    case 'player':
-                    case 'identity/steam':
-                    case 'identity/gog':
-                        CreateOrUpdateSessionOther($type, $id, data);
-                        break;
-                    case 'source': break; // source status
-                    case 'debug': break; // debugging output
-                    case 'default': break; // default object properties, this is merged for us
-                    default:
-                        console.log(`unhandled datum type "${$type}"`);
+                // set of all affected items by the incoming datum
+                let affected_set = ExpandDataRefs($type, $id);
+
+                if (affected_set) {
+                    for (const affected of affected_set) {
+                        if (affected.$type == 'session') {
+                            CreateOrUpdateSessionDom(affected.$id, data);
+                        }
+                    }
                 }
+
+                //switch ($type) {
+                //    case 'session':
+                //        CreateOrUpdateSessionDom($id, data);
+                //        break;
+                //    case 'mod':
+                //    case 'map':
+                //    case 'hero':
+                //    case 'player':
+                //    case 'identity/steam':
+                //    case 'identity/gog':
+                //        CreateOrUpdateSessionOther($type, $id, data);
+                //        break;
+                //    case 'source': break; // source status
+                //    case 'debug': break; // debugging output
+                //    case 'default': break; // default object properties, this is merged for us
+                //    default:
+                //        console.log(`unhandled datum type "${$type}"`);
+                //}
             }
 
             {
