@@ -496,175 +496,6 @@ team index lists allow for team membership to be set after the player data alrea
             return playerHtmlEntries;
         }
 
-        function UpdateDomSessionPlayers(session, sessionDom) {
-            if (session.player_types != null) {
-                let player_count_string = '';
-                for (var k = 0; k < session.player_types.length; k++) {
-                    for (var L = 0; L < session.player_types[k].types.length; L++) {
-                        var playerType = session.player_types[k].types[L];
-                        if (L > 0)
-                            player_count_string += ' ';
-                        player_count_string += (session.player_count[playerType] + 0) + ' ' + playerType;
-                    }
-                    if (session.player_types[k].max) {
-                        player_count_string += ` / ${session.player_types[k].max}`;
-                    }
-                }
-                sessionDom.querySelector(`[data-path="session.player_count"]`).textContent = player_count_string;
-            }
-
-            function microSort(a, b) {
-                if (a < b) return -1;
-                if (a > b) return 1;
-                return 0;
-            }
-            /*let PlayersGrouped = session.players.sort((a, b) => {
-                let c = microSort((a.team || {}).id || -1, (b.team || {}).id || -1);
-                if (c != 0) return c;
-                c = microSort((a.team || {}).slot || -1, (b.team || {}).slot || -1);
-                if (c != 0) return c;
-                return microSort(a.slot || -1, b.slot || -1);
-            });*/
-            let Teams = new Set();
-            for (var i = 0; i < session.players.length; i++) {
-                if (session.players[i].team) {
-                    Teams.add(session.players[i].team.id);
-                } else {
-                    Teams.add(null);
-                }
-            }
-            if (session.teams) {
-                for (var t in session.teams) {
-                    Teams.add(t);
-                }
-            }
-            if (session.level && session.level.map && session.level.map.teams) {
-                for (var t in session.level.map.teams) {
-                    Teams.add(t);
-                }
-            }
-            Teams = Array.from(Teams).sort();
-            let team_balance = -1;
-            let max_players = -1;
-            let total_players = session.player_count ? session.player_count.player ? session.player_count.player : -1 : -1;
-            if (session.player_types) {
-                let team_count = Teams.filter(dr => dr != null && !(session.teams && session.teams[dr] && session.teams[dr].computer === true && !session.teams[dr].human)).length;
-                if (team_count > 1) {
-                    let matchingTypes = session.player_types.filter(dr => dr.types.indexOf('player') >= 0);
-                    if (matchingTypes.length > 0 && matchingTypes[0].max) {
-                        max_players = matchingTypes[0].max;
-                        team_balance = Math.floor(max_players / team_count);
-                    }
-                }
-
-            }
-            let playerListDom = sessionDom.querySelector('[data-path="players"]');
-            playerListDom.innerHTML = '';
-            let wrappedPlayers = session.players.map(p => {
-                let retVal = { player: p, team: null, leader: false };
-
-                // if the player_index is in the team's index list mark us as in the team
-                if (p.index && session.level && session.level.map && session.level.map.teams) {
-                    for (let team in session.level.map.teams) {
-                        if (session.level.map.teams[team].member_player_indexes && session.level.map.teams[team].member_player_indexes.indexOf(p.index) >= 0) {
-                            retVal.team = team;
-                            if (session.level.map.teams[team].leader_player_indexes && session.level.map.teams[team].leader_player_indexes.indexOf(p.index) >= 0) {
-                                retVal.leader = true;
-                            }
-                        }
-                    }
-                }
-
-                // if we don't have a team yet, grab it from our player data (these are currently mutually exclusive, having both is undefined behavior)
-                if (!retVal.team && p.team) {
-                    retVal.team = p.team.id;
-                    retVal.leader = p.team.leader;
-                }
-
-                return retVal;
-            });
-            for (let team of Teams) {
-                let teamName = session.teams?.[team]?.name || session.level?.map?.teams?.[team]?.name || `Team ${team}`;
-                let teamPlayers = wrappedPlayers
-                    .filter(p => p.team == team)
-                    .sort((a, b) => {
-                        let c = microSort(a.player?.team?.index ?? -1, b.player?.team?.index ?? -1);
-                        if (c != 0) return c;
-                        return microSort(a.player?.index ?? -1, b.player?.index ?? -1);
-                    });
-
-                let playerHtmlEntries = '';
-
-                var player_count = teamPlayers.length;
-                if (session.teams?.[team])
-                    if (max_players > -1 && total_players > -1 && session.teams[team].max) {
-                        player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
-                    } else {
-                        player_count = Math.max(session.teams[team].max ?? player_count, teamPlayers.length, team_balance);
-                    }
-                for (var i = 0; i < player_count; i++) {
-                    if (i < teamPlayers.length) {
-                        let player = teamPlayers[i];
-
-                        let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
-                        let is_leader = null;
-
-                        if (team) {
-                            playerHtmlEntries += '<div class="col-12 p-0 pb-2">';
-                            is_leader = player.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
-                        } else {
-                            playerHtmlEntries += '<div class="col-12 col-md-6 p-0 p-2">';
-                        }
-                        playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit);
-                        playerHtmlEntries += '</div>';
-                    } else {
-                        let is_beyond_balance = team_balance >= 0 && i >= team_balance;
-
-                        playerHtmlEntries += `
-<div class="col-12 p-0 pb-2">
-    <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
-        <span class="text-nowrap overflow-hidden align-middle">
-            <i class="fa fa-user" aria-hidden="true"></i> Open
-        </span>
-    </div>
-</div>`;
-                    }
-                }
-                if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
-                    playerHtmlEntries += `
-<div class="col-12 p-0 pb-2">
-    <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
-        <span class="text-nowrap overflow-hidden align-middle">
-            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
-        </span>
-    </div>
-</div>`;
-                }
-
-                if (team) {
-                    if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
-                        playerListDom.insertAdjacentHTML('beforeend', `
-<div class="col-12 col-md-6 p-0 p-2">
-    <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
-        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
-        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
-    </div>
-</div>`);
-                    } else {
-                        playerListDom.insertAdjacentHTML('beforeend', `
-<div class="col-12 col-md-6 p-0 p-2">
-    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
-        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
-    </div>
-</div>`);
-                    }
-                } else {
-                    playerListDom.insertAdjacentHTML('beforeend', playerHtmlEntries);
-                }
-            }
-        }
-
         function CreateOrUpdateSessionDom($id, data) {
             var session = data.session[$id];
             var sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
@@ -778,8 +609,170 @@ team index lists allow for team membership to be set after the player data alrea
                 timeElem.textContent = session.status.state;
             }
 
+            // Player Count Text
+            if (session.player_types != null) {
+                let player_count_string = '';
+                for (var k = 0; k < session.player_types.length; k++) {
+                    for (var L = 0; L < session.player_types[k].types.length; L++) {
+                        var playerType = session.player_types[k].types[L];
+                        if (L > 0)
+                            player_count_string += ' ';
+                        player_count_string += (session.player_count[playerType] + 0) + ' ' + playerType;
+                    }
+                    if (session.player_types[k].max) {
+                        player_count_string += ` / ${session.player_types[k].max}`;
+                    }
+                }
+                sessionDom.querySelector(`[data-path="session.player_count"]`).textContent = player_count_string;
+            }
+
             // Players
-            UpdateDomSessionPlayers(session, sessionDom);
+            {
+
+                function microSort(a, b) {
+                    if (a < b) return -1;
+                    if (a > b) return 1;
+                    return 0;
+                }
+                let Teams = new Set();
+                for (var i = 0; i < session.players.length; i++) {
+                    if (session.players[i].team) {
+                        Teams.add(session.players[i].team.id);
+                    } else {
+                        Teams.add(null);
+                    }
+                }
+                if (session.teams) {
+                    for (var t in session.teams) {
+                        Teams.add(t);
+                    }
+                }
+                if (session.level?.map?.teams) {
+                    for (var t in session.level.map.teams) {
+                        Teams.add(t);
+                    }
+                }
+                Teams = Array.from(Teams).sort();
+                let team_balance = -1;
+                let max_players = -1;
+                let total_players = session.player_count?.player ?? -1;
+                if (session.player_types) {
+                    let team_count = Teams.filter(dr => dr != null && !(session.teams?.[dr]?.computer === true && !session.teams?.[dr]?.human)).length;
+                    if (team_count > 1) {
+                        let matchingTypes = session.player_types.filter(dr => dr.types.indexOf('player') >= 0);
+                        if (matchingTypes.length > 0 && matchingTypes[0].max) {
+                            max_players = matchingTypes[0].max;
+                            team_balance = Math.floor(max_players / team_count);
+                        }
+                    }
+
+                }
+                let playerListDom = sessionDom.querySelector('[data-path="players"]');
+                playerListDom.innerHTML = '';
+                let wrappedPlayers = session.players.map(p => {
+                    let retVal = { player: p, team: null, leader: false };
+
+                    // if the player_index is in the team's index list mark us as in the team
+                    if (p.index && session.level && session.level.map && session.level.map.teams) {
+                        for (let team in session.level.map.teams) {
+                            if (session.level.map.teams[team].member_player_indexes && session.level.map.teams[team].member_player_indexes.indexOf(p.index) >= 0) {
+                                retVal.team = team;
+                                if (session.level.map.teams[team].leader_player_indexes && session.level.map.teams[team].leader_player_indexes.indexOf(p.index) >= 0) {
+                                    retVal.leader = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // if we don't have a team yet, grab it from our player data (these are currently mutually exclusive, having both is undefined behavior)
+                    if (!retVal.team && p.team) {
+                        retVal.team = p.team.id;
+                        retVal.leader = p.team.leader;
+                    }
+
+                    return retVal;
+                });
+                for (let team of Teams) {
+                    let teamName = session.teams?.[team]?.name || session.level?.map?.teams?.[team]?.name || `Team ${team}`;
+                    let teamPlayers = wrappedPlayers
+                        .filter(p => p.team == team)
+                        .sort((a, b) => {
+                            let c = microSort(a.player?.team?.index ?? -1, b.player?.team?.index ?? -1);
+                            if (c != 0) return c;
+                            return microSort(a.player?.index ?? -1, b.player?.index ?? -1);
+                        });
+
+                    let playerHtmlEntries = '';
+
+                    var player_count = teamPlayers.length;
+                    if (session.teams?.[team])
+                        if (max_players > -1 && total_players > -1 && session.teams[team].max) {
+                            player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
+                        } else {
+                            player_count = Math.max(session.teams[team].max ?? player_count, teamPlayers.length, team_balance);
+                        }
+                    for (var i = 0; i < player_count; i++) {
+                        if (i < teamPlayers.length) {
+                            let player = teamPlayers[i];
+
+                            let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
+                            let is_leader = null;
+
+                            if (team) {
+                                playerHtmlEntries += '<div class="col-12 p-0 pb-2">';
+                                is_leader = player.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
+                            } else {
+                                playerHtmlEntries += '<div class="col-12 col-md-6 p-0 p-2">';
+                            }
+                            playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit);
+                            playerHtmlEntries += '</div>';
+                        } else {
+                            let is_beyond_balance = team_balance >= 0 && i >= team_balance;
+
+                            playerHtmlEntries += `
+<div class="col-12 p-0 pb-2">
+    <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
+        <span class="text-nowrap overflow-hidden align-middle">
+            <i class="fa fa-user" aria-hidden="true"></i> Open
+        </span>
+    </div>
+</div>`;
+                        }
+                    }
+                    if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
+                        playerHtmlEntries += `
+<div class="col-12 p-0 pb-2">
+    <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
+        <span class="text-nowrap overflow-hidden align-middle">
+            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
+        </span>
+    </div>
+</div>`;
+                    }
+
+                    if (team) {
+                        if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
+                            playerListDom.insertAdjacentHTML('beforeend', `
+<div class="col-12 col-md-6 p-0 p-2">
+    <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
+        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
+        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+    </div>
+</div>`);
+                        } else {
+                            playerListDom.insertAdjacentHTML('beforeend', `
+<div class="col-12 col-md-6 p-0 p-2">
+    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
+        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+    </div>
+</div>`);
+                        }
+                    } else {
+                        playerListDom.insertAdjacentHTML('beforeend', playerHtmlEntries);
+                    }
+                }
+            }
 
             if (session.game?.mod || session.game?.mods) {
                 let modWrapperDom = sessionDom.querySelector('[data-path="mods-container"]');
