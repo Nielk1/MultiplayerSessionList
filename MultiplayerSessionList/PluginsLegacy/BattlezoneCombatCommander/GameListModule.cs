@@ -48,9 +48,9 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
         private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
-        private CachedJsonWebClient mapDataInterface;
+        private CachedAdvancedWebClient mapDataInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedJsonWebClient mapDataInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient mapDataInterface)
         {
             queryUrl = configuration["bigboat:battlezone_combat_commander:sessions"];
             mapUrl = configuration["bigboat:battlezone_combat_commander:maps"];
@@ -169,7 +169,7 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                         string mapID = raw.MapFile?.ToLowerInvariant();
                         game.Level["ID"] = $"{modID}:{mapID}";
 
-                        Task<MapData> mapDataTask = null;
+                        Task<CachedData<MapData>> mapDataTask = null;
                         if (!string.IsNullOrWhiteSpace(raw.MapFile))
                             mapDataTask = mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
 
@@ -666,7 +666,7 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
 
                         MapData mapData = null;
                         if (mapDataTask != null)
-                            mapData = await mapDataTask;
+                            mapData = (await mapDataTask).Data;
                         if (mapData != null)
                         {
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";

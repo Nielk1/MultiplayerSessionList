@@ -25,274 +25,274 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
-        private CachedJsonWebClient mapDataInterface;
+        private CachedAdvancedWebClient cachedAdvancedWebClient;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedJsonWebClient mapDataInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
             queryUrl = configuration["bigboat:battlezone_98_redux:sessions"];
             mapUrl = configuration["bigboat:battlezone_98_redux:maps"];
             this.gogInterface = gogInterface;
             this.steamInterface = steamInterface;
-            this.mapDataInterface = mapDataInterface;
+            this.cachedAdvancedWebClient = cachedAdvancedWebClient;
         }
 
         public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            using (var http = new HttpClient())
-            {
-                var res_raw = await http.GetAsync(queryUrl).ConfigureAwait(false);
-                var res = await res_raw.Content.ReadAsStringAsync();
-                var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
+            var res_raw = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+            var res = res_raw.Data;
+            var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
 
-                TaskFactory taskFactory = new TaskFactory(cancellationToken);
+            TaskFactory taskFactory = new TaskFactory(cancellationToken);
 
-                yield return new Datum("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion", new DataCache() {
-                    { "name", "Rebellion" },
-                    { "timestamp", res_raw.Content.Headers.LastModified.Value.ToUniversalTime().UtcDateTime },
+            yield return new Datum("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion", new DataCache() {
+                { "name", "Rebellion" },
+                { "timestamp", res_raw.LastModified },
+            });
+
+            if (!multiGame)
+                yield return new Datum("default", "session", new DataCache() {
+                    { "type", GAMELIST_TERMS.TYPE_LISTEN },
+                    { "sources", new DataCache() { {"Rebellion", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } } },
                 });
 
-                if (!multiGame)
-                    yield return new Datum("default", "session", new DataCache() {
-                        { "type", GAMELIST_TERMS.TYPE_LISTEN },
-                        { "sources", new DataCache() { {"Rebellion", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } } },
-                    });
+            HashSet<string> DontSendStub = new HashSet<string>();
 
-                HashSet<string> DontSendStub = new HashSet<string>();
+            Dictionary<(string mod, string map), Task<MapData>> MapDataFetchTasks = new Dictionary<(string mod, string map), Task<MapData>>();
+            List<Task<List<PendingDatum>>> DelayedDatumTasks = new List<Task<List<PendingDatum>>>();
 
-                Dictionary<(string mod, string map), Task<MapData>> MapDataFetchTasks = new Dictionary<(string mod, string map), Task<MapData>>();
-                List<Task<List<PendingDatum>>> DelayedDatumTasks = new List<Task<List<PendingDatum>>>();
+            SemaphoreSlim heroesAlreadyReturnedLock = new SemaphoreSlim(1, 1);
+            HashSet<string> heroesAlreadyReturnedFull = new HashSet<string>();
 
-                SemaphoreSlim heroesAlreadyReturnedLock = new SemaphoreSlim(1, 1);
-                HashSet<string> heroesAlreadyReturnedFull = new HashSet<string>();
+            SemaphoreSlim modsAlreadyReturnedLock = new SemaphoreSlim(1, 1);
+            HashSet<string> modsAlreadyReturnedFull = new HashSet<string>();
 
-                SemaphoreSlim modsAlreadyReturnedLock = new SemaphoreSlim(1, 1);
-                HashSet<string> modsAlreadyReturnedFull = new HashSet<string>();
+            SemaphoreSlim gametypeFullAlreadySentLock = new SemaphoreSlim(1, 1);
+            HashSet<string> gametypeFullAlreadySent = new HashSet<string>();
+            SemaphoreSlim gamemodeFullAlreadySentLock = new SemaphoreSlim(1, 1);
+            HashSet<string> gamemodeFullAlreadySent = new HashSet<string>();
 
-                SemaphoreSlim gametypeFullAlreadySentLock = new SemaphoreSlim(1, 1);
-                HashSet<string> gametypeFullAlreadySent = new HashSet<string>();
-                SemaphoreSlim gamemodeFullAlreadySentLock = new SemaphoreSlim(1, 1);
-                HashSet<string> gamemodeFullAlreadySent = new HashSet<string>();
+            foreach (var raw in gamelist.Values)
+            {
+                if (raw.LobbyType != Lobby.ELobbyType.Game)
+                    continue;
 
-                foreach (var raw in gamelist.Values)
+                if (raw.isPrivate && !(raw.IsPassworded ?? false))
+                    continue;
+
+                Datum session = new Datum("session", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{raw.id}");
+
+                if (multiGame) {
+                    session["type"] = GAMELIST_TERMS.TYPE_LISTEN;
+                    session["sources"] = new DataCache() { { $"Rebellion", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } };
+                }
+
+                session["name"] = raw.Name;
+
+                session.AddObjectPath("address:token", $"B{raw.id}");
+                session.AddObjectPath("address:other:lobby_id",raw.id);
+
+                List<DataCache> PlayerTypes = new List<DataCache>();
+                PlayerTypes.Add(new DataCache()
                 {
-                    if (raw.LobbyType != Lobby.ELobbyType.Game)
-                        continue;
+                    { "types", new List<string>() { GAMELIST_TERMS.PLAYERTYPE_PLAYER } },
+                    { "max", raw.PlayerLimit },
+                });
+                session["player_types"] = PlayerTypes;
 
-                    if (raw.isPrivate && !(raw.IsPassworded ?? false))
-                        continue;
+                session.AddObjectPath($"player_count:{GAMELIST_TERMS.PLAYERTYPE_PLAYER}", raw.userCount);
 
-                    Datum session = new Datum("session", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{raw.id}");
+                string modID = (raw.WorkshopID ?? @"0");
 
-                    if (multiGame) {
-                        session["type"] = GAMELIST_TERMS.TYPE_LISTEN;
-                        session["sources"] = new DataCache() { { $"Rebellion", new DatumRef("source", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } };
+                if (modID != "0")
+                {
+                    if (DontSendStub.Add($"mod\t{modID}"))
+                    {
+                        yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}");
+                    }
+                    session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}"));
+                }
+
+
+                string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
+
+                // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
+                Datum mapData = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}");
+                mapData["map_file"] = raw.MapFile.ToLowerInvariant();
+                yield return mapData;
+                DontSendStub.Add($"map\t{modID}:{mapID}"); // we already sent the a stub don't send another
+
+                session.AddObjectPath("level:map", new DatumRef("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}"));
+                session.AddObjectPath("level:other:crc32", raw.CRC32);
+
+                if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
+                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame, modsAlreadyReturnedLock, modsAlreadyReturnedFull, gametypeFullAlreadySentLock, gametypeFullAlreadySent, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent, heroesAlreadyReturnedLock, heroesAlreadyReturnedFull));
+
+                //if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0")
+                //{
+                //    /*if (!modsAlreadyReturnedStub.Contains(raw.WorkshopID))
+                //    {
+                //        yield return new Datum("mod", raw.WorkshopID);
+                //        modsAlreadyReturnedStub.Add(raw.WorkshopID);
+                //    }*/
+                //    session.AddObjectPath("level:mod", new DatumRef("mod", raw.WorkshopID));
+                //}
+
+                if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath("level:rules:time_limit", raw.TimeLimit);
+                if (raw.KillLimit.HasValue && raw.KillLimit > 0) session.AddObjectPath("level:rules:kill_limit", raw.KillLimit);
+                if (raw.Lives.HasValue && raw.Lives.Value > 0) session.AddObjectPath("level:rules:lives", raw.Lives.Value);
+                if (raw.SatelliteEnabled.HasValue) session.AddObjectPath("level:rules:satellite", raw.SatelliteEnabled.Value);
+                if (raw.BarracksEnabled.HasValue) session.AddObjectPath("level:rules:barracks", raw.BarracksEnabled.Value);
+                if (raw.SniperEnabled.HasValue) session.AddObjectPath("level:rules:sniper", raw.SniperEnabled.Value);
+                if (raw.SplinterEnabled.HasValue) session.AddObjectPath("level:rules:splinter", raw.SplinterEnabled.Value);
+
+                // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
+                if (raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
+                {
+                    session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", true);
+                }
+                else
+                {
+                    session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", raw.isLocked);
+                }
+                session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_PASSWORD}", raw.IsPassworded);
+                    
+                string ServerState = Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame);
+                session.AddObjectPath("status:state", ServerState); // TODO limit this state to our state enumeration
+                session.AddObjectPath("status:other:state", ServerState);
+
+                List<DatumRef> Players = new List<DatumRef>();
+                foreach (var dr in raw.users.Values)
+                {
+                    Datum player = new Datum("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
+
+                    player["name"] = dr.name;
+                    player["type"] = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
+                    player.AddObjectPath("other:launched", dr.Launched);
+                    player.AddObjectPath("other:is_auth", dr.isAuth);
+                    if (admin)
+                    {
+                        player.AddObjectPath("other:wan_address", dr.wanAddress);
+                        player.AddObjectPath("other:lan_addresses", JArray.FromObject(dr.lanAddresses));
                     }
 
-                    session["name"] = raw.Name;
-
-                    session.AddObjectPath("address:token", $"B{raw.id}");
-                    session.AddObjectPath("address:other:lobby_id",raw.id);
-
-                    List<DataCache> PlayerTypes = new List<DataCache>();
-                    PlayerTypes.Add(new DataCache()
+                    if (dr.Team.HasValue)
                     {
-                        { "types", new List<string>() { GAMELIST_TERMS.PLAYERTYPE_PLAYER } },
-                        { "max", raw.PlayerLimit },
-                    });
-                    session["player_types"] = PlayerTypes;
-
-                    session.AddObjectPath($"player_count:{GAMELIST_TERMS.PLAYERTYPE_PLAYER}", raw.userCount);
-
-                    string modID = (raw.WorkshopID ?? @"0");
-
-                    if (modID != "0")
-                    {
-                        if (DontSendStub.Add($"mod\t{modID}"))
-                        {
-                            yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}");
-                        }
-                        session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}"));
+                        //player.AddObjectPath("team:id", dr.Team.Value.ToString());
+                        player.AddObjectPath("ids:slot:id", dr.Team);
+                        player.AddObjectPath("index", dr.Team);
                     }
 
-
-                    string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
-
-                    // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
-                    Datum mapData = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}");
-                    mapData["map_file"] = raw.MapFile.ToLowerInvariant();
-                    yield return mapData;
-                    DontSendStub.Add($"map\t{modID}:{mapID}"); // we already sent the a stub don't send another
-
-                    session.AddObjectPath("level:map", new DatumRef("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}"));
-                    session.AddObjectPath("level:other:crc32", raw.CRC32);
-
-                    if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                        DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame, modsAlreadyReturnedLock, modsAlreadyReturnedFull, gametypeFullAlreadySentLock, gametypeFullAlreadySent, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent, heroesAlreadyReturnedLock, heroesAlreadyReturnedFull));
-
-                    //if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0")
+                    //player.Attributes.Add("Vehicle", dr.Vehicle);
+                    //if (dr.Vehicle != null)
                     //{
-                    //    /*if (!modsAlreadyReturnedStub.Contains(raw.WorkshopID))
+                    //    // the issue here is that the vehicle ID can easily be wrong, due to the workshop prefix
+                    //    // we need to find a way to correct this
+                    //    string heroId = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
+                    //    yield return new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}", new DataCache()
                     //    {
-                    //        yield return new Datum("mod", raw.WorkshopID);
-                    //        modsAlreadyReturnedStub.Add(raw.WorkshopID);
-                    //    }*/
-                    //    session.AddObjectPath("level:mod", new DatumRef("mod", raw.WorkshopID));
+                    //        //{ "other", new DataCache2() { { "odf", dr.Vehicle } } },
+                    //    });
+                    //    DontSendStub.Add($"hero\t{heroId}"); // we already sent the a stub don't send another
+                    //    player["hero"] = new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}");
                     //}
 
-                    if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath("level:rules:time_limit", raw.TimeLimit);
-                    if (raw.KillLimit.HasValue && raw.KillLimit > 0) session.AddObjectPath("level:rules:kill_limit", raw.KillLimit);
-                    if (raw.Lives.HasValue && raw.Lives.Value > 0) session.AddObjectPath("level:rules:lives", raw.Lives.Value);
-                    if (raw.SatelliteEnabled.HasValue) session.AddObjectPath("level:rules:satellite", raw.SatelliteEnabled.Value);
-                    if (raw.BarracksEnabled.HasValue) session.AddObjectPath("level:rules:barracks", raw.BarracksEnabled.Value);
-                    if (raw.SniperEnabled.HasValue) session.AddObjectPath("level:rules:sniper", raw.SniperEnabled.Value);
-                    if (raw.SplinterEnabled.HasValue) session.AddObjectPath("level:rules:splinter", raw.SplinterEnabled.Value);
-
-                    // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
-                    if (raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
+                    if (!string.IsNullOrWhiteSpace(dr.id))
                     {
-                        session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", true);
-                    }
-                    else
-                    {
-                        session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", raw.isLocked);
-                    }
-                    session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_PASSWORD}", raw.IsPassworded);
-                    
-                    string ServerState = Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame);
-                    session.AddObjectPath("status:state", ServerState); // TODO limit this state to our state enumeration
-                    session.AddObjectPath("status:other:state", ServerState);
-
-                    List<DatumRef> Players = new List<DatumRef>();
-                    foreach (var dr in raw.users.Values)
-                    {
-                        Datum player = new Datum("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
-
-                        player["name"] = dr.name;
-                        player["type"] = GAMELIST_TERMS.PLAYERTYPE_PLAYER;
-                        player.AddObjectPath("other:launched", dr.Launched);
-                        player.AddObjectPath("other:is_auth", dr.isAuth);
-                        if (admin)
+                        player.AddObjectPath("ids:bzr_net:id", dr.id);
+                        if (dr.id == raw.owner)
+                            player["is_host"] = true;
+                        switch (dr.id[0])
                         {
-                            player.AddObjectPath("other:wan_address", dr.wanAddress);
-                            player.AddObjectPath("other:lan_addresses", JArray.FromObject(dr.lanAddresses));
-                        }
-
-                        if (dr.Team.HasValue)
-                        {
-                            //player.AddObjectPath("team:id", dr.Team.Value.ToString());
-                            player.AddObjectPath("ids:slot:id", dr.Team);
-                            player.AddObjectPath("index", dr.Team);
-                        }
-
-                        //player.Attributes.Add("Vehicle", dr.Vehicle);
-                        //if (dr.Vehicle != null)
-                        //{
-                        //    // the issue here is that the vehicle ID can easily be wrong, due to the workshop prefix
-                        //    // we need to find a way to correct this
-                        //    string heroId = (raw.WorkshopID ?? @"0") + @":" + dr.Vehicle.ToLowerInvariant();
-                        //    yield return new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}", new DataCache()
-                        //    {
-                        //        //{ "other", new DataCache2() { { "odf", dr.Vehicle } } },
-                        //    });
-                        //    DontSendStub.Add($"hero\t{heroId}"); // we already sent the a stub don't send another
-                        //    player["hero"] = new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{heroId}");
-                        //}
-
-                        if (!string.IsNullOrWhiteSpace(dr.id))
-                        {
-                            player.AddObjectPath("ids:bzr_net:id", dr.id);
-                            if (dr.id == raw.owner)
-                                player["is_host"] = true;
-                            switch (dr.id[0])
-                            {
-                                case 'S': // dr.authType == "steam"
+                            case 'S': // dr.authType == "steam"
+                                {
+                                    ulong playerID = 0;
+                                    if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                     {
-                                        ulong playerID = 0;
-                                        if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                        yield return new Datum("identity/steam", playerID.ToString(), new DataCache()
                                         {
-                                            yield return new Datum("identity/steam", playerID.ToString(), new DataCache()
-                                            {
-                                                { "type", "steam" },
-                                            });
-                                            DontSendStub.Add($"identity/steam\t{playerID.ToString()}"); // we already sent the a stub don't send another
+                                            { "type", "steam" },
+                                        });
+                                        DontSendStub.Add($"identity/steam\t{playerID.ToString()}"); // we already sent the a stub don't send another
 
-                                            player.AddObjectPath("ids:steam", new DataCache() {
-                                                { "id", playerID.ToString() },
-                                                { "raw", dr.id.Substring(1) },
-                                                { "identity", new DatumRef("identity/steam", playerID.ToString()) },
-                                            });
+                                        player.AddObjectPath("ids:steam", new DataCache() {
+                                            { "id", playerID.ToString() },
+                                            { "raw", dr.id.Substring(1) },
+                                            { "identity", new DatumRef("identity/steam", playerID.ToString()) },
+                                        });
 
-                                            DelayedDatumTasks.Add(steamInterface.GetPendingDataAsync(playerID));
-                                        }
+                                        DelayedDatumTasks.Add(steamInterface.GetPendingDataAsync(playerID));
                                     }
-                                    break;
-                                case 'G':
+                                }
+                                break;
+                            case 'G':
+                                {
+                                    ulong playerID = 0;
+                                    if (ulong.TryParse(dr.id.Substring(1), out playerID))
                                     {
-                                        ulong playerID = 0;
-                                        if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                        playerID = GogInterface.CleanGalaxyUserId(playerID);
+
+                                        yield return new Datum("identity/gog", playerID.ToString(), new DataCache()
                                         {
-                                            playerID = GogInterface.CleanGalaxyUserId(playerID);
+                                            { "type", "gog" },
+                                        });
+                                        DontSendStub.Add($"identity/gog\t{playerID.ToString()}"); // we already sent the a stub don't send another
 
-                                            yield return new Datum("identity/gog", playerID.ToString(), new DataCache()
-                                            {
-                                                { "type", "gog" },
-                                            });
-                                            DontSendStub.Add($"identity/gog\t{playerID.ToString()}"); // we already sent the a stub don't send another
+                                        player.AddObjectPath("ids:gog", new DataCache() {
+                                            { "id", playerID.ToString() },
+                                            { "raw", dr.id.Substring(1) },
+                                            { "identity", new DatumRef("identity/gog", playerID.ToString()) },
+                                        });
 
-                                            player.AddObjectPath("ids:gog", new DataCache() {
-                                                { "id", playerID.ToString() },
-                                                { "raw", dr.id.Substring(1) },
-                                                { "identity", new DatumRef("identity/gog", playerID.ToString()) },
-                                            });
-
-                                            DelayedDatumTasks.Add(gogInterface.GetPendingDataAsync(playerID));
-                                        }
+                                        DelayedDatumTasks.Add(gogInterface.GetPendingDataAsync(playerID));
                                     }
-                                    break;
-                            }
+                                }
+                                break;
                         }
-
-                        yield return player;
-
-                        Players.Add(new DatumRef("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}"));
                     }
-                    session["players"] = Players;
 
-                    if (!string.IsNullOrWhiteSpace(raw.clientVersion))
-                        session.AddObjectPath("game:version", raw.clientVersion);
-                    else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
-                        session.AddObjectPath("game:version", raw.GameVersion);
+                    yield return player;
 
-                    if (raw.SyncJoin.HasValue)
-                        session.AddObjectPath("attributes:sync_join", raw.SyncJoin.Value);
-                    if (raw.MetaDataVersion.HasValue)
-                        session.AddObjectPath("attributes:meta_data_version", raw.MetaDataVersion);
-
-                    yield return session;
+                    Players.Add(new DatumRef("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}"));
                 }
+                session["players"] = Players;
 
-                while (DelayedDatumTasks.Any())
-                {
-                    Task<List<PendingDatum>> doneTask = await Task.WhenAny(DelayedDatumTasks);
-                    foreach (var datum in doneTask.Result)
-                    {
-                        // don't send datums if we already sent the big guy
-                        if (datum.key != null)
-                            if (datum.stub)
-                                if (DontSendStub.Contains(datum.key))
-                                    continue;
-                        yield return datum.data;
-                        DontSendStub.Add(datum.key);
-                    }
-                    DelayedDatumTasks.Remove(doneTask);
-                }
+                if (!string.IsNullOrWhiteSpace(raw.clientVersion))
+                    session.AddObjectPath("game:version", raw.clientVersion);
+                else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
+                    session.AddObjectPath("game:version", raw.GameVersion);
+
+                if (raw.SyncJoin.HasValue)
+                    session.AddObjectPath("other:sync_join", raw.SyncJoin.Value);
+                if (raw.MetaDataVersion.HasValue)
+                    session.AddObjectPath("other:meta_data_version", raw.MetaDataVersion);
+
+                yield return session;
             }
+
+            while (DelayedDatumTasks.Any())
+            {
+                Task<List<PendingDatum>> doneTask = await Task.WhenAny(DelayedDatumTasks);
+                foreach (var datum in doneTask.Result)
+                {
+                    // don't send datums if we already sent the big guy
+                    if (datum.key != null)
+                        if (datum.stub)
+                            if (DontSendStub.Contains(datum.key))
+                                continue;
+                    yield return datum.data;
+                    DontSendStub.Add(datum.key);
+                }
+                DelayedDatumTasks.Remove(doneTask);
+            }
+
+            yield break;
         }
 
         private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent, SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull)
         {
             List<PendingDatum> retVal = new List<PendingDatum>();
-            MapData mapData = await mapDataInterface.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods=0,{modID}");
+            CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods=0,{modID}");
+            MapData mapData = mapDataC.Data;
             if (mapData != null)
             {
                 Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {

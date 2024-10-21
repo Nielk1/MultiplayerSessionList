@@ -30,9 +30,9 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
         private string mapUrl;
         private GogInterface gogInterface;
         private SteamInterface steamInterface;
-        private CachedJsonWebClient mapDataInterface;
+        private CachedAdvancedWebClient mapDataInterface;
 
-        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedJsonWebClient mapDataInterface)
+        public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient mapDataInterface)
         {
             queryUrl = configuration["bigboat:battlezone_98_redux:sessions"];
             mapUrl = configuration["bigboat:battlezone_98_redux:maps"];
@@ -124,7 +124,7 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
                         game.Level["MapFile"] = raw.MapFile;
                         game.Level["CRC32"] = raw.CRC32;
 
-                        Task<Plugins.Battlezone98Redux.MapData> mapDataTask = mapDataInterface.GetObject<Plugins.Battlezone98Redux.MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
+                        Task<CachedData<Plugins.Battlezone98Redux.MapData>> mapDataTask = mapDataInterface.GetObject<Plugins.Battlezone98Redux.MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods={modID},0");
 
                         if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0") game.Level.Add("Mod", raw.WorkshopID);
 
@@ -260,7 +260,7 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
 
                         Plugins.Battlezone98Redux.MapData mapData = null;
                         if (mapDataTask != null)
-                            mapData = await mapDataTask;
+                            mapData = (await mapDataTask).Data;
                         if (mapData != null)
                         {
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";
