@@ -291,15 +291,15 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent, SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull)
         {
             List<PendingDatum> retVal = new List<PendingDatum>();
-            CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mods=0,{modID}");
+            CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata2.php?map={mapID}&mods={modID}");
             MapData mapData = mapDataC.Data;
             if (mapData != null)
             {
                 Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
                     { "name", mapData?.map?.title },
                 });
-                if (mapData.image != null)
-                    mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
+                if (mapData.map.image != null)
+                    mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.map.image}";
 
                 mapDatum.AddObjectPath("game_type:id", mapData?.map?.type);
                 //game.Level["GameMode"] = "Unknown";
@@ -461,13 +461,18 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                 });
 
                                 // todo handle language logic
-                                if (vehicle.Value.description.ContainsKey("en"))
+                                if (vehicle.Value.description != null)
                                 {
-                                    heroData["description"] = vehicle.Value.description["en"].content;
-                                }
-                                else if (vehicle.Value.description.ContainsKey("default"))
-                                {
-                                    heroData["description"] = vehicle.Value.description["default"].content;
+                                    if (vehicle.Value.description.ContainsKey("en"))
+                                    {
+                                        //heroData["description"] = vehicle.Value.description["en"].content;
+                                        heroData["description"] = vehicle.Value.description["en"];
+                                    }
+                                    else if (vehicle.Value.description.ContainsKey("default"))
+                                    {
+                                        //heroData["description"] = vehicle.Value.description["default"].content;
+                                        heroData["description"] = vehicle.Value.description["default"];
+                                    }
                                 }
 
                                 retVal.Add(new PendingDatum(heroData, $"hero\t{vehicle.Key}", false));

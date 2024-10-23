@@ -370,31 +370,35 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public MapData_Map map { get; set; }
         public Dictionary<string, MapData_Vehicle> vehicles { get; set; }
         public Dictionary<string, MapData_Mods> mods { get; set; }
-        public string image { get; set; }
     }
 
     public class MapData_Map
     {
-        public string title { get; set; }
-        public string type { get; set; }
-        public string custom_type { get; set; }
-        public string custom_type_name { get; set; }
+        public string hash_p { get; set; }
         public int min { get; set; }
         public int max { get; set; }
+        public string custom_type { get; set; }
+        public string custom_type_name { get; set; }
+        public string type { get; set; }
+        public string parent_type { get; set; }
+        public string title { get; set; }
         public List<string> vehicles { get; set; }
         public HashSet<string> flags { get; set; }
+        public string image { get; set; }
+        public string description { get; set; }
     }
 
     public class MapData_Vehicle
     {
         public string name { get; set; }
-        public Dictionary<string, MapData_Vehicle_Description> description { get; set; }
+        //public Dictionary<string, MapData_Vehicle_Description> description { get; set; }
+        public Dictionary<string, string> description { get; set; }
     }
-    public class MapData_Vehicle_Description
-    {
-        public string file { get; set; }
-        public string content { get; set; }
-    }
+    //public class MapData_Vehicle_Description
+    //{
+    //    public string file { get; set; }
+    //    public string content { get; set; }
+    //}
     public class MapData_Mods
     {
         public string name { get; set; }
