@@ -7,7 +7,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Runtime.CompilerServices;
@@ -372,6 +371,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     }
                 }
 
+                if (mapData.map.flags?.Contains("sbp") ?? false)
+                {
+                    retVal.Add(await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                }
+
                 if (mapData.map.flags?.Contains("sbp_auto_ally_teams") ?? false)
                 {
                     mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13 });
@@ -522,6 +526,22 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 retVal.Add(new PendingDatum(mapDatum, null, false));
             }
             return retVal;
+        }
+
+        private async Task<PendingDatum> BuildGameBalanceDatumAsync(string code, string name, string note, bool multiGame, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
+        {
+            await gamebalanceFullAlreadySentLock.WaitAsync();
+            try
+            {
+                if (gamebalanceFullAlreadySent.Add(code))
+                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", string.IsNullOrWhiteSpace(note) ? new DataCache() { { "name", name } } : new DataCache() { { "name", name }, { "note", note } }), $"game_type\t{code}", false);
+                else
+                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_type\t{code}", true);
+            }
+            finally
+            {
+                gamebalanceFullAlreadySentLock.Release();
+            }
         }
 
         private async Task<PendingDatum> BuildGameTypeDatumAsync(string code, string name, bool multiGame, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent)
