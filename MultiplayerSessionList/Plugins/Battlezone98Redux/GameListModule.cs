@@ -10,6 +10,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Runtime.CompilerServices;
+using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
+using System.Xml.Linq;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
@@ -69,6 +71,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             HashSet<string> gametypeFullAlreadySent = new HashSet<string>();
             SemaphoreSlim gamemodeFullAlreadySentLock = new SemaphoreSlim(1, 1);
             HashSet<string> gamemodeFullAlreadySent = new HashSet<string>();
+            SemaphoreSlim gamebalanceFullAlreadySentLock = new SemaphoreSlim(1, 1);
+            HashSet<string> gamebalanceFullAlreadySent = new HashSet<string>();
 
             foreach (var raw in gamelist.Values)
             {
@@ -111,6 +115,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}"));
                 }
 
+                if (modID == "0")
+                {
+                    // we aren't concurrent yet so we're safe to just do this
+                    if (DontSendStub.Add(@"game_balance\tSTOCK"))
+                        yield return new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK", new DataCache() { { "name", "Stock" } });
+                    session.AddObjectPath("game:game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
+                }
 
                 string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
 
@@ -124,7 +135,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 session.AddObjectPath("level:other:crc32", raw.CRC32);
 
                 if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame, modsAlreadyReturnedLock, modsAlreadyReturnedFull, gametypeFullAlreadySentLock, gametypeFullAlreadySent, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent, heroesAlreadyReturnedLock, heroesAlreadyReturnedFull));
+                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame,
+                        modsAlreadyReturnedLock, modsAlreadyReturnedFull,
+                        gametypeFullAlreadySentLock, gametypeFullAlreadySent,
+                        gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
+                        heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
+                        gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
 
                 //if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0")
                 //{
@@ -287,7 +303,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             yield break;
         }
 
-        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent, SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull)
+        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent, SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
         {
             List<PendingDatum> retVal = new List<PendingDatum>();
             CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata2.php?map={mapID}&mods={modID}");
@@ -297,7 +313,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
                     { "name", mapData?.map?.title },
                 });
-                if (mapData.map.image != null)
+                if (mapData.map?.image != null)
                     mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.map.image}";
 
                 mapDatum.AddObjectPath("game_type:id", mapData?.map?.type);
@@ -371,12 +387,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     }
                 }
 
-                if (mapData.map.flags?.Contains("sbp") ?? false)
+                if (mapData.map?.flags?.Contains("sbp") ?? false)
                 {
+                    mapDatum.AddObjectPath("game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_SBP"));
                     retVal.Add(await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
                 }
 
-                if (mapData.map.flags?.Contains("sbp_auto_ally_teams") ?? false)
+                if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
                 {
                     mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13 });
                     mapDatum.AddObjectPath("teams:2:member_player_indexes", new int[] { 2, 4, 6, 8, 10, 12, 14 });
@@ -534,9 +551,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             try
             {
                 if (gamebalanceFullAlreadySent.Add(code))
-                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", string.IsNullOrWhiteSpace(note) ? new DataCache() { { "name", name } } : new DataCache() { { "name", name }, { "note", note } }), $"game_type\t{code}", false);
+                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", string.IsNullOrWhiteSpace(note) ? new DataCache() { { "name", name } } : new DataCache() { { "name", name }, { "note", note } }), $"game_balance\t{code}", false);
                 else
-                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_type\t{code}", true);
+                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_balance\t{code}", true);
             }
             finally
             {

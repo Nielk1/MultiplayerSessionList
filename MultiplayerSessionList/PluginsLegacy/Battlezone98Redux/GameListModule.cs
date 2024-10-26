@@ -124,7 +124,7 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
                         game.Level["MapFile"] = raw.MapFile;
                         game.Level["CRC32"] = raw.CRC32;
 
-                        Task<CachedData<Plugins.Battlezone98Redux.MapData>> mapDataTask = mapDataInterface.GetObject<Plugins.Battlezone98Redux.MapData>($"{mapUrl.TrimEnd('/')}/getdata2.php?map={mapID}&mods={modID},0");
+                        Task<CachedData<Plugins.Battlezone98Redux.MapData>> mapDataTask = mapDataInterface.GetObject<Plugins.Battlezone98Redux.MapData>($"{mapUrl.TrimEnd('/')}/getdata2.php?map={mapID}&mods={modID}");
 
                         if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0") game.Level.Add("Mod", raw.WorkshopID);
 

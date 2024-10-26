@@ -201,9 +201,20 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             DontSendStub.Add($"mod\t{mod}"); // we already sent the a stub don't send another
                         }
 
-                if (ModsLen > 0 && raw.Mods[0] != "0")
-                    //game.AddObjectPath("game:mod", raw.Mods[0]);
-                    session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
+                if (ModsLen > 0)
+                {
+                    if (raw.Mods[0] != "0")
+                    {
+                        session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
+                    }
+                    else
+                    {
+                        // we aren't concurrent yet so we're safe to just do this
+                        if (DontSendStub.Add(@"game_balance\tSTOCK"))
+                            yield return new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK", new DataCache() { { "name", "Stock" } });
+                        session.AddObjectPath("game:game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
+                    }
+                }
                 if (ModsLen > 1)
                     //game.AddObjectPath("game:mods", raw.Mods.Skip(1));
                     session.AddObjectPath("game:mods", raw.Mods.Skip(1).Select(m => new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));

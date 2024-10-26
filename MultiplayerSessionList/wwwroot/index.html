@@ -552,6 +552,10 @@ team index lists allow for team membership to be set after the player data alrea
                             <span data-path="session.level.game_mode"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Balance Paradigm</strong>
+                            <abbr data-path="session.level.game_balance"></abbr>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">State</strong>
                             <span>
                                 <span data-path="session.status.state"></span>
@@ -571,9 +575,8 @@ team index lists allow for team membership to be set after the player data alrea
             </div>
             <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
             <div data-path="players" class="row"></div>
-    </div>
-</div>
-                `);
+        </div>
+    </div>`);
                 sessionDom = parent.lastElementChild;
             }
 
@@ -607,6 +610,28 @@ team index lists allow for team membership to be set after the player data alrea
                 session.level?.rules?.game_type?.name ?? session.level?.rules?.game_type?.$id ??
                 session.level?.map?.game_type?.name ?? session.level?.map?.game_type?.$id ??
                 session.level?.game_type?.name ?? session.level?.game_type?.$id;
+
+            // Session Game Balance
+            let game_balance_element = sessionDom.querySelector(`[data-path="session.level.game_balance"]`);
+            let game_balance_data =
+                session.level?.rules?.game_balance ??
+                session.level?.map?.game_balance ??
+                session.level?.game_balance ??
+                session.game?.game_balance;
+
+            if (game_balance_data) {
+                game_balance_element.textContent = game_balance_data?.name ?? game_balance_data?.$id;
+                if (game_balance_data.note) {
+                    game_balance_element.setAttribute("title", game_balance_data.note);
+                } else {
+                    game_balance_element.removeAttribute("title");
+                }
+            } else {
+                game_balance_element.textContent = '';
+                game_balance_element.removeAttribute("title");
+            }
+
+
 
             // Session Time
             if (session.time) {
@@ -645,7 +670,6 @@ team index lists allow for team membership to be set after the player data alrea
 
             // Players
             {
-
                 function microSort(a, b) {
                     if (a < b) return -1;
                     if (a > b) return 1;
