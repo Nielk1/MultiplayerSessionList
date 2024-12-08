@@ -189,6 +189,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         player.AddObjectPath("other:wan_address", dr.wanAddress);
                         player.AddObjectPath("other:lan_addresses", JArray.FromObject(dr.lanAddresses));
                     }
+                    if (dr.CommunityPatch != null)
+                        player.AddObjectPath("other:community_patch", dr.CommunityPatch);
+                    if (dr.CommunityPatchShim != null)
+                        player.AddObjectPath("other:community_patch_shim", dr.CommunityPatchShim);
 
                     if (dr.Team.HasValue)
                     {
@@ -391,6 +395,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 {
                     mapDatum.AddObjectPath("game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_SBP"));
                     retVal.Add(await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                } else if (mapData.map?.flags?.Contains("balance_stock") ?? false)
+                {
+                    mapDatum.AddObjectPath("game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
+                    retVal.Add(await BuildGameBalanceDatumAsync($"STOCK", "Stock", null, multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
                 }
 
                 if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)

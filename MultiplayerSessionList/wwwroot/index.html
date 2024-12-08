@@ -51,7 +51,13 @@
         }
     </style>
 
-    <div class="container-fluid pt-2">
+    <style id="extra_data_style">
+        .extra_item {
+            display: none;
+        }
+    </style>
+
+    <div class="container-fluid pt-2" style="top: 0; position: sticky; z-index: 99999; background-color: var(--bs-body-bg);">
         <div class="dropdown float-start">
             <button id="dropdownMenuLink" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Game
@@ -59,8 +65,10 @@
 
             <ul id="dropdownMenuContainer" class="dropdown-menu"></ul>
         </div>
-        <button id="btnRefresh" disabled="disabled" type="button" class="btn btn-outline-primary float-end">Refresh</button>
-
+        <p class="d-inline-flex gap-1 float-end">
+            <button id="btnExtra" type="button" data-bs-toggle="button" aria-pressed="false" class="btn btn-outline-primary">Extra</button>
+            <button id="btnRefresh" disabled="disabled" type="button" class="btn btn-outline-primary">Refresh</button>
+        </p>
         <div class="text-center">
             <h1 class="display-5">Game List Test</h1>
         </div>
@@ -292,6 +300,15 @@ team index lists allow for team membership to be set after the player data alrea
         }
 
         var GetGamesAjax = null;
+        $('#btnExtra').click(function (e) {
+            e.preventDefault();
+
+            if ($('#btnExtra').hasClass('active')) {
+                document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "inherit";
+            } else {
+                document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "none";
+            }
+        });
         $('#btnRefresh').click(function (e) {
             e.preventDefault();
 
@@ -442,6 +459,18 @@ team index lists allow for team membership to be set after the player data alrea
             }
         }
 
+        function GenerateHtml_MicroList(name, object) {
+            var htmlEntries = `
+<div class="card border-secondary mt-2 small extra_item">
+    <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
+    <ul class="list-group list-group-flush">`;
+            for (let prop in object) {
+                htmlEntries += `<li class="p-1 list-group-item force-ellipsis" style="white-space:pre;">${prop}: ${object[prop]}</li>`;
+            }
+            htmlEntries += `</ul></div>`;
+            return htmlEntries;
+        }
+
         function GenerateHtml_Player(player, is_leader, is_over_limit) {
             let plaform_avatar = '';
             let player_avatar_source = '';
@@ -464,7 +493,8 @@ team index lists allow for team membership to be set after the player data alrea
             let playerHtmlEntries = '';
             playerHtmlEntries += `
     <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id)}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
-        <div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
+        `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
+        +`<div class="col-3 m-2 d-block float-end" style="max-width:100px;">
             <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
         </div>
         <div class=" m-2 d-block">
@@ -506,7 +536,14 @@ team index lists allow for team membership to be set after the player data alrea
                 <div>
                     ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
                     ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
-                </div>
+                </div>`;
+            if (player.stats) {
+                playerHtmlEntries += GenerateHtml_MicroList("Stats", player.stats);
+            }
+            if (player.other) {
+                playerHtmlEntries += GenerateHtml_MicroList("Other", player.other);
+            }
+            playerHtmlEntries += `
             </div>
         </div>
     </div>`;
@@ -706,7 +743,6 @@ team index lists allow for team membership to be set after the player data alrea
                             team_balance = Math.floor(max_players / team_count);
                         }
                     }
-
                 }
                 let playerListDom = sessionDom.querySelector('[data-path="players"]');
                 playerListDom.innerHTML = '';

@@ -363,6 +363,30 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 return null;
             }
         }
+
+        [JsonIgnore]
+        public string CommunityPatch
+        {
+            get
+            {
+                if (!metadata.ContainsKey("bzcp"))
+                    return null;
+
+                return metadata["bzcp"];
+            }
+        }
+
+        [JsonIgnore]
+        public string CommunityPatchShim
+        {
+            get
+            {
+                if (!metadata.ContainsKey("shim"))
+                    return null;
+
+                return metadata["shim"];
+            }
+        }
     }
 
     public class MapData

@@ -203,9 +203,15 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                 if (ModsLen > 0)
                 {
-                    if (raw.Mods[0] != "0")
+                    if (raw.Mods[0] != @"0")
                     {
                         session.AddObjectPath("game:mod", new DatumRef("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
+                        if (raw.Mods[0] == @"1325933293")
+                        {
+                            if (DontSendStub.Add(@"game_balance\tVSR"))
+                                yield return new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR", new DataCache() { { "name", "Vet Strategy Recycler Variant" }, { "note", "This session uses a mod balance paradigm which emphasizes players over AI units and enables flight through the exploitation of physics quirks." } });
+                            session.AddObjectPath("game:game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR"));
+                        }
                     }
                     else
                     {
@@ -699,8 +705,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     mapDatum["image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
                 if ((mapData?.netVars?.Count ?? 0) > 0)
                 {
+                    if (mapData.netVars.ContainsKey("ivar3") && mapData.netVars["ivar3"] == "1")
+                {
                     if (mapData.netVars.ContainsKey("svar1")) mapDatum.AddObjectPath("teams:1:name", mapData.netVars["svar1"]);
                     if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath("teams:2:name", mapData.netVars["svar2"]);
+                }
                 }
                 retVal.Add(new PendingDatum(mapDatum, null, false));
 
