@@ -459,9 +459,9 @@ team index lists allow for team membership to be set after the player data alrea
             }
         }
 
-        function GenerateHtml_MicroList(name, object) {
+        function GenerateHtml_MicroList(name, object, extra) {
             var htmlEntries = `
-<div class="card border-secondary mt-2 small extra_item">
+<div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}">
     <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
     <ul class="list-group list-group-flush">`;
             for (let prop in object) {
@@ -537,12 +537,10 @@ team index lists allow for team membership to be set after the player data alrea
                     ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
                     ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
                 </div>`;
-            if (player.stats) {
-                playerHtmlEntries += GenerateHtml_MicroList("Stats", player.stats);
-            }
-            if (player.other) {
-                playerHtmlEntries += GenerateHtml_MicroList("Other", player.other);
-            }
+            if (player.stats)
+                playerHtmlEntries += GenerateHtml_MicroList("Stats", player.stats, true);
+            if (player.other)
+                playerHtmlEntries += GenerateHtml_MicroList("Other", player.other, true);
             playerHtmlEntries += `
             </div>
         </div>
@@ -604,12 +602,17 @@ team index lists allow for team membership to be set after the player data alrea
                             <span data-path="session.player_count"></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Game Version</strong>
+                            <span data-path="session.game.version"></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Name</strong>
                             <span data-path="session.name" class="text-secondary"></span>
                         </li>
                     </ul>
                 </div>
             </div>
+            <div data-path="other-container" class="row border-bottom" style="display:none;"></div>
             <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
             <div data-path="players" class="row"></div>
         </div>
@@ -627,6 +630,9 @@ team index lists allow for team membership to be set after the player data alrea
             let map_name_elem = sessionDom.querySelector('[data-path="session.level.map.name"]');
             map_name_elem.setAttribute('title', session.level?.map?.map_file);
             map_name_elem.textContent = session.level?.map?.name ?? session.level?.map?.map_file ?? '';
+
+            // Game Version
+            sessionDom.querySelector('[data-path="session.game.version"]').textContent = session.game?.version || " ";
 
             // Session Name
             sessionDom.querySelector('[data-path="session.name"]').textContent = session.name || " ";
@@ -849,6 +855,24 @@ team index lists allow for team membership to be set after the player data alrea
                         playerListDom.insertAdjacentHTML('beforeend', playerHtmlEntries);
                     }
                 }
+            }
+
+            if (session.other || session.game?.other || session.level?.other || session.level?.rules) {
+                let modWrapperDom = sessionDom.querySelector('[data-path="other-container"]');
+                modWrapperDom.style.display = 'flex';
+                modWrapperDom.innerHTML = '';
+
+                if (session.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Other", session.other, true) + "</div>");
+
+                if (session.game?.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Game/Other", session.game.other, true) + "</div>");
+
+                if (session.level?.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Other", session.level.other, true) + "</div>");
+
+                if (session.level?.rules)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Rules", session.level.rules, true) + "</div>");
             }
 
             if (session.game?.mod || session.game?.mods) {
