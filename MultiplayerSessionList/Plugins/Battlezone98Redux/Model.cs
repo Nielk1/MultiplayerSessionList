@@ -405,6 +405,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public string custom_type_name { get; set; }
         public string type { get; set; }
         public string parent_type { get; set; }
+        public string bzcp_type_fix { get; set; }
+        public string bzcp_type_override { get; set; }
+        public string bzcp_auto_type_fix { get; set; }
+        public string bzcp_auto_type_override { get; set; }
+
         public string title { get; set; }
         public List<string> vehicles { get; set; }
         public HashSet<string> flags { get; set; }
