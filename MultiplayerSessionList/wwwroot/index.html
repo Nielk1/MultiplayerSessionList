@@ -57,7 +57,7 @@
         }
     </style>
 
-    <div class="container-fluid pt-2" style="top: 0; position: sticky; z-index: 99999; background-color: var(--bs-body-bg);">
+    <div class="container-fluid pt-2 border-bottom mb-2" style="top: 0; position: sticky; z-index: 99999; background-color: var(--bs-body-bg);">
         <div class="dropdown float-start">
             <button id="dropdownMenuLink" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Game
@@ -461,7 +461,7 @@ team index lists allow for team membership to be set after the player data alrea
 
         function GenerateHtml_MicroList(name, object, extra) {
             var htmlEntries = `
-<div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}">
+<div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35;">
     <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
     <ul class="list-group list-group-flush">`;
             for (let prop in object) {
@@ -492,7 +492,7 @@ team index lists allow for team membership to be set after the player data alrea
 
             let playerHtmlEntries = '';
             playerHtmlEntries += `
-    <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id)}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
+    <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
         `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
         +`<div class="col-3 m-2 d-block float-end" style="max-width:100px;">
             <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
@@ -658,11 +658,12 @@ team index lists allow for team membership to be set after the player data alrea
                 session.level?.rules?.game_mode?.icon ??
                 session.level?.map?.game_mode?.icon ??
                 session.level?.game_mode?.icon;
-            game_mode_icon_element.setAttribute("src", game_mode_icon);
             if (game_mode_icon) {
+                game_mode_icon_element.setAttribute("src", game_mode_icon);
                 game_mode_icon_element.style.display = null;
             } else {
                 game_mode_icon_element.style.display = "none";
+                game_mode_icon_element.setAttribute("src", "");
             }
 
             // Session Game Type
@@ -676,11 +677,12 @@ team index lists allow for team membership to be set after the player data alrea
                 session.level?.rules?.game_type?.icon ??
                 session.level?.map?.game_type?.icon ??
                 session.level?.game_type?.icon;
-            game_type_icon_element.setAttribute("src", game_type_icon);
             if (game_type_icon) {
+                game_type_icon_element.setAttribute("src", game_type_icon);
                 game_type_icon_element.style.display = null;
             } else {
                 game_type_icon_element.style.display = "none";
+                game_type_icon_element.setAttribute("src", "");
             }
 
             // Session Game Balance
