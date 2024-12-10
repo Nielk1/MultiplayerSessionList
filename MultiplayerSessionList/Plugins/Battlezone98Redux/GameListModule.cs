@@ -12,6 +12,7 @@ using System.Threading;
 using System.Runtime.CompilerServices;
 using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
 using System.Xml.Linq;
+using System.Drawing;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
@@ -330,27 +331,33 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     {
                         case "D": // Deathmatch
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/icons/icon_d.png", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/icons/icon_d.png", "#B70505", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
                             break;
                         case "S": // Strategy
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
-                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/icons/icon_s.png", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/icons/icon_s.png", "#007FFF", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
                             break;
                         case "K": // King of the Hill
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/icons/icon_d.png", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/icons/icon_d.png", "#B70505", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
                             break;
                         case "M": // Mission MPI
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
-                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/icons/icon_s.png", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/icons/icon_s.png", "#007FFF", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
                             break;
                         case "A": // Action MPI
                             mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/icons/icon_d.png", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/icons/icon_d.png", "#B70505", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            break;
+                        case "X": // Other
+                            mapDatum.AddObjectPath("game_type", new DatumRef("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}OTHER"));
+                            retVal.Add(await BuildGameTypeDatumAsync("OTHER", "Other", $"{mapUrl.TrimEnd('/')}/icons/icon_x.png", "#666666", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
                             break;
                     }
                 }
                 string MapModeIcon = null;
+                string MapModeColorA = null;
+                string MapModeColorB = null;
                 if (!string.IsNullOrWhiteSpace(mapMode))
                 {
                     switch (mapMode)
@@ -358,72 +365,100 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         case "A": // Action MPI
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}A_MPI"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_a.png";
-                            retVal.Add(await BuildGameModeDatumAsync("A_MPI", "Action MPI", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#002C00";
+                            MapModeColorB = "#007C03";
+                            retVal.Add(await BuildGameModeDatumAsync("A_MPI", "Action MPI", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "C": // Custom
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}CUSTOM"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_c.png";
-                            retVal.Add(await BuildGameModeDatumAsync("CUSTOM", "Custom", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#FFFF00";
+                            MapModeColorB = "#FFFF00";
+                            retVal.Add(await BuildGameModeDatumAsync("CUSTOM", "Custom", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "D": // Deathmatch
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_d.png";
-                            retVal.Add(await BuildGameModeDatumAsync("DM", "Deathmatch", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#B70505";
+                            MapModeColorB = "#E90707";
+                            retVal.Add(await BuildGameModeDatumAsync("DM", "Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "F": // Capture the Flag
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}CTF"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_f.png";
-                            retVal.Add(await BuildGameModeDatumAsync("CTF", "Capture the Flag", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#7F5422";
+                            MapModeColorB = "#B0875E";
+                            retVal.Add(await BuildGameModeDatumAsync("CTF", "Capture the Flag", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "G": // Race
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}RACE"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_g.png";
-                            retVal.Add(await BuildGameModeDatumAsync("RACE", "Race", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#1A1A1A";
+                            MapModeColorB = "#EEEEEE";
+                            retVal.Add(await BuildGameModeDatumAsync("RACE", "Race", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "K": // King of the Hill
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}KOTH"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_k.png";
-                            retVal.Add(await BuildGameModeDatumAsync("KOTH", "King of the Hill", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#F0772D";
+                            MapModeColorB = "#F0772D";
+                            retVal.Add(await BuildGameModeDatumAsync("KOTH", "King of the Hill", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "L": // Loot
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}LOOT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_l.png";
-                            retVal.Add(await BuildGameModeDatumAsync("LOOT", "Loot", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#333333";
+                            MapModeColorB = "#BFA88F";
+                            retVal.Add(await BuildGameModeDatumAsync("LOOT", "Loot", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "M": // Mission MPI
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}M_MPI"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_m.png";
-                            retVal.Add(await BuildGameModeDatumAsync("M_MPI", "Mission MPI", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#B932FF";
+                            MapModeColorB = "#B932FF";
+                            retVal.Add(await BuildGameModeDatumAsync("M_MPI", "Mission MPI", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "P": // Pilot/Sniper Deathmatch
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}PILOT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_p.png";
-                            retVal.Add(await BuildGameModeDatumAsync("PILOT", "Pilot/Sniper Deathmatch", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#7A0000";
+                            MapModeColorB = "#B70606";
+                            retVal.Add(await BuildGameModeDatumAsync("PILOT", "Pilot Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "Q": // Squad Deathmatch
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}SQUAD"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_q.png";
-                            retVal.Add(await BuildGameModeDatumAsync("SQUAD", "Squad Deathmatch", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#FF3F00";
+                            MapModeColorB = "#FF3F00";
+                            retVal.Add(await BuildGameModeDatumAsync("SQUAD", "Squad Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "R": // Capture the Relic
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}RELIC"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_r.png";
-                            retVal.Add(await BuildGameModeDatumAsync("RELIC", "Capture the Relic", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#7D007D";
+                            MapModeColorB = "#7D007D";
+                            retVal.Add(await BuildGameModeDatumAsync("RELIC", "Capture the Relic", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "S": // Strategy
                         mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_s.png";
-                            retVal.Add(await BuildGameModeDatumAsync("STRAT", "Strategy", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#007FFF";
+                            MapModeColorB = "#007FFF";
+                            retVal.Add(await BuildGameModeDatumAsync("STRAT", "Strategy", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "W": // Wingman
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}WINGMAN"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_w.png";
-                            retVal.Add(await BuildGameModeDatumAsync("WINGMAN", "Wingman", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#0047CF";
+                            MapModeColorB = "#0047CF";
+                            retVal.Add(await BuildGameModeDatumAsync("WINGMAN", "Wingman Strategy", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "X": // Other
                             mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}OTHER"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_x.png";
-                            retVal.Add(await BuildGameModeDatumAsync("OTHER", "Other", MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            MapModeColorA = "#666666";
+                            MapModeColorB = "#C3C3C3";
+                            retVal.Add(await BuildGameModeDatumAsync("OTHER", "Other", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                     }
                 }
@@ -442,11 +477,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     //{
                         // Custom type
                         mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_{mapData.map.custom_type}"));
-                        retVal.Add(await BuildGameModeDatumAsync($"CUST_{mapData.map.custom_type}", mapData.map.custom_type_name, MapModeIcon, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
-                        if (mapData.map.custom_type == "TOOL")
-                        {
-                            mapDatum.AddObjectPath("game_type", null);
-                        }
+                        retVal.Add(await BuildGameModeDatumAsync($"CUST_{mapData.map.custom_type}", mapData.map.custom_type_name, MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                        //if (mapData.map.custom_type == "TOOL")
+                        //{
+                        //    mapDatum.AddObjectPath("game_type", null);
+                        //}
                     //}
                 }
 
@@ -628,13 +663,33 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             }
         }
 
-        private async Task<PendingDatum> BuildGameTypeDatumAsync(string code, string name, string icon, bool multiGame, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent)
+        private async Task<PendingDatum> BuildGameTypeDatumAsync(string code, string name, string icon, string color, bool multiGame, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent)
         {
             await gametypeFullAlreadySentLock.WaitAsync();
             try
             {
                 if (gametypeFullAlreadySent.Add(code))
-                    return new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", new DataCache() { { "name", name }, { "icon", icon } }), $"game_type\t{code}", false);
+                {
+                    DataCache DataCacheItem = new DataCache() { { "name", name } };
+                    if (icon != null) DataCacheItem["icon"] = icon;
+
+                    // Main Color
+                    if (color != null) DataCacheItem["color"] = color; // general color
+
+                    // Color Pair
+                    // color_f <Omitted> Forground
+                    // color_b <Omitted> Background
+
+                    // Dark Backgrounded Color Pair
+                    // color_df <Omitted> Dark background Foreground (assume black if not present)
+                    // color_db <Omitted> Dark background Background (assume black if not present)
+
+                    // Light Backgrounded Color Pair
+                    // color_lf <Omitted> Light background Forground
+                    // color_lb <Omitted> Light background Background (assume white if not present)
+
+                    return new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", DataCacheItem), $"game_type\t{code}", false);
+                }
                 else
                     return new PendingDatum(new Datum("game_type", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_type\t{code}", true);
             }
@@ -643,13 +698,32 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 gametypeFullAlreadySentLock.Release();
             }
         }
-        private async Task<PendingDatum> BuildGameModeDatumAsync(string code, string name, string icon, bool multiGame, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent)
+        private async Task<PendingDatum> BuildGameModeDatumAsync(string code, string name, string icon, string colorA, string colorB, bool multiGame, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent)
         {
             await gamemodeFullAlreadySentLock.WaitAsync();
             try
             {
                 if (gamemodeFullAlreadySent.Add(code))
-                    return new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", new DataCache() { { "name", name }, { "icon", icon } }), $"game_mode\t{code}", false);
+                {
+                    DataCache DataCacheItem = new DataCache() { { "name", name } };
+                    if (icon != null) DataCacheItem["icon"] = icon;
+
+                    // Main Color
+                    if (colorA != null) DataCacheItem["color"] = colorA; // general color
+
+                    // Color Pair
+                    // color_f <Omitted> Forground
+                    // color_b <Omitted> Background
+
+                    // Dark Backgrounded Color Pair
+                    if (colorB != null) DataCacheItem["color_df"] = colorB; // Dark background Foreground
+                    // color_db <Omitted> Dark background Background (assume black if not present)
+
+                    // Light Backgrounded Color Pair
+                    // color_lf <Omitted> Light background Forground
+                    // color_lb <Omitted> Light background Background (assume white if not present)
+                    return new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", DataCacheItem), $"game_mode\t{code}", false);
+                }
                 else
                     return new PendingDatum(new Datum("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_mode\t{code}", true);
             }

@@ -29,15 +29,22 @@ namespace MultiplayerSessionList.Controllers
             //return View();
         }
 
-        /*public IActionResult Privacy()
+        [Route("/bz98r")]
+        public IActionResult IndexBZ98R()
         {
-            return View();
+            var filePath = Path.Combine(_env.ContentRootPath, "wwwroot", "bz98r.html");
+            return PhysicalFile(filePath, "text/html");
         }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }*/
     }
+
+    /*public IActionResult Privacy()
+    {
+        return View();
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }*/
 }

@@ -28,6 +28,10 @@
     <Content Update="D:\.nuget\bootstrap\5.3.3\contentFiles\any\any\wwwroot\css\bootstrap.css">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
+    <Content Update="wwwroot\bz98r.html">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
