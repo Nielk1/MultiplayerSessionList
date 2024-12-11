@@ -178,30 +178,12 @@
         }
 
         .team_name_1 {
-            left: 0;
-            display: block;
-            position: relative;
-            width: 0;
-        }
-        .team_name_1 div {
-            /*transform: rotate(90deg);
-            line-height: 150px;*/
             writing-mode: vertical-lr;
-            height: 80px;
             text-align: center;
         }
         .team_name_2 {
-            right: 0;
-            display: block;
-            position: relative;
-            width: 0;
-            transform: rotate(180deg)
-        }
-        .team_name_2 div {
-            /*transform: rotate(-90deg);
-            line-height: 150px;*/
             writing-mode: vertical-lr;
-            height: 80px;
+            transform: rotate(180deg);
             text-align: center;
         }
 
@@ -213,7 +195,8 @@
             height: 80px;
             width: 80px;
             max-width: inherit;
-            margin: 0px 2px 4px 2px;
+            /*margin: 0px 2px 4px 2px;*/
+            margin: 2px;
         }
 
             .player_box img {
@@ -226,6 +209,14 @@
                 height:100%;
                 width:100%;
             }
+
+        .session_extra_panel {
+            border-bottom: solid 1px;
+            border-right: solid 1px;
+            border-left: solid 1px;
+            border-radius: 0 0 12px 12px;
+            padding: 0 4px 4px 4px;
+        }
     </style>
 
     <style id="extra_data_style">
@@ -637,7 +628,8 @@
                     <td colspan="2"></td>
                     <td></td>
                     <td colspan="3">
-                        <div data-path="session.players" class="d-flex justify-content-between">
+                        <div class="session_extra_panel">
+                            <div data-path="session.players" class="d-flex justify-content-between"></div>
                         </div>
                     </td>
                 </tr>`);
@@ -968,11 +960,15 @@
                     }
 
                     let IsComputer = team && !session.teams?.[team]?.human && session.teams?.[team]?.computer === true;
-                    playerListDom.insertAdjacentHTML('beforeend', `
-                    <div class="player_boxes ${team == '1' ? 'pe-4 order-1 flex-row-reverse align-content-start' : team == '2' ? 'ps-4 order-3 flex-row align-content-start' : 'order-2 flex-row justify-content-center'} d-flex flex-wrap">
-                        ${team != null ? `<div class="${team == '1' ? 'team_name_1' : team == '2' ? 'team_name_2' : ''}"><div>${escapeHtml(teamName)}</div></div>` : ''}
-                        ${playerHtmlEntries}
-                    </div>`);
+                    if (playerHtmlEntries && playerHtmlEntries.length > 0) {
+                        playerListDom.insertAdjacentHTML('beforeend', `
+                        <div class="${team != null ? 'border rounded' : ''} player_boxes ${team == '1' ? 'order-1 flex-row-reverse align-content-start' : team == '2' ? 'order-3 flex-row align-content-start' : 'order-2 flex-row justify-content-center'} d-flex p-1 m-1">
+                            ${team != null ? `<div class="${team == '1' ? 'team_name_1' : team == '2' ? 'team_name_2' : ''}">${escapeHtml(teamName)}</div>` : ''}
+                            <div class="${team == '1' ? 'flex-row-reverse align-content-start' : team == '2' ? 'flex-row align-content-start' : 'flex-row justify-content-center'} d-flex flex-wrap">
+                                ${playerHtmlEntries}
+                            </div>
+                        </div>`);
+                    }
                 }
             }
         }
