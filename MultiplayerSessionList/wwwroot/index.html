@@ -783,16 +783,28 @@ team index lists allow for team membership to be set after the player data alrea
                 }
                 let playerListDom = sessionDom.querySelector('[data-path="players"]');
                 playerListDom.innerHTML = '';
+                let teamMaxesByMemberIndexes = {};
+                for (var t of Teams) {
+                    if (session?.level?.map?.teams?.[t]?.member_player_indexes) {
+                        if (!teamMaxesByMemberIndexes[t])
+                            teamMaxesByMemberIndexes[t] = 0;
+                        for (var t2 of session?.level?.map?.teams?.[t]?.member_player_indexes)
+                            if (t2 <= max_players)
+                                teamMaxesByMemberIndexes[t]++; // TODO if a user is somehow forced off a team, don't count this up
+                    }
+                }
                 let wrappedPlayers = session.players.map(p => {
                     let retVal = { player: p, team: null, leader: false };
 
                     // if the player_index is in the team's index list mark us as in the team
                     if (p.index && session.level && session.level.map && session.level.map.teams) {
                         for (let team in session.level.map.teams) {
-                            if (session.level.map.teams[team].member_player_indexes && session.level.map.teams[team].member_player_indexes.indexOf(p.index) >= 0) {
-                                retVal.team = team;
-                                if (session.level.map.teams[team].leader_player_indexes && session.level.map.teams[team].leader_player_indexes.indexOf(p.index) >= 0) {
-                                    retVal.leader = true;
+                            if (session.level.map.teams[team].member_player_indexes) {
+                                if (session.level.map.teams[team].member_player_indexes.indexOf(p.index) >= 0) {
+                                    retVal.team = team;
+                                    if (session.level.map.teams[team].leader_player_indexes && session.level.map.teams[team].leader_player_indexes.indexOf(p.index) >= 0) {
+                                        retVal.leader = true;
+                                    }
                                 }
                             }
                         }
@@ -819,6 +831,8 @@ team index lists allow for team membership to be set after the player data alrea
                     let playerHtmlEntries = '';
 
                     var player_count = teamPlayers.length;
+                    if (teamMaxesByMemberIndexes[team])
+                        player_count = Math.max(player_count, teamMaxesByMemberIndexes[team]);
                     if (session.teams?.[team])
                         if (max_players > -1 && total_players > -1 && session.teams[team].max) {
                             player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);

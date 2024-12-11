@@ -497,8 +497,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                 if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
                 {
-                    mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13 });
+                    mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13, 15 });
                     mapDatum.AddObjectPath("teams:2:member_player_indexes", new int[] { 2, 4, 6, 8, 10, 12, 14 });
+                    mapDatum.AddObjectPath("teams:1:name", "Odds");
+                    mapDatum.AddObjectPath("teams:2:name", "Evens");
 
                     if (mapData.map.flags?.Contains("sbp_wingman_game") ?? false)
                     {
