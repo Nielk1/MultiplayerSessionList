@@ -1,13 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
-using MultiplayerSessionList.Plugins.Battlezone98Redux;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;

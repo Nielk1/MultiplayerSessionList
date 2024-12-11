@@ -10,9 +10,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Runtime.CompilerServices;
-using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
-using System.Xml.Linq;
-using System.Drawing;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
@@ -135,14 +132,6 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 session.AddObjectPath("level:map", new DatumRef("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}"));
                 session.AddObjectPath("level:other:crc32", raw.CRC32);
 
-                if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame,
-                        modsAlreadyReturnedLock, modsAlreadyReturnedFull,
-                        gametypeFullAlreadySentLock, gametypeFullAlreadySent,
-                        gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
-                        heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
-                        gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
-
                 //if (!string.IsNullOrWhiteSpace(raw.WorkshopID) && raw.WorkshopID != "0")
                 //{
                 //    /*if (!modsAlreadyReturnedStub.Contains(raw.WorkshopID))
@@ -176,6 +165,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 session.AddObjectPath("status:state", ServerState); // TODO limit this state to our state enumeration
                 session.AddObjectPath("status:other:state", ServerState);
 
+                //SemaphoreSlim playerCacheLock = new SemaphoreSlim(1, 1);
+                //Dictionary<string, Tuple<int>> playerCache = new Dictionary<string, Tuple<int>>();
+
                 List<DatumRef> Players = new List<DatumRef>();
                 foreach (var dr in raw.users.Values)
                 {
@@ -200,6 +192,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         //player.AddObjectPath("team:id", dr.Team.Value.ToString());
                         player.AddObjectPath("ids:slot:id", dr.Team);
                         player.AddObjectPath("index", dr.Team);
+
+                        //playerCache[dr.id] = new Tuple<int>(dr.Team.Value);
                     }
 
                     //player.Attributes.Add("Vehicle", dr.Vehicle);
@@ -276,6 +270,15 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 }
                 session["players"] = Players;
 
+                if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
+                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame,
+                        modsAlreadyReturnedLock, modsAlreadyReturnedFull,
+                        gametypeFullAlreadySentLock, gametypeFullAlreadySent,
+                        gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
+                        heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
+                        gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                        //playerCacheLock, playerCache));
+
                 if (!string.IsNullOrWhiteSpace(raw.clientVersion))
                     session.AddObjectPath("game:version", raw.clientVersion);
                 else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
@@ -308,7 +311,13 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             yield break;
         }
 
-        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent, SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
+        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame,
+            SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull,
+            SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent,
+            SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent,
+            SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull,
+            SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
+            //SemaphoreSlim playerCacheLock, Dictionary<string, Tuple<int>> playerCache)
         {
             List<PendingDatum> retVal = new List<PendingDatum>();
             CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata2.php?map={mapID}&mods={modID}");
@@ -497,16 +506,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                 if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
                 {
-                    mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13, 15 });
-                    mapDatum.AddObjectPath("teams:2:member_player_indexes", new int[] { 2, 4, 6, 8, 10, 12, 14 });
+                    //mapDatum.AddObjectPath("teams:1:member_player_indexes", new int[] { 1, 3, 5, 7, 9, 11, 13, 15 });
+                    //mapDatum.AddObjectPath("teams:2:member_player_indexes", new int[] { 2, 4, 6, 8, 10, 12, 14 });
                     mapDatum.AddObjectPath("teams:1:name", "Odds");
                     mapDatum.AddObjectPath("teams:2:name", "Evens");
 
-                    if (mapData.map.flags?.Contains("sbp_wingman_game") ?? false)
-                    {
-                        mapDatum.AddObjectPath("teams:1:leader_player_indexes", new int[] { 1 });
-                        mapDatum.AddObjectPath("teams:2:leader_player_indexes", new int[] { 2 });
-                    }
+                    //if (mapData.map.flags?.Contains("sbp_wingman_game") ?? false)
+                    //{
+                    //    mapDatum.AddObjectPath("teams:1:leader_player_indexes", new int[] { 1 });
+                    //    mapDatum.AddObjectPath("teams:2:leader_player_indexes", new int[] { 2 });
+                    //}
                 }
 
                 // we don't bother linking these mods to the map since they came from the session.game, not the map, their data just came in piggybacking on the map data
@@ -627,19 +636,59 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"));
                     }
 
+                    if (session.PlayerLimit.HasValue && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false))
+                    {
+                        Datum sessionUpdate = new Datum("session", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{session.id}");
+
+                        // TODO account for when player slots are consumed by spectators
+                        sessionUpdate.AddObjectPath("teams:1:max", (session.PlayerLimit + 1) / 2);
+                        sessionUpdate.AddObjectPath("teams:2:max", (session.PlayerLimit + 0) / 2);
+
+                        retVal.Add(new PendingDatum(sessionUpdate, null, false));
+                    }
+
                     foreach (var dr in session.users.Values)
                     {
                         string vehicle = mapData.map.vehicles.Where(v => v.EndsWith($":{dr.Vehicle}")).FirstOrDefault();
+                        int playerTeam = dr.Team ?? -1;
+                        Datum player = null;
+                        if (vehicle != null || (playerTeam > 0 && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)))
+                        {
+                            player = new Datum("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
+                        }
+
                         if (vehicle != null)
                         {
                             // stub the hero just in case, even though this stub should NEVER actually occur
                             retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"), $"hero\t{vehicle}", true));
 
                             // make the player data and shove in our hero
-                            Datum player = new Datum("player", $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
                             player["hero"] = new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}");
-                            retVal.Add(new PendingDatum(player, null, false));
                         }
+
+                        if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
+                        {
+                            if (playerTeam >= 1 & playerTeam <= 15)
+                            {
+                                if (playerTeam % 2 == 1)
+                                {
+                                    player.AddObjectPath("team:id", "1");
+                                    if (playerTeam == 1 && (mapData.map.flags?.Contains("sbp_wingman_game") ?? false))
+                                        player.AddObjectPath("team:leader", true);
+                                    player.AddObjectPath("team:index", (playerTeam - 1) / 2);
+                                }
+                                else if (playerTeam % 2 == 0)
+                                {
+                                    player.AddObjectPath("team:id", "2");
+                                    if (playerTeam == 2 && (mapData.map.flags?.Contains("sbp_wingman_game") ?? false))
+                                        player.AddObjectPath("team:leader", true);
+                                    player.AddObjectPath("team:index", (playerTeam - 1) / 2);
+                                }
+                            }
+                        }
+
+                        if (player != null)
+                            retVal.Add(new PendingDatum(player, null, false));
                     }
                     mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
                 }
