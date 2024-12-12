@@ -214,8 +214,13 @@
             border-bottom: solid 1px;
             border-right: solid 1px;
             border-left: solid 1px;
-            border-radius: 0 0 12px 12px;
-            padding: 0 4px 4px 4px;
+            /*border-radius: 0 0 12px 12px;
+            padding: 0 4px 4px 4px;*/
+
+            border-radius: 12px;
+            padding: 36px 4px 4px 4px;
+            margin-top: -36px;
+            position: relative;
         }
     </style>
 
@@ -239,7 +244,7 @@
     </div>
 
     <div class="container-fluid">
-        <table class="table table-borderless table-sm table-hover gamelist">
+        <table class="table table-borderless table-sm gamelist">
             <!--<thead>
                 <tr>
                     <th scope="col">ID</th>
@@ -609,6 +614,7 @@
 
             if (!sessionDom) {
                 parent.insertAdjacentHTML('beforeend', `<tr id="/session/${encodeAttr($id)}">
+                <td style="width:6px;"></td>
                 <td style="width:25px;"><div data-path="session.status.is_locked" class="icon icon_lock" style="display:none;"><i class="fa fa-lock" aria-hidden="true"></i></div></td>
                 <td style="width:25px;"><div data-path="session.status.has_password" class="icon icon_password" style="display:none;"><i class="bi bi-key-fill"></i></div></td>
                 <td style="width:25px;">
@@ -623,11 +629,10 @@
                 <td data-path="session.level.map"></td>
                 <td data-path="session.name"></td>
                 <td data-path="session.player_count" class="text-end"></td>
+                <td style="width:6px;"></td>
                 </tr>
                 <tr class="extra_row" id="/session/${encodeAttr($id)}/row2">
-                    <td colspan="2"></td>
-                    <td></td>
-                    <td colspan="3">
+                    <td colspan="8">
                         <div class="session_extra_panel">
                             <div data-path="session.players" class="d-flex justify-content-between"></div>
                         </div>
