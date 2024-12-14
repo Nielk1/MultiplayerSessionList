@@ -48,18 +48,39 @@ namespace MultiplayerSessionList.Services
             return response.Data.Response.Servers;
         }
 
-        public async Task<PlayerSummaryModel> Users(ulong playerID)
+        // TODO add logic to debounce calls that fail, since we can't cache a failure right now
+        public async Task<WrappedPlayerSummaryModel> Users(ulong playerID)
         {
-            PlayerSummaryModel data = memCache.Get<PlayerSummaryModel>($"SteamInterface.GetPlayerSummary({playerID})");
+            WrappedPlayerSummaryModel data = memCache.Get<WrappedPlayerSummaryModel>($"SteamInterface.GetPlayerSummary({playerID})");
             if (data != null)
-                return data;
+                if (data.HasNoData)
+                    return null;
+                else
+                    return data;
 
             try
             {
                 ISteamWebResponse<PlayerSummaryModel> wrappedData = await steamInterface.GetPlayerSummaryAsync(playerID);
-                data = wrappedData.Data;
-                if (data == null)
-                    return data;
+                if (wrappedData == null)
+                {
+                    switch (playerID)
+                    {
+                        case 76561197960267366:
+                            {
+                                var pirate = WrappedPlayerSummaryModel.MakePirate(playerID);
+                                memCache.Set($"SteamInterface.GetPlayerSummary({playerID}) PIRATE!", data, TimeSpan.FromHours(1));
+                                return pirate;
+                            }
+                    }
+                    memCache.Set($"SteamInterface.GetPlayerSummary({playerID}) NULL", WrappedPlayerSummaryModel.NoData, TimeSpan.FromHours(1));
+                    return null;
+                }
+                if (wrappedData.Data == null)
+                {
+                    memCache.Set($"SteamInterface.GetPlayerSummary({playerID}) NULL", WrappedPlayerSummaryModel.NoData, TimeSpan.FromHours(1));
+                    return null;
+                }
+                data = new WrappedPlayerSummaryModel(wrappedData.Data);
                 memCache.Set($"SteamInterface.GetPlayerSummary({playerID})", data, TimeSpan.FromHours(1));
                 return data;
             }
@@ -103,6 +124,32 @@ namespace MultiplayerSessionList.Services
             catch { }
 
             return null;
+        }
+    
+        public class WrappedPlayerSummaryModel
+        {
+            public PlayerSummaryModel Model { get; set; }
+            public bool IsPirate { get; set; }
+            public bool HasNoData { get; set; }
+            public WrappedPlayerSummaryModel() { }
+            public WrappedPlayerSummaryModel(PlayerSummaryModel model)
+            {
+                this.Model = model;
+            }
+
+            public static WrappedPlayerSummaryModel MakePirate(ulong playerID)
+            {
+                return new WrappedPlayerSummaryModel(new PlayerSummaryModel()
+                {
+                    SteamId = playerID,
+                    ProfileVisibility = ProfileVisibility.Unknown,
+                    ProfileState = 0,
+                    UserStatus = UserStatus.Unknown,
+                })
+                { IsPirate = true };
+            }
+
+            public static readonly WrappedPlayerSummaryModel NoData = new() { HasNoData = true };
         }
     }
 }

@@ -110,7 +110,8 @@
             width: 200px;
             clip-path: polygon(2.5px 0, 197.5px 0, 200px 2.5px, 200px 22.5px, 22.5px 200px, 2.5px 25px, 0 22.5px, 0 2.5px);
         }
-        @media screen and (max-width: 768px) {
+        /*@media screen and (max-width: 768px) {*/
+        @media screen and (max-width: 992px) {
             /*.game_mode {
                 width: 39px;
                 clip-path: polygon(5px 0, 34px 0, 39px 5px, 39px 20px, 20px 39px, 5px 25px, 0 20px, 0 5px);
@@ -119,7 +120,21 @@
                 width: 25px;
                 clip-path: polygon(2.5px 0, 22.5px 0, 25px 2.5px, 25px 22.5px, 22.5px 25px, 2.5px 25px, 0 22.5px, 0 2.5px);
             }
+
             .nub {
+                display: none;
+            }
+
+            .map_name {
+                writing-mode: vertical-lr;
+                height: 241px;
+                margin: 0 !important;
+                width: 25px;
+                line-height: 100%;
+                transform: rotate(180deg);
+            }
+
+            .map_image {
                 display: none;
             }
         }
@@ -213,15 +228,50 @@
         .session_extra_panel {
             border-bottom: solid 1px;
             border-right: solid 1px;
-            border-left: solid 1px;
+            /*border-left: solid 1px;*/
             /*border-radius: 0 0 12px 12px;
             padding: 0 4px 4px 4px;*/
+            /*border-radius: 12px;*/
 
-            border-radius: 12px;
+            border-radius: 0 12px 12px 0;
             padding: 36px 4px 4px 4px;
             margin-top: -36px;
             position: relative;
+            min-height: 277px;
         }
+
+        .rules_list {
+            width: 56px;
+        }
+
+            .rules_list div {
+                width: 56px;
+                height: 25px;
+                color: #000;
+                background: gray;
+                clip-path: polygon(2.5px 0, 53.5px 0, 56px 2.5px, 56px 21.5px, 53.5px 25px, 2.5px 25px, 0 22.5px, 0 2.5px);
+                text-align: center;
+                /*font-size: small;
+                line-height: 2em;*/
+                font-weight: 1000;
+            }
+
+                .rules_list div.on {
+                    color: #000000;
+                    /*background: #00ff00;*/
+                    background: #4dad54;
+                }
+
+                .rules_list div.off {
+                    /*color: #000000;
+                    background: #ff0000;*/
+                    /*color: #ff0000;
+                    background: transparent;
+                    border: 1px solid #ff0000;*/
+
+                    color: #000;
+                    background: #fe5b5b;
+                }
     </style>
 
     <style id="extra_data_style">
@@ -613,28 +663,40 @@
             var sessionDom2 = parent.querySelector(`#\\/session\\/${CSS.escape($id)}\\/row2`);
 
             if (!sessionDom) {
-                parent.insertAdjacentHTML('beforeend', `<tr id="/session/${encodeAttr($id)}">
-                <td style="width:6px;"></td>
-                <td style="width:25px;"><div data-path="session.status.is_locked" class="icon icon_lock" style="display:none;"><i class="fa fa-lock" aria-hidden="true"></i></div></td>
-                <td style="width:25px;"><div data-path="session.status.has_password" class="icon icon_password" style="display:none;"><i class="bi bi-key-fill"></i></div></td>
-                <td style="width:25px;">
-                    <div class="d-flex flex-row">
-                        <div class="game_mode d-flex flex-row" data-path="session.level.game_mode">
-                            <div class="nub" style="border-right:solid black 2px; box-sizing: content-box;" data-path="session.level.game_type"></div>
-                            <div class="game_mode_icon" data-path="session.level.game_mode.icon"></div>
-                            <span class="game_mode_text ps-1 pe-1 force-ellipsis" data-path="session.level.game_mode.text"></span>
+                parent.insertAdjacentHTML('beforeend', `<tr class="z-1 position-relative" id="/session/${encodeAttr($id)}">
+                    <td style="width:25px;"><div data-path="session.status.is_locked" class="icon icon_lock" style="display:none;"><i class="fa fa-lock" aria-hidden="true"></i></div></td>
+                    <td style="width:25px;"><div data-path="session.status.has_password" class="icon icon_password" style="display:none;"><i class="bi bi-key-fill"></i></div></td>
+                    <td style="width:25px;">
+                        <div class="d-flex flex-row">
+                            <div class="game_mode d-flex flex-row" data-path="session.level.game_mode">
+                                <div class="nub" style="border-right:solid black 2px; box-sizing: content-box;" data-path="session.level.game_type"></div>
+                                <div class="game_mode_icon" data-path="session.level.game_mode.icon"></div>
+                                <span class="game_mode_text ps-1 pe-1 force-ellipsis" data-path="session.level.game_mode.text"></span>
+                            </div>
                         </div>
-                    </div>
-                </td>
-                <td data-path="session.level.map"></td>
-                <td data-path="session.name"></td>
-                <td data-path="session.player_count" class="text-end"></td>
-                <td style="width:6px;"></td>
+                    </td>
+                    <td data-path="session.level.map"></td>
+                    <td data-path="session.name"></td>
+                    <td data-path="session.player_count" class="bg-transparent text-end"></td>
+                    <td style="width:5px;" class="bg-transparent"></td>
                 </tr>
                 <tr class="extra_row" id="/session/${encodeAttr($id)}/row2">
-                    <td colspan="8">
+                    <td colspan="2">
+                        <div class="rules_list d-flex flex-column" data-path="session.level.rules"></div>
+                    </td>
+                    <td class="text-center">
+                        <div class="map_image border rounded">
+                            <div class="ratio ratio-1x1">
+                                <img class="rounded" data-path="session.level.map.image" width="186" length="186" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:94%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                            </div>
+                        </div>
+                        <div class="map_name shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate small">
+                            <small data-path="session.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
+                        </div>
+                    </td>
+                    <td colspan="4">
                         <div class="session_extra_panel">
-                            <div data-path="session.players" class="d-flex justify-content-between"></div>
+                            <div data-path="session.players AND session.level"></div>
                         </div>
                     </td>
                 </tr>`);
@@ -644,10 +706,10 @@
             }
 
             // Map Image
-            //sessionDom.querySelector('[data-path="session.level.map.image"]').setAttribute("src", session.level?.map?.image ?? "");
+            sessionDom2.querySelector('[data-path="session.level.map.image"]').setAttribute("src", session.level?.map?.image ?? "");
 
             // Map Filename
-            //sessionDom.querySelector('[data-path="session.level.map.map_file"]').textContent = session.level?.map?.map_file ?? " ";
+            sessionDom2.querySelector('[data-path="session.level.map.map_file"]').textContent = session.level?.map?.map_file ?? " ";
 
             // Map Name
             //let map_name_elem = sessionDom.querySelector('[data-path="session.level.map.name"]');
@@ -755,6 +817,26 @@
                 game_mode_icon_element.style.backgroundImage = 'url("//gamelistassets.iondriver.com/bz98r/icons/icon_unknown.png")';
             }
 
+            // Session Level Rules
+            let sessionRulesElem = sessionDom2.querySelector(`[data-path="session.level.rules"]`);
+            if (session.level.rules) {
+                let htmlEntries = '';
+                for (let prop in session.level.rules) {
+                    switch (prop) {
+                        case 'lives'    : htmlEntries += `<div class="                                            mb-2" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Lives"    >${escapeHtml('' + session.level.rules[prop])} <i class="bi bi-heart-pulse-fill"></i></div>`; break;
+                        case 'satellite': htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} mb-2" style="white-space:pre;" title= "Satellite ${session.level.rules[prop] ? "On" : "Off"}">${session.level.rules[prop] ? '<i class="bi bi-toggle2-on"></i>' : '<i class="bi bi-toggle2-off"></i>'} <i class="bi bi-eye-fill"                      ></i></div>`; break;
+                        case 'barracks' : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} mb-2" style="white-space:pre;" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}">${session.level.rules[prop] ? '<i class="bi bi-toggle2-on"></i>' : '<i class="bi bi-toggle2-off"></i>'} <i class="bi bi-building-fill"                 ></i></div>`; break;
+                        case 'sniper'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} mb-2" style="white-space:pre;" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}">${session.level.rules[prop] ? '<i class="bi bi-toggle2-on"></i>' : '<i class="bi bi-toggle2-off"></i>'} <i class="bi bi-record-circle"                 ></i></div>`; break;
+                        case 'splinter' : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} mb-2" style="white-space:pre;" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}">${session.level.rules[prop] ? '<i class="bi bi-toggle2-on"></i>' : '<i class="bi bi-toggle2-off"></i>'} <i class="fa fa-certificate" aria-hidden="true"></i></div>`; break;
+                        default: htmlEntries += `<div class="force-ellipsis mb-2" style="white-space:pre;" title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
+                    }
+                }
+                sessionRulesElem.innerHTML = htmlEntries;
+
+            } else {
+                sessionRulesElem.innerHTML = '';
+            }
+
             // Session Game Balance
             //let game_balance_element = sessionDom.querySelector(`[data-path="session.level.game_balance"]`);
             //let game_balance_data =
@@ -832,8 +914,8 @@
                 sessionDom.querySelector(`[data-path="session.player_count"]`).innerHTML = player_count_string;
             }
 
-            // Players
-            {
+            // Players & Map
+            /*{
                 function microSort(a, b) {
                     if (a < b) return -1;
                     if (a > b) return 1;
@@ -857,6 +939,7 @@
                         Teams.add(t);
                     }
                 }
+                let HasComplexTeams = Teams.size - Teams.has(null) > 0;
                 Teams = Array.from(Teams).sort();
                 let team_balance = -1;
                 let max_players = -1;
@@ -871,99 +954,122 @@
                         }
                     }
                 }
-                let playerListDom = sessionDom2.querySelector('[data-path="session.players"]');
-                playerListDom.innerHTML = '';
-                let wrappedPlayers = session.players.map(p => {
-                    let retVal = { player: p, team: null, leader: false };
+                let extraDetailsDom = sessionDom2.querySelector('[data-path="session.players AND session.level"]');
+                if (HasComplexTeams) {
+                    // has complex teams
+                    extraDetailsDom.innerHTML = '<div data-path="teams" class="d-flex justify-content-between"><div data-path="map" class="order-2"></div></div>';
+                    let playerListDom = extraDetailsDom.querySelector('[data-path="teams"]');
+                    let mapDom = extraDetailsDom.querySelector('[data-path="map"]');
+                    let wrappedPlayers = session.players.map(p => {
+                        let retVal = { player: p, team: null, leader: false };
 
-                    // if the player_index is in the team's index list mark us as in the team
-                    if (p.index && session.level && session.level.map && session.level.map.teams) {
-                        for (let team in session.level.map.teams) {
-                            if (session.level.map.teams[team].member_player_indexes) {
-                                if (session.level.map.teams[team].member_player_indexes.indexOf(p.index) >= 0) {
-                                    retVal.team = team;
-                                    if (session.level.map.teams[team].leader_player_indexes && session.level.map.teams[team].leader_player_indexes.indexOf(p.index) >= 0) {
-                                        retVal.leader = true;
+                        // if the player_index is in the team's index list mark us as in the team
+                        if (p.index && session.level && session.level.map && session.level.map.teams) {
+                            for (let team in session.level.map.teams) {
+                                if (session.level.map.teams[team].member_player_indexes) {
+                                    if (session.level.map.teams[team].member_player_indexes.indexOf(p.index) >= 0) {
+                                        retVal.team = team;
+                                        if (session.level.map.teams[team].leader_player_indexes && session.level.map.teams[team].leader_player_indexes.indexOf(p.index) >= 0) {
+                                            retVal.leader = true;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // if we don't have a team yet, grab it from our player data (these are currently mutually exclusive, having both is undefined behavior)
-                    if (!retVal.team && p.team) {
-                        retVal.team = p.team.id;
-                        retVal.leader = p.team.leader;
-                    }
-
-                    return retVal;
-                });
-                for (let team of Teams) {
-                    let teamName = session.teams?.[team]?.name || session.level?.map?.teams?.[team]?.name || `Team ${team}`;
-                    let teamPlayers = wrappedPlayers
-                        .filter(p => p.team == team)
-                        .sort((a, b) => {
-                            let c = microSort(a.player?.team?.index ?? -1, b.player?.team?.index ?? -1);
-                            if (c != 0) return c;
-                            return microSort(a.player?.index ?? -1, b.player?.index ?? -1);
-                        });
-
-                    let playerHtmlEntries = '';
-
-                    var player_count = teamPlayers.length;
-                    if (session.teams?.[team])
-                        if (max_players > -1 && total_players > -1 && session.teams[team].max) {
-                            player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
-                        } else {
-                            player_count = Math.max(session.teams[team].max ?? player_count, teamPlayers.length, team_balance);
+                        // if we don't have a team yet, grab it from our player data (these are currently mutually exclusive, having both is undefined behavior)
+                        if (!retVal.team && p.team) {
+                            retVal.team = p.team.id;
+                            retVal.leader = p.team.leader;
                         }
-                    for (var i = 0; i < player_count; i++) {
-                        if (i < teamPlayers.length) {
-                            let player = teamPlayers[i];
 
-                            let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
-                            let is_leader = null;
+                        return retVal;
+                    });
+                    for (let team of Teams) {
+                        let teamName = session.teams?.[team]?.name || session.level?.map?.teams?.[team]?.name || `Team ${team}`;
+                        let teamPlayers = wrappedPlayers
+                            .filter(p => p.team == team)
+                            .sort((a, b) => {
+                                let c = microSort(a.player?.team?.index ?? -1, b.player?.team?.index ?? -1);
+                                if (c != 0) return c;
+                                return microSort(a.player?.index ?? -1, b.player?.index ?? -1);
+                            });
 
-                            if (team) {
-                            //    playerHtmlEntries += '<div class="col-12 p-0 pb-2">';
-                                is_leader = player.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
+                        let playerHtmlEntries = '';
+
+                        var player_count = teamPlayers.length;
+                        if (session.teams?.[team])
+                            if (max_players > -1 && total_players > -1 && session.teams[team].max) {
+                                player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
                             } else {
-                            //    playerHtmlEntries += '<div class="col-12 col-md-6 p-0 p-2">';
+                                player_count = Math.max(session.teams[team].max ?? player_count, teamPlayers.length, team_balance);
                             }
-                            playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit);
-                            //playerHtmlEntries += '</div>';
-                        } else {
-                            let is_beyond_balance = team_balance >= 0 && i >= team_balance;
+                        for (var i = 0; i < player_count; i++) {
+                            if (i < teamPlayers.length) {
+                                let player = teamPlayers[i];
 
-                            playerHtmlEntries += `
-    <div class="player_box p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary text-bg-secondary bg-opacity-10 d-flex align-items-center">
-        <span class="text-nowrap overflow-hidden align-middle">
-            <i class="fa fa-user" aria-hidden="true"></i> Open
-        </span>
-    </div>`;
+                                let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
+                                let is_leader = null;
+
+                                if (team) {
+                                //    playerHtmlEntries += '<div class="col-12 p-0 pb-2">';
+                                    is_leader = player.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
+                                } else {
+                                //    playerHtmlEntries += '<div class="col-12 col-md-6 p-0 p-2">';
+                                }
+                                playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit);
+                                //playerHtmlEntries += '</div>';
+                            } else {
+                                let is_beyond_balance = team_balance >= 0 && i >= team_balance;
+
+                                playerHtmlEntries += `
+                                <div class="player_box p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary text-bg-secondary bg-opacity-10 d-flex align-items-center">
+                                    <span class="text-nowrap overflow-hidden align-middle">
+                                        <i class="fa fa-user" aria-hidden="true"></i> Open
+                                    </span>
+                                </div>`;
+                            }
                         }
-                    }
-                    if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
-                        playerHtmlEntries += `
-    <div class="p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center">
-        <span class="text-nowrap overflow-hidden align-middle">
-            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
-        </span>
-    </div>`;
-                    }
+                        if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
+                            playerHtmlEntries += `
+                            <div class="p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center">
+                                <span class="text-nowrap overflow-hidden align-middle">
+                                    <i class="fa fa-desktop" aria-hidden="true"></i> Computer
+                                </span>
+                            </div>`;
+                        }
 
-                    let IsComputer = team && !session.teams?.[team]?.human && session.teams?.[team]?.computer === true;
-                    if (playerHtmlEntries && playerHtmlEntries.length > 0) {
-                        playerListDom.insertAdjacentHTML('beforeend', `
-                        <div class="${team != null ? 'border rounded' : ''} player_boxes ${team == '1' ? 'order-1 flex-row-reverse align-content-start' : team == '2' ? 'order-3 flex-row align-content-start' : 'order-2 flex-row justify-content-center'} d-flex p-1 m-1">
-                            ${team != null ? `<div class="${team == '1' ? 'team_name_1' : team == '2' ? 'team_name_2' : ''}">${escapeHtml(teamName)}</div>` : ''}
-                            <div class="${team == '1' ? 'flex-row-reverse align-content-start' : team == '2' ? 'flex-row align-content-start' : 'flex-row justify-content-center'} d-flex flex-wrap">
-                                ${playerHtmlEntries}
-                            </div>
-                        </div>`);
+                        let IsComputer = team && !session.teams?.[team]?.human && session.teams?.[team]?.computer === true;
+                        //if (playerHtmlEntries && playerHtmlEntries.length > 0) {
+                            if (team == null) {
+                                extraDetailsDom.insertAdjacentHTML('beforeend', `
+                                <div class="player_boxes order-2 flex-row justify-content-center d-flex">
+                                    ${team != null ? `<div class="${team == '1' ? 'team_name_1' : team == '2' ? 'team_name_2' : ''}">${escapeHtml(teamName)}</div>` : ''}
+                                    <div class="${team == '1' ? 'flex-row-reverse align-content-start' : team == '2' ? 'flex-row align-content-start' : 'flex-row justify-content-center'} d-flex flex-wrap">
+                                        ${playerHtmlEntries}
+                                    </div>
+                                </div>`);
+                            } else {
+                                playerListDom.insertAdjacentHTML('beforeend', `
+                                <div class="${team != null ? 'border rounded' : ''} player_boxes ${team == '1' ? 'order-1 flex-row-reverse align-content-start' : team == '2' ? 'order-3 flex-row align-content-start' : 'order-2 flex-row justify-content-center'} d-flex p-1 m-1">
+                                    ${team != null ? `<div class="${team == '1' ? 'team_name_1' : team == '2' ? 'team_name_2' : ''}">${escapeHtml(teamName)}</div>` : ''}
+                                    <div class="${team == '1' ? 'flex-row-reverse align-content-start' : team == '2' ? 'flex-row align-content-start' : 'flex-row justify-content-center'} d-flex flex-wrap">
+                                        ${playerHtmlEntries}
+                                    </div>
+                                </div>`);
+                            }
+                        //}
                     }
+                    mapDom.insertAdjacentHTML('beforeend', `
+                    <div class="flex-row justify-content-center d-flex">
+                        <div class="m-1 p-2 rounded border text-secondary text-bg-secondary bg-opacity-10 d-flex align-items-center">
+                            <span class="text-nowrap overflow-hidden align-middle">MAP DATA</span>
+                        </div>
+                    </div>`);
+                } else {
+                    // has no teams
                 }
-            }
+            }*/
         }
 
         let debouncingDatums = false;

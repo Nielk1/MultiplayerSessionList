@@ -16,6 +16,7 @@ using static MultiplayerSessionList.Services.GogInterface;
 using System.Runtime.CompilerServices;
 using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
 using MultiplayerSessionList.Plugins.Battlezone98Redux;
+using static MultiplayerSessionList.Services.SteamInterface;
 
 namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
 {
@@ -196,10 +197,11 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
                                                     {
                                                         if (!DataCache.ContainsPath($"Players:IDs:Steam:{playerID.ToString()}"))
                                                         {
-                                                            PlayerSummaryModel playerData = await steamInterface.Users(playerID);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.AvatarFullUrl);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Nickname);
-                                                            DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.ProfileUrl);
+                                                            WrappedPlayerSummaryModel playerData = await steamInterface.Users(playerID);
+                                                            if (!string.IsNullOrEmpty(playerData.Model.AvatarFullUrl)) DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:AvatarUrl", playerData.Model.AvatarFullUrl);
+                                                            if (!string.IsNullOrEmpty(playerData.Model.Nickname)) DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Nickname", playerData.Model.Nickname);
+                                                            if (!string.IsNullOrEmpty(playerData.Model.ProfileUrl)) DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:ProfileUrl", playerData.Model.ProfileUrl);
+                                                            if (playerData.IsPirate) DataCache.AddObjectPath($"Players:IDs:Steam:{playerID.ToString()}:Pirate", true);
                                                         }
                                                     }
                                                     finally

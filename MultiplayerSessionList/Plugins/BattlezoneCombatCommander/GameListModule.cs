@@ -632,7 +632,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             while (DelayedDatumTasks.Any())
             {
                 Task<List<PendingDatum>> doneTask = await Task.WhenAny(DelayedDatumTasks);
-                foreach (var datum in doneTask.Result)
+                List<PendingDatum> datums = doneTask.Result;
+                if (datums != null)
+                {
+                    foreach (var datum in datums)
                 {
                     // don't send datums if we already sent the big guy
                     if (datum.key != null)
@@ -641,6 +644,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 continue;
                     yield return datum.data;
                     DontSendStub.Add(datum.key);
+                }
                 }
                 DelayedDatumTasks.Remove(doneTask);
             }

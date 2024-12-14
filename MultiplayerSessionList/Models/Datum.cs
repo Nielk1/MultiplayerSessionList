@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using MultiplayerSessionList.Services;
+using static MultiplayerSessionList.Services.SteamInterface;
 
 namespace MultiplayerSessionList.Models
 {
@@ -124,14 +125,20 @@ namespace MultiplayerSessionList.Models
     {
         public static async Task<List<PendingDatum>> GetPendingDataAsync(this SteamInterface steamInterface, ulong playerID)
         {
-            Steam.Models.SteamCommunity.PlayerSummaryModel playerData = await steamInterface.Users(playerID);
+            SteamInterface.WrappedPlayerSummaryModel playerData = await steamInterface.Users(playerID);
+            if (playerData == null)
+                // TODO consider finding a way to cache total failures like this, maybe with a counter before they get cached, or make the cache longer and longer
+                return null;
             Datum accountDataSteam = new Datum("identity/steam", playerID.ToString(), new DataCache()
             {
                 { "type", "steam" },
-                { "avatar_url", playerData.AvatarFullUrl },
-                { "nickname", playerData.Nickname },
-                { "profile_url", playerData.ProfileUrl },
             });
+            if (!string.IsNullOrEmpty(playerData.Model.AvatarFullUrl)) accountDataSteam["avatar_url" ] = playerData.Model.AvatarFullUrl;
+            if (!string.IsNullOrEmpty(playerData.Model.Nickname))      accountDataSteam["nickname"   ] = playerData.Model.Nickname;
+            if (!string.IsNullOrEmpty(playerData.Model.ProfileUrl))    accountDataSteam["profile_url"] = playerData.Model.ProfileUrl;
+            if (!string.IsNullOrEmpty(playerData.Model.ProfileUrl))    accountDataSteam["profile_url"] = playerData.Model.ProfileUrl;
+            if (playerData.IsPirate) accountDataSteam["is_pirate"] = true; // asshole
+
             return new List<PendingDatum>() { new PendingDatum(accountDataSteam, $"identity/steam/{playerID.ToString()}", false) };
         }
         public static async Task<List<PendingDatum>> GetPendingDataAsync(this GogInterface gogInterface, ulong playerID)

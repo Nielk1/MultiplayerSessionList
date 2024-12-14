@@ -295,15 +295,19 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             while (DelayedDatumTasks.Any())
             {
                 Task<List<PendingDatum>> doneTask = await Task.WhenAny(DelayedDatumTasks);
-                foreach (var datum in doneTask.Result)
+                List<PendingDatum> datums = doneTask.Result;
+                if (datums != null)
                 {
-                    // don't send datums if we already sent the big guy
-                    if (datum.key != null)
-                        if (datum.stub)
-                            if (DontSendStub.Contains(datum.key))
-                                continue;
-                    yield return datum.data;
-                    DontSendStub.Add(datum.key);
+                    foreach (var datum in doneTask.Result)
+                    {
+                        // don't send datums if we already sent the big guy
+                        if (datum.key != null)
+                            if (datum.stub)
+                                if (DontSendStub.Contains(datum.key))
+                                    continue;
+                        yield return datum.data;
+                        DontSendStub.Add(datum.key);
+                    }
                 }
                 DelayedDatumTasks.Remove(doneTask);
             }
@@ -449,7 +453,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             retVal.Add(await BuildGameModeDatumAsync("RELIC", "Capture the Relic", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
                             break;
                         case "S": // Strategy
-                        mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                            mapDatum.AddObjectPath("game_mode", new DatumRef("game_mode", $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/icons/icon_s.png";
                             MapModeColorA = "#007FFF";
                             MapModeColorB = "#007FFF";
@@ -472,7 +476,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
-                    {
+                {
                     //if (mapData.map.custom_type == "S" && (mapData.map.flags?.Contains("bad_type") ?? false))
                     //{
                     //    // Special case of SBP being knobs and use 'K' for their STRAT maps
