@@ -784,7 +784,6 @@
                 let wrappedPlayers = session.players.map(p => {
                     let retVal = { player: p, team: null, leader: false };
 
-                    // if we don't have a team yet, grab it from our player data (these are currently mutually exclusive, having both is undefined behavior)
                     if (!retVal.team && p.team) {
                         retVal.team = p.team.id;
                         retVal.leader = p.team.leader;

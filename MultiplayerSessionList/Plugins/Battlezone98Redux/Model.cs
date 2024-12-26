@@ -415,6 +415,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         public HashSet<string> flags { get; set; }
         public string image { get; set; }
         public string description { get; set; }
+
+        public string mission_dll { get; set; }
     }
 
     public class MapData_Vehicle

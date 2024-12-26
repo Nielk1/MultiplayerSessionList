@@ -145,15 +145,25 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath("level:rules:time_limit", raw.TimeLimit);
                 if (raw.KillLimit.HasValue && raw.KillLimit > 0) session.AddObjectPath("level:rules:kill_limit", raw.KillLimit);
                 if (raw.Lives.HasValue && raw.Lives.Value > 0) session.AddObjectPath("level:rules:lives", raw.Lives.Value);
+
+                // ProducerClass removes build items of class CLASS_COMMTOWER
                 if (raw.SatelliteEnabled.HasValue) session.AddObjectPath("level:rules:satellite", raw.SatelliteEnabled.Value);
+
+                // ProducerClass removes build items of class CLASS_BARRACKS
                 if (raw.BarracksEnabled.HasValue) session.AddObjectPath("level:rules:barracks", raw.BarracksEnabled.Value);
+
+                // GameObjectClass removes weapons of signiture "SNIP"
                 if (raw.SniperEnabled.HasValue) session.AddObjectPath("level:rules:sniper", raw.SniperEnabled.Value);
+
+                // ArmoryClass removes mortar list entries of class CLASS_POWERUP_WEAPON with PrjID "apspln" and "spspln"
+                // If not a DeathMatch (set by map script class internally) remove weapons with PrjID "gsplint"
                 if (raw.SplinterEnabled.HasValue) session.AddObjectPath("level:rules:splinter", raw.SplinterEnabled.Value);
 
                 // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
-                if (raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
+                if (!raw.isLocked && raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
                 {
                     session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", true);
+                    session.AddObjectPath("status:other:sync_bug", true);
                 }
                 else
                 {
@@ -640,16 +650,64 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"));
                     }
 
-                    if (session.PlayerLimit.HasValue && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false))
+                    bool session_teamUpdate = session.PlayerLimit.HasValue && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false);
+                    bool session_syncUpdate = (mapData.map?.bzcp_type_fix ?? mapData.map?.bzcp_auto_type_fix ?? mapData.map?.type) == "S" &&
+                                              !(session.SyncJoin ?? false) &&
+                                              (mapData.map?.flags?.Contains("sbp") ?? false);
+                    bool? session_is_deathmatch = mapData.map?.mission_dll switch
                     {
-                        Datum sessionUpdate = new Datum("session", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{session.id}");
-
+                        "MultSTMission" => false,
+                        "MultDMMission" => true,
+                        _ => null,
+                    };
+                    Datum sessionUpdate = null;
+                    if (session_teamUpdate || session_syncUpdate || session_is_deathmatch.HasValue)
+                    {
+                        sessionUpdate = new Datum("session", $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{session.id}");
+                    }
+                    if (session_teamUpdate)
+                    {
                         // TODO account for when player slots are consumed by spectators
                         sessionUpdate.AddObjectPath("teams:1:max", (session.PlayerLimit + 1) / 2);
                         sessionUpdate.AddObjectPath("teams:2:max", (session.PlayerLimit + 0) / 2);
-
-                        retVal.Add(new PendingDatum(sessionUpdate, null, false));
                     }
+                    if (session_syncUpdate)
+                    {
+                        // script based sync
+                        sessionUpdate.AddObjectPath("other:sync_script", true);
+                    }
+
+                    // if we know the mission script we can re-apply the rules that don't matter as null
+                    if (session_is_deathmatch.HasValue)
+                    {
+                        if (session_is_deathmatch.Value)
+                        {
+                            if (session.Lives.HasValue && session.Lives.Value > 0) sessionUpdate.AddObjectPath("level:rules:lives", null);
+
+                            // I think this is always active but only relevant for STRAT based maps
+                            // ProducerClass removes build items of class CLASS_COMMTOWER
+                            if (session.SatelliteEnabled.HasValue) sessionUpdate.AddObjectPath("level:rules:satellite", null);
+
+                            // I think this is always active but only relevant for STRAT based maps
+                            // ProducerClass removes build items of class CLASS_BARRACKS
+                            if (session.BarracksEnabled.HasValue) sessionUpdate.AddObjectPath("level:rules:barracks", null);
+
+                            // ArmoryClass removes mortar list entries of class CLASS_POWERUP_WEAPON with PrjID "apspln" and "spspln"
+                            // If not a DeathMatch (set by map script class internally) remove weapons with PrjID "gsplint"
+                            if (session.SplinterEnabled.HasValue) sessionUpdate.AddObjectPath("level:rules:splinter", null);
+                    }
+                        else
+                        {
+                            if (session.TimeLimit.HasValue && session.TimeLimit > 0) sessionUpdate.AddObjectPath("level:rules:time_limit", null);
+                            if (session.KillLimit.HasValue && session.KillLimit > 0) sessionUpdate.AddObjectPath("level:rules:kill_limit", null);
+                        }
+
+                        // GameObjectClass removes weapons of signiture "SNIP"
+                        //if (session.SniperEnabled.HasValue) sessionUpdate.AddObjectPath("level:rules:sniper", session.SniperEnabled.Value);
+                    }
+
+                    if (sessionUpdate != null)
+                        retVal.Add(new PendingDatum(sessionUpdate, null, false));
 
                     foreach (var dr in session.users.Values)
                     {
