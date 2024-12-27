@@ -511,11 +511,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 if (mapData.map?.flags?.Contains("sbp") ?? false)
                 {
                     mapDatum.AddObjectPath("game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_SBP"));
-                    retVal.Add(await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                    retVal.Add(await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "SBP", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
                 } else if (mapData.map?.flags?.Contains("balance_stock") ?? false)
                 {
                     mapDatum.AddObjectPath("game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
-                    retVal.Add(await BuildGameBalanceDatumAsync($"STOCK", "Stock", null, multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                    retVal.Add(await BuildGameBalanceDatumAsync($"STOCK", "Stock", null, null, multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
                 }
 
                 if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
@@ -760,13 +760,19 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             return retVal;
         }
 
-        private async Task<PendingDatum> BuildGameBalanceDatumAsync(string code, string name, string note, bool multiGame, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
+        private async Task<PendingDatum> BuildGameBalanceDatumAsync(string code, string name, string name_short, string note, bool multiGame, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
         {
             await gamebalanceFullAlreadySentLock.WaitAsync();
             try
             {
-                if (gamebalanceFullAlreadySent.Add(code))
-                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", string.IsNullOrWhiteSpace(note) ? new DataCache() { { "name", name } } : new DataCache() { { "name", name }, { "note", note } }), $"game_balance\t{code}", false);
+                if (gamebalanceFullAlreadySent.Add(code)) {
+                    DataCache cache = new DataCache() { { "name", name } };
+                    if (!string.IsNullOrWhiteSpace(name_short))
+                        cache["abbr"] = name_short;
+                    if (!string.IsNullOrWhiteSpace(note))
+                        cache["note"] = note;
+                    return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", cache), $"game_balance\t{code}", false);
+                }
                 else
                     return new PendingDatum(new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"game_balance\t{code}", true);
             }

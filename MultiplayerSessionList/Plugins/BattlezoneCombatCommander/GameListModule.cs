@@ -207,7 +207,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         if (raw.Mods[0] == @"1325933293")
                         {
                             if (DontSendStub.Add(@"game_balance\tVSR"))
-                                yield return new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR", new DataCache() { { "name", "Vet Strategy Recycler Variant" }, { "note", "This session uses a mod balance paradigm which emphasizes players over AI units and enables flight through the exploitation of physics quirks." } });
+                                yield return new Datum("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR", new DataCache() { { "name", "Vet Strategy Recycler Variant" }, { "abbr", "VSR" }, { "note", "This session uses a mod balance paradigm which emphasizes players over AI units and enables flight through the exploitation of physics quirks." } });
                             session.AddObjectPath("game:game_balance", new DatumRef("game_balance", $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR"));
                         }
                     }
