@@ -695,7 +695,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         {
             List<PendingDatum> retVal = new List<PendingDatum>();
             CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
-            MapData mapData = mapDataC.Data;
+            MapData mapData = mapDataC?.Data;
             if (mapData != null)
             {
                 Datum mapDatum = new Datum("map", $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {

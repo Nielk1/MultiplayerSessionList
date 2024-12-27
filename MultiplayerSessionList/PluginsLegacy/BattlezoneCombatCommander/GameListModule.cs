@@ -668,7 +668,7 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
 
                         MapData mapData = null;
                         if (mapDataTask != null)
-                            mapData = (await mapDataTask).Data;
+                            mapData = (await mapDataTask)?.Data;
                         if (mapData != null)
                         {
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.image ?? "nomap.png"}";

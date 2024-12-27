@@ -262,7 +262,7 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
 
                         Plugins.Battlezone98Redux.MapData mapData = null;
                         if (mapDataTask != null)
-                            mapData = (await mapDataTask).Data;
+                            mapData = (await mapDataTask)?.Data;
                         if (mapData != null)
                         {
                             game.Level["Image"] = $"{mapUrl.TrimEnd('/')}/{mapData.map.image ?? "nomap.png"}";

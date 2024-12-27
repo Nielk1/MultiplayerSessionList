@@ -224,8 +224,19 @@
             background: #003f00;
         }
 
-
-
+        .player_flex_box {
+            /*flex: 0 1 250px;*/
+            /*flex: 0 1 calc(max(320px,50%));*/
+            flex: 0 1 calc(min(320px,100%));
+            /*flex: 1 1 calc(min(320px,100%));*/
+            /*flex: 1 1 auto;*/
+            /*flex: 0 0 50%;*/
+        }
+        @media screen and (max-width: 768px) {
+            .player_flex_box {
+                flex: 0 1 100%;
+            }
+        }
 
 
         .team_name_1 {
@@ -771,16 +782,16 @@
             }
 
             let playerHtmlEntries = '';
+            //<div class="chamfer d-flex" style="background:black;flex:100% 0 0;">
             playerHtmlEntries += `
     <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}">
-        <div class="player_info_box chamfer d-flex ${teamed ? '' : 'me-1 mb-1'}" style="padding:2px;">
-            <div class="chamfer d-flex" style="background:black;flex:100% 0 0;">`
-                +`<div class="col-3 m-1 d-block" style="width:73px;">
+        <div class="player_info_box chamfer d-flex flex-row flex-nowrap ${teamed ? '' : 'me-1 mb-1'}" style="padding:2px;">
+            <div class="chamfer d-flex" style="background:black;flex:100% 0 0;">
+                <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
                     <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
                 </div>
-                <div class="m-1 ms-0">
-                    <div class="">
-                        <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
+                <div class="d-flex flex-column" style="flex: 0 1 100%;">
+                    <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
 
             playerHtmlEntries += `
                 <div class="d-flex flex-row">
@@ -818,18 +829,31 @@
 
             playerHtmlEntries += `</div>`;
 
-            if (player.hero) {
-                playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-user-circle-o" aria-hidden="true" title="Hero"></i> <span data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}">${escapeHtml(player.hero.name || player.hero.$id)}</span></div>`;
-            }
+            //if (player.hero) {
+            //    playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-user-circle-o" aria-hidden="true" title="Hero"></i> <span data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}">${escapeHtml(player.hero.name || player.hero.$id)}</span></div>`;
+            //}
 
             //if (player.stats)
             //    playerHtmlEntries += GenerateHtml_MicroList("Stats", player.stats, true);
             //if (player.other)
             //    playerHtmlEntries += GenerateHtml_MicroList("Other", player.other, true);
+
             playerHtmlEntries += `
-            </div>
+            </div>`
+
+            if (player.hero) {
+                playerHtmlEntries += `
+            <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
+                <img data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}" title="${encodeAttr(player.hero.name || player.hero.$id)}" src="/img/no_steam_pfp.jpg" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
+            </div>`;
+            } else {
+                playerHtmlEntries += `
+            <div class="d-flex m-1 d-block chamfer" style="flex: 0 0 50px;width:50px;background:green;">
+            </div>`;
+            }
+
+            playerHtmlEntries += `
         </div>
-    </div>
     </div>
 </div>`;
             return playerHtmlEntries;
@@ -887,9 +911,10 @@
                     </div>
                     <div class="session_extra_panel" style="flex:3 0 0;overflow-x:hidden;">
                         <div class="session_name_box text-truncate"><span class="force-ellipsis" data-path="session.name"></span></div>
-                        <div data-path="players" class="row g-0" style="margin-right: -.25rem !important;"></div>
+                        <div data-path="players" class="d-flex flex-row flex-wrap justify-content-evenly"></div>
                     </div>
                 </div>`);
+                //<div data-path="players" class="row g-0" style="margin-right: -.25rem !important;"></div>
                 //<div class="icon" style="border-right:solid black 2px; box-sizing: content-box;" data-path="session.level.game_type"></div>
                 sessionDom2 = parent.lastElementChild;
                 sessionDom = sessionDom2.previousElementSibling;
@@ -1068,6 +1093,20 @@
                         }
                     }
                 }
+
+                {
+                    // Session Game Balance
+                    let game_balance_data =
+                        session.level?.rules?.game_balance ??
+                        session.level?.map?.game_balance ??
+                        session.level?.game_balance ??
+                        session.game?.game_balance;
+
+                    if (game_balance_data) {
+                        htmlEntries += `<div class="chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${game_balance_data.note ?? `Balance: ${game_balance_data?.name ?? game_balance_data?.$id}`}"><div class="icon"><i class="fa-solid fa-scale-balanced"></i></div><div class="flex-grow-1 text-center">${game_balance_data?.name ?? game_balance_data?.$id}</div></div>`;
+                    }
+                }
+
                 sessionRulesElem.innerHTML = htmlEntries;
 
             } else {
@@ -1231,11 +1270,17 @@
                             let is_leader = null;
 
                             if (team) {
-                                playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
+                                playerHtmlEntries += '<div class="player_flex_box">';
+                                //playerHtmlEntries += '<div style="flex:1 1 auto;">';
+                                //playerHtmlEntries += '<div style="flex:0 0 300px;">';
+                                //playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
                                 //playerHtmlEntries += '<div class="col-12">';
                                 is_leader = player.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
                             } else {
-                                playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
+                                playerHtmlEntries += '<div class="player_flex_box">';
+                                //playerHtmlEntries += '<div style="flex:1 1 auto;">';
+                                //playerHtmlEntries += '<div style="flex:0 0 300px;">';
+                                //playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
                             }
                             playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit, in_team);
                             playerHtmlEntries += '</div>';
@@ -1290,13 +1335,15 @@
 <div class="col-12">
     <div class="player_info_box chamfer me-1">
         <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center chamfer" style="background:black;margin: 0 2px 2px 2px;top: 2px;position: relative;">${escapeHtml(teamName)}</div>
-        <div class="row g-0 mb-1">${playerHtmlEntries}</div>
+        <div class="d-flex flex-row flex-wrap justify-content-evenly">${playerHtmlEntries}</div>
     </div>
 </div>
-${(Teams.length > 1 && (teamCounter + 1) < Teams.length) ? '<hr class="m-2" style="border-color: #00ff00!important;opacity: 100%;">' : ''}`);
+${(Teams.length > 1 && (teamCounter + 1) < Teams.length) ? '<hr class="m-2 col-12" style="border-color: #00ff00!important;opacity: 100%;">' : ''}`);
                         }
                     } else {
-                        playerListDom.insertAdjacentHTML('beforeend', playerHtmlEntries);
+                        playerListDom.insertAdjacentHTML('beforeend', `
+${playerHtmlEntries}
+${(Teams.length > 1 && (teamCounter + 1) < Teams.length) ? '<hr class="m-2 col-12" style="border-color: #00ff00!important;opacity: 100%;">' : ''}`);
                     }
 
                     teamCounter++;
