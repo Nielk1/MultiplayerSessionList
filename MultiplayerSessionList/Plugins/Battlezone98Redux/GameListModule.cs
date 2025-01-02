@@ -163,7 +163,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 if (!raw.isLocked && raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
                 {
                     session.AddObjectPath($"status:{GAMELIST_TERMS.STATUS_LOCKED}", true);
-                    session.AddObjectPath("status:other:sync_bug", true);
+                    session.AddObjectPath("status:other:sync_too_late", true);
                 }
                 else
                 {

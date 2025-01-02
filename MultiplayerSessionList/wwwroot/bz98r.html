@@ -23,6 +23,25 @@
 </head>
 <body>
     <style>
+        .fa-cust-rifle {
+            --fa: "\e54e";
+        }
+            .fa-cust-rifle.fa-brands:before,
+            .fa-cust-rifle.fa-regular:before,
+            .fa-cust-rifle.fa-solid:before,
+            .fa-cust-rifle.fa:before,
+            .fa-cust-rifle.fab:before,
+            .fa-cust-rifle.far:before,
+            .fa-cust-rifle.fas:before {
+                width: 10px;
+                overflow: hidden;
+                display: inline-block;
+                direction: rtl;
+                transform: rotate(45deg);
+                font-size: x-large;
+                margin-top: 1px;
+            }
+
         .chamfer {
             --chamfer-size: 3px;
             clip-path: polygon(var(--chamfer-size) 0, calc(100% - var(--chamfer-size)) 0, 100% var(--chamfer-size), 100% calc(100% - var(--chamfer-size)), calc(100% - var(--chamfer-size)) 100%, var(--chamfer-size) 100%, 0 calc(100% - var(--chamfer-size)), 0 var(--chamfer-size));
@@ -83,7 +102,7 @@
             color: #000;
             background-color: #fe5b5b;
         }
-        .icon_sync_bug_lock {
+        .icon_sync_lock {
             color: #000;
             background-color: #fe5b5b;
         }
@@ -225,33 +244,33 @@
         }
 
         .player_flex_box {
-            /*flex: 0 1 250px;*/
-            /*flex: 0 1 calc(max(320px,50%));*/
-            /*flex: 0 1 calc(min(320px,100%));*/
-            /*flex: 1 1 calc(min(320px,100%));*/
-            /*flex: 1 1 auto;*/
-            /*flex: 0 0 50%;*/
             flex: 0 1 25%;
             min-width:0;
         }
+        .team-col .player_flex_box {
+            flex: 0 1 50%;
+            min-width: 0;
+        }
+        .team-col {
+            flex: 0 0 auto;
+            width: 50%;
+        }
         @media screen and (max-width: 1600px) {
             .player_flex_box {
-                flex: 0 1 33.32%;
-            }
-        }
-        @media screen and (max-width: 1300px) {
-            .player_flex_box {
                 flex: 0 1 50%;
             }
-        }
-        @media screen and (max-width: 992px) {
-            .player_flex_box {
-                flex: 0 1 50%;
+            .team-col .player_flex_box {
+                flex: 0 1 100%;
+                min-width: 0;
             }
         }
         @media screen and (max-width: 768px) {
             .player_flex_box {
                 flex: 0 1 100%;
+            }
+            .team-col {
+                flex: 0 0 auto;
+                width: 100%;
             }
         }
 
@@ -900,7 +919,7 @@
                         <div>
                             <div data-path="session.status.is_locked_off" class="icon"></div>
                             <div title="Locked" data-path="session.status.is_locked" class="chamfer icon icon_lock" style="display:none;"><i class="fa-solid fa-lock"></i></div>
-                            <div title="Effectively Locked via Sync Join Bug" data-path="session.status.other.sync_bug" class="chamfer icon icon_sync_bug_lock" style="display:none;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div title="Effectively Locked via Sync Join" data-path="session.status.other.sync_too_late" class="chamfer icon icon_sync_lock" style="display:none;"><i class="fa-solid fa-triangle-exclamation"></i></div>
                         </div>
                         <div>
                             <div data-path="session.status.has_password_off" class="icon"></div>
@@ -941,7 +960,7 @@
                     </div>
                     <div class="session_extra_panel" style="flex:3 0 0;overflow-x:hidden;">
                         <div class="session_name_box text-truncate"><span class="force-ellipsis" data-path="session.name"></span></div>
-                        <div data-path="players" class="d-flex flex-row flex-wrap justify-content-evenly"></div>
+                        <div data-path="players" class="d-flex flex-row flex-wrap justify-content-around row g-1"></div>
                     </div>
                 </div>`);
                 //<div data-path="players" class="row g-0" style="margin-right: -.25rem !important;"></div>
@@ -994,20 +1013,20 @@
             //sessionDom.querySelector('[data-path="session.message"]').textContent = session.message || " ";
 
             // Locked
-            if (session?.status?.other?.sync_bug ?? false) {
+            if (session?.status?.other?.sync_too_late ?? false) {
                 sessionDom.querySelector('[data-path="session.status.is_locked_off"]').style.display = "none";
                 sessionDom.querySelector('[data-path="session.status.is_locked"]').style.display = "none";
-                sessionDom.querySelector('[data-path="session.status.other.sync_bug"]').style.display = "block";
+                sessionDom.querySelector('[data-path="session.status.other.sync_too_late"]').style.display = "block";
             }
             else if (session?.status?.is_locked ?? false) {
                 sessionDom.querySelector('[data-path="session.status.is_locked_off"]').style.display = "none";
-                sessionDom.querySelector('[data-path="session.status.other.sync_bug"]').style.display = "none";
+                sessionDom.querySelector('[data-path="session.status.other.sync_too_late"]').style.display = "none";
                 sessionDom.querySelector('[data-path="session.status.is_locked"]').style.display = "block";
             }
             else
             {
                 sessionDom.querySelector('[data-path="session.status.is_locked"]').style.display = "none";
-                sessionDom.querySelector('[data-path="session.status.other.sync_bug"]').style.display = "none";
+                sessionDom.querySelector('[data-path="session.status.other.sync_too_late"]').style.display = "none";
                 sessionDom.querySelector('[data-path="session.status.is_locked_off"]').style.display = "block";
             }
 
@@ -1113,13 +1132,13 @@
                 for (let prop in session.level.rules) {
                     if (session.level.rules[prop] != null) {
                         switch (prop) {
-                            case 'lives'      : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Lives"   ><div class="icon"><i class="fa-solid fa-user-group"  ></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
-                            case 'kill_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Kills"   ><div class="icon"><i class="fa-solid fa-skull"       ></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
-                            case 'time_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="Time Limit ${session.level.rules[prop]} Minutes"       ><div class="icon"><i class="fa-solid fa-stopwatch"   ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(session.level.rules[prop] / 60)}:${String(session.level.rules[prop] % 60).padStart(2, '0')}`)}</div></div>`; break;
-                            case 'satellite'  : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title= "Satellite ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-satellite"   ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'barracks'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"        ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'sniper'     : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-person-rifle"></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'splinter'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion"   ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'lives'      : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Lives"   ><div class="icon"><i class="fa-solid fa-user-group"></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
+                            case 'kill_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Kills"   ><div class="icon"><i class="fa-solid fa-skull"     ></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
+                            case 'time_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="Time Limit ${session.level.rules[prop]} Minutes"       ><div class="icon"><i class="fa-solid fa-stopwatch" ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(session.level.rules[prop] / 60)}:${String(session.level.rules[prop] % 60).padStart(2, '0')}`)}</div></div>`; break;
+                            case 'satellite'  : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title= "Satellite ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-satellite" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'barracks'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"      ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'sniper'     : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-cust-rifle"></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'splinter'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
                             default: htmlEntries += `<div class="force-ellipsis text-center chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
                         }
                     }
@@ -1363,20 +1382,19 @@
 //</div>`);
                         } else {
                             playerListDom.insertAdjacentHTML('beforeend', `
-<div class="col-12">
-    <div class="player_info_box chamfer">
+<div class="team-col">
+    <div class="player_info_box chamfer team_box">
         <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center chamfer" style="background:black;margin: 0 2px 2px 2px;top: 2px;position: relative;">${escapeHtml(teamName)}</div>
-        <div class="d-flex flex-row flex-wrap justify-content-evenly row g-0">${playerHtmlEntries}</div>
+        <div class="d-flex flex-row flex-wrap justify-content-around row g-0">${playerHtmlEntries}</div>
     </div>
-</div>
-${(Teams.length > 1 && (teamCounter + 1) < Teams.length) ? '<hr class="mb-2 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}`);
+</div>`);
                         }
                     } else {
                         playerListDom.insertAdjacentHTML('beforeend', `
+${(Teams.length > 1 && team == null) ? '<hr class="mb-1 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
 <div class="col-12">
-    <div class="d-flex flex-row flex-wrap justify-content-evenly row gy-0 gx-1">${playerHtmlEntries}</div>
-</div>
-${(Teams.length > 1 && (teamCounter + 1) < Teams.length) ? '<hr class="mb-2 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}`);
+    <div class="d-flex flex-row flex-wrap justify-content-around row g-1">${playerHtmlEntries}</div>
+</div>`);
                     }
 
                     teamCounter++;
