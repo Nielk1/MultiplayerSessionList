@@ -244,8 +244,9 @@
         }
 
         .player_flex_box {
+            --bs-gutter-y: 0;
             flex: 0 1 25%;
-            min-width:0;
+            min-width: 0;
         }
         .team-col .player_flex_box {
             flex: 0 1 50%;
@@ -1391,7 +1392,7 @@
                         }
                     } else {
                         playerListDom.insertAdjacentHTML('beforeend', `
-${(Teams.length > 1 && team == null) ? '<hr class="mb-1 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
+${(Teams.length > 1 && team == null) ? '<hr class="mb-2 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
 <div class="col-12">
     <div class="d-flex flex-row flex-wrap justify-content-around row g-1">${playerHtmlEntries}</div>
 </div>`);
