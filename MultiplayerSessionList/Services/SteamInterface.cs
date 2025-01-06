@@ -68,7 +68,7 @@ namespace MultiplayerSessionList.Services
                         case 76561197960267366:
                             {
                                 var pirate = WrappedPlayerSummaryModel.MakePirate(playerID);
-                                memCache.Set($"SteamInterface.GetPlayerSummary({playerID}) PIRATE!", data, TimeSpan.FromHours(1));
+                                memCache.Set($"SteamInterface.GetPlayerSummary({playerID})", data, TimeSpan.FromHours(1));
                                 return pirate;
                             }
                     }
