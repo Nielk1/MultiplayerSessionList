@@ -72,12 +72,12 @@ namespace MultiplayerSessionList.Services
                                 return pirate;
                             }
                     }
-                    memCache.Set($"SteamInterface.GetPlayerSummary({playerID}) NULL", WrappedPlayerSummaryModel.NoData, TimeSpan.FromHours(1));
+                    memCache.Set($"SteamInterface.GetPlayerSummary({playerID})", WrappedPlayerSummaryModel.NoData, TimeSpan.FromHours(1));
                     return null;
                 }
                 if (wrappedData.Data == null)
                 {
-                    memCache.Set($"SteamInterface.GetPlayerSummary({playerID}) NULL", WrappedPlayerSummaryModel.NoData, TimeSpan.FromHours(1));
+                    memCache.Set($"SteamInterface.GetPlayerSummary({playerID})", WrappedPlayerSummaryModel.NoData, TimeSpan.FromHours(1));
                     return null;
                 }
                 data = new WrappedPlayerSummaryModel(wrappedData.Data);
