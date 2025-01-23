@@ -48,7 +48,7 @@ namespace MultiplayerSessionList.Services
             return response.Data.Response.Servers;
         }
 
-        // TODO add logic to debounce calls that fail, since we can't cache a failure right now
+        // Note that null responses from Steam are also cached so hiccups might result in no data for an hour (consider hit-count and retry on null cache items)
         public async Task<WrappedPlayerSummaryModel> Users(ulong playerID)
         {
             WrappedPlayerSummaryModel data = memCache.Get<WrappedPlayerSummaryModel>($"SteamInterface.GetPlayerSummary({playerID})");
@@ -63,6 +63,7 @@ namespace MultiplayerSessionList.Services
                 ISteamWebResponse<PlayerSummaryModel> wrappedData = await steamInterface.GetPlayerSummaryAsync(playerID);
                 if (wrappedData == null)
                 {
+                    // we only run this ID check logic if nothing came back, so we can only detect known pirates if they have no SteamID data (which I guess if it's a known pirate they won't, but make a note here if issues arrise)
                     switch (playerID)
                     {
                         case 76561197960267366:
