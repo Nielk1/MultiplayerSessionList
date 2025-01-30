@@ -29,18 +29,127 @@ namespace MultiplayerSessionList.Modules
     }
     public static class GAMELIST_TERMS
     {
-        public const string TYPE_LISTEN = "listen";
-        public const string TYPE_DEDICATED = "dedicated";
+        public const string TYPE_DEFAULT = "default";
 
-        //public const string ATTRIBUTE_LISTSERVER = "list_server";
+        public const string TYPE_SESSION = "session";
+            public const string SESSION_TYPE = "type";
+                public const string SESSION_TYPE_VALUE_LISTEN = "listen";
+                public const string SESSION_TYPE_VALUE_DEDICATED = "dedicated";
+            public const string SESSION_SOURCES = "sources";
+            public const string SESSION_NAME = "name";
+            public const string SESSION_MESSAGE = "message";
+            public const string SESSION_GAME = "game";
+                public const string SESSION_GAME_MOD = "mod";
+                public const string SESSION_GAME_MODS = "mods";
+                public const string SESSION_GAME_VERSION = "version";
+                public const string SESSION_GAME_GAMEBALANCE = "game_balance";
+                public const string SESSION_GAME_OTHER = "other";
+            public const string SESSION_STATUS = "status";
+                public const string SESSION_STATUS_LOCKED = "is_locked";
+                public const string SESSION_STATUS_PASSWORD = "has_password";
+                public const string SESSION_STATUS_STATE = "state";
+                public const string SESSION_STATUS_OTHER = "other";
+            public const string SESSION_ADDRESS = "address";
+                public const string SESSION_ADDRESS_TOKEN = "token";
+                public const string SESSION_ADDRESS_OTHER = "other";
+            public const string SESSION_LEVEL = "level";
+                public const string SESSION_LEVEL_GAMETYPE = "game_type";
+                public const string SESSION_LEVEL_GAMEMODE = "game_mode";
+                public const string SESSION_LEVEL_MAP = "map";
+                public const string SESSION_LEVEL_RULES = "rules"; // kind of like other but we consider these as "rules"
+                public const string SESSION_LEVEL_OTHER = "other";
+            public const string SESSION_TEAMS = "teams";
+                public const string SESSION_TEAMS_X_MAX = "max";
+                public const string SESSION_TEAMS_X_HUMAN = "human";
+                public const string SESSION_TEAMS_X_COMPUTER = "computer";
+            public const string SESSION_TIME = "time";
+                public const string SESSION_TIME_SECONDS = "seconds";
+                public const string SESSION_TIME_RESOLUTION = "resolution";
+                public const string SESSION_TIME_MAX = "max";
+                public const string SESSION_TIME_CONTEXT = "context"; // if the timer is constrained to a context
+            public const string SESSION_PLAYERS = "players";
+            public const string SESSION_PLAYERTYPES = "player_types";
+            public const string SESSION_PLAYERCOUNT = "player_count";
+            public const string SESSION_OTHER = "other";
 
-        public const string STATUS_LOCKED = "is_locked";
-        public const string STATUS_PASSWORD = "has_password";
-        public const string STATUS_STATE = "state";
+        public const string TYPE_SOURCE = "source";
+            public const string SOURCE_NAME = "name";
 
-        public const string PLAYERTYPE_PLAYER = "player";
-        public const string PLAYERTYPE_SPECTATOR = "spectator";
-        public const string PLAYERTYPE_BOT = "bot";
+        public const string TYPE_PLAYER = "player";
+            public const string PLAYER_NAME = "name";
+            public const string PLAYER_TYPE = "type";
+            public const string PLAYER_INDEX = "index";
+            public const string PLAYER_IDS = "ids";
+                public const string PLAYER_IDS_X_ID = "id";
+                public const string PLAYER_IDS_X_TYPE = "type";
+                public const string PLAYER_IDS_X_RAW = "raw";
+                public const string PLAYER_IDS_X_IDENTITY = "identity";
+            public const string PLAYER_TEAM = "team";
+                public const string PLAYER_TEAM_ID = "id";
+                public const string PLAYER_TEAM_LEADER = "leader";
+                public const string PLAYER_TEAM_INDEX = "index";
+            public const string PLAYER_ISHOST = "is_host";
+            public const string PLAYER_STATS = "stats";
+            public const string PLAYER_HERO = "hero";
+            public const string PLAYER_OTHER = "other";
+
+        public const string TYPE_MOD = "mod";
+            public const string MOD_NAME = "name";
+            public const string MOD_IMAGE = "image";
+            public const string MOD_URL = "url";
+            public const string MOD_DEPENDENCIES = "dependencies";
+
+        public const string TYPE_MAP = "map";
+            public const string MAP_NAME = "name";
+            public const string MAP_DESCRIPTION = "description";
+            public const string MAP_IMAGE = "image";
+            public const string MAP_MAPFILE = "map_file";
+            public const string MAP_GAMETYPE = "game_type";
+            public const string MAP_GAMEMODE = "game_mode";
+            public const string MAP_GAMEBALANCE = "game_balance";
+            public const string MAP_TEAMS = "teams";
+                public const string MAP_TEAMS_X_NAME = "name";
+            public const string MAP_ALLOWEDHEROES = "allowed_heroes";
+        
+        public const string TYPE_HERO = "hero";
+            public const string HERO_NAME = "name";
+            public const string HERO_DESCRIPTION = "description";
+
+        public const string TYPE_GAMEBALANCE = "game_balance";
+            public const string GAMEBALANCE_NAME = "name";
+            public const string GAMEBALANCE_ABBR = "abbr";
+            public const string GAMEBALANCE_NOTE = "note";
+
+        public const string TYPE_GAMETYPE = "game_type";
+            public const string GAMETYPE_NAME = "name";
+            public const string GAMETYPE_ICON = "icon";
+            public const string GAMETYPE_COLOR = "color";
+            public const string GAMETYPE_COLORF = "color_f";
+            public const string GAMETYPE_COLORB = "color_b";
+            public const string GAMETYPE_COLORDF = "color_df";
+            public const string GAMETYPE_COLORDB = "color_db";
+            public const string GAMETYPE_COLORLF = "color_lf";
+            public const string GAMETYPE_COLORLB = "color_lb";
+
+        public const string TYPE_GAMEMODE = "game_mode";
+            public const string GAMEMODE_NAME = "name";
+            public const string GAMEMODE_ICON = "icon";
+            public const string GAMEMODE_COLOR = "color";
+            public const string GAMEMODE_COLORF = "color_f";
+            public const string GAMEMODE_COLORB = "color_b";
+            public const string GAMEMODE_COLORDF = "color_df";
+            public const string GAMEMODE_COLORDB = "color_db";
+            public const string GAMEMODE_COLORLF = "color_lf";
+            public const string GAMEMODE_COLORLB = "color_lb";
+
+        public const string TYPE_IDENTITYSTEAM = "identity/steam";
+        public const string TYPE_IDENTITYGOG = "identity/gog";
+
+        public const string PLAYERTYPE_TYPES = "types";
+            public const string PLAYERTYPE_TYPES_VALUE_PLAYER = "player";
+            public const string PLAYERTYPE_TYPES_VALUE_SPECTATOR = "spectator";
+            public const string PLAYERTYPE_TYPES_VALUE_BOT = "bot";
+        public const string PLAYERTYPE_MAX = "max";
     }
 
     public interface IGameListModuleOld

@@ -35,10 +35,13 @@
         @media screen and (max-width: 992px) {
             :root {
                 --section-mode-width: 25px;
-                --section-mode-extra-left: calc(var(--section-icons-width) + var(--section-mode-width) + (3 * 4px))
             }
         }
 
+        /*
+         * Custom Icon: Rifle
+         * Formed by cropping the soldier glyph to only show the rifle portion, then rotating it 45 deg.
+         */
         .fa-cust-rifle {
             --fa: "\e54e";
         }
@@ -59,41 +62,8 @@
             }
 
         .chamfer {
-            --chamfer-size: 3px;
-            clip-path: polygon(var(--chamfer-size) 0, calc(100% - var(--chamfer-size)) 0, 100% var(--chamfer-size), 100% calc(100% - var(--chamfer-size)), calc(100% - var(--chamfer-size)) 100%, var(--chamfer-size) 100%, 0 calc(100% - var(--chamfer-size)), 0 var(--chamfer-size));
-        }
-
-        .pre {
-            white-space: pre;
-        }
-
-        .player_avatars {
-            text-align: center;
-        }
-
-            .player_avatars a img {
-                height: 100px;
-            }
-
-            /* ^^^^^ old ^^^^^ */
-
-        .force-ellipsis {
-            text-overflow: ellipsis;
-            text-wrap: nowrap;
-            overflow: hidden;
-        }
-
-        @media (max-width: 575.99px) {
-            .border-start-xs-0 {
-                border-left: 0 !important;
-            }
-        }
-
-        .border-dotted {
-            border-style: dotted !important;
-        }
-        .border-dashed {
-            border-style: dashed !important;
+            --chamfer-size-inner: var(--chamfer-size, 3px);
+            clip-path: polygon(var(--chamfer-size-inner) 0, calc(100% - var(--chamfer-size-inner)) 0, 100% var(--chamfer-size-inner), 100% calc(100% - var(--chamfer-size-inner)), calc(100% - var(--chamfer-size-inner)) 100%, var(--chamfer-size-inner) 100%, 0 calc(100% - var(--chamfer-size-inner)), 0 var(--chamfer-size-inner));
         }
 
         .icon {
@@ -105,7 +75,6 @@
             min-width: 25px;
 
             display: block;
-            /*clip-path: polygon(2.5px 0, calc(100% - 2.5px) 0, 100% 2.5px, 100% calc(100% - 2.5px), calc(100% - 2.5px) 100%, 2.5px 100%, 0 calc(100% - 2.5px), 0 2.5px);*/
         }
             .icon i {
                 width: 25px;
@@ -114,6 +83,7 @@
                 text-align: center;
                 display: block;
             }
+
         .icon_lock {
             color: #000;
             background-color: #fe5b5b;
@@ -507,15 +477,7 @@
 
     <div class="container-fluid">
         <div class="gamelist">
-            <!--<thead>
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Type/Mode</th>
-                    <th scope="col">Name</th>
-                </tr>
-            </thead>-->
-            <div id="lobbyList">
-            </div>
+            <div id="lobbyList"></div>
         </div>
     </div>
 
@@ -769,59 +731,6 @@
 
         var parent = document.querySelector('#lobbyList');
 
-        function GenerateHtml_ModBoxes(mod, mods) {
-            let modBoxes = '';
-            if (mod && mod.dependencies) {
-                for (let m of mod.dependencies) {
-                    modBoxes += GenerateHtml_ModBox(m, false);
-                }
-            } else {
-                if (mods) {
-                    for (let m of mods) {
-                        modBoxes += GenerateHtml_ModBox(m, false);
-                    }
-                }
-            }
-            return modBoxes;
-        }
-
-        // mapId is to allow the map to rewrite the sub-mods section, the modId of the base mod is also applied to allow this
-        // mapId isn't actually a way updated can happen anymore so we can probably drop it
-        function GenerateHtml_ModsRow(mod, mods, mapId) {
-            let htmlOut = '';
-            let modBoxes = GenerateHtml_ModBoxes(mod, mods);
-
-            if (mod) {
-                htmlOut += `
-<div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
-    ${GenerateHtml_ModBox(mod, true) }
-</div>
-<div class="col-12 col-sm-8 col-lg-9 col-xl-8 border-0 border-start border-start-xs-0 small">
-    <div class="row" data-path="mods" data-id-map="${encodeAttr(mapId)}" data-id-mod="${encodeAttr(mod.$id)}">${modBoxes}</div>
-</div>`;
-            } else {
-                htmlOut += `
-<div class="col-12 p-0 border-0 small" data-path="mods" data-id-map="${encodeAttr(mapId)}" data-id-mod="${encodeAttr(mod.$id)}">${modBoxes}</div>`;
-            }
-            return htmlOut
-        }
-
-        function GenerateHtml_ModBox(mod, primary) {
-            return `
-<div class="${primary ? '' : 'col-3 col-sm-2 col-lg-1 col-xl-2'} p-1">
-    <div class="ratio ratio-1x1">
-        <a class="ratio ratio-1x1" data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank">
-            <img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
-        </a>
-    </div>
-    ${primary ? `
-    <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
-        <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
-    </div>
-    ` : ''}
-</div>`;
-        }
-
         function GenerateHtml_IdentitySteam(identity) {
             let platform_name = identity.nickname || identity.$id;
             let platform_profile = identity.profile_url;
@@ -871,7 +780,7 @@
                     <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
                 </div>
                 <div class="d-flex flex-column" style="flex: 0 1 100%;min-width:0;">
-                    <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
+                    <div class="text-truncate">${escapeHtml(player.name)}</div>`;
 
             playerHtmlEntries += `
                 <div class="d-flex flex-row">
@@ -883,13 +792,13 @@
                     case "slot":
                         //{
                         //    let platform_id = '' + player.ids[id].id;
-                        //    playerHtmlEntries += `<div class="force-ellipsis"><i class="icon icon-hash" aria-hidden="true" title="Slot"></i> ${escapeHtml(platform_id)}</a></div>`;
+                        //    playerHtmlEntries += `<div class="text-truncate"><i class="icon icon-hash" aria-hidden="true" title="Slot"></i> ${escapeHtml(platform_id)}</a></div>`;
                         //}
                         break;
                     case "bzr_net":
                         //{
                         //    let platform_id = '' + player.ids[id].id;
-                        //    playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-gamepad" aria-hidden="true" title="BZR-Net"></i> ${escapeHtml(platform_id)}</a></div>`;
+                        //    playerHtmlEntries += `<div class="text-truncate"><i class="fa fa-gamepad" aria-hidden="true" title="BZR-Net"></i> ${escapeHtml(platform_id)}</a></div>`;
                         //}
                         break;
                     case "steam":
@@ -910,7 +819,7 @@
             playerHtmlEntries += `</div>`;
 
             //if (player.hero) {
-            //    playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-user-circle-o" aria-hidden="true" title="Hero"></i> <span data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}">${escapeHtml(player.hero.name || player.hero.$id)}</span></div>`;
+            //    playerHtmlEntries += `<div class="text-truncate"><i class="fa fa-user-circle-o" aria-hidden="true" title="Hero"></i> <span data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}">${escapeHtml(player.hero.name || player.hero.$id)}</span></div>`;
             //}
 
             //if (player.stats)
@@ -971,12 +880,12 @@
                             <div class="chamfer game_mode d-flex flex-row" data-path="session.level.game_mode">
                                 <div class="nub" style="border-right:solid black 2px; box-sizing: content-box;" data-path="session.level.game_type"></div>
                                 <div class="game_mode_icon" data-path="session.level.game_mode.icon"></div>
-                                <span class="game_mode_text ps-1 pe-1 force-ellipsis" data-path="session.level.game_mode.text"></span>
+                                <span class="game_mode_text ps-1 pe-1 text-truncate" data-path="session.level.game_mode.text"></span>
                             </div>
                         </div>
                     </div>
-                    <div style="flex:0 1 50%;" class="me-1 d-flex flex-grow-1 text-truncate"><span class="force-ellipsis" data-path="session.level.map"></span></div>
-                    <div style="flex:0 1 50%;" class="me-1 d-flex flex-grow-1 text-truncate session_name_cell"><span class="force-ellipsis" data-path="session.name"></span></div>
+                    <div style="flex:0 1 50%;" class="me-1 d-flex flex-grow-1 text-truncate"><span class="text-truncate" data-path="session.level.map"></span></div>
+                    <div style="flex:0 1 50%;" class="me-1 d-flex flex-grow-1 text-truncate session_name_cell"><span class="text-truncate" data-path="session.name"></span></div>
                     <div style="flex:0 0 0;" class="me-1 text-nowrap bg-transparent text-end" data-path="session.player_count"></div>
                 </div>
                 <div class="mb-2 d-flex flex-row flex-nowrap extra_row" id="/session/${encodeAttr($id)}/row2">
@@ -994,7 +903,7 @@
                         </div>
                     </div>
                     <div class="session_extra_panel" style="flex:3 0 0;overflow-x:hidden;">
-                        <div class="session_name_box text-truncate"><span class="force-ellipsis" data-path="session.name"></span></div>
+                        <div class="session_name_box text-truncate"><span class="text-truncate" data-path="session.name"></span></div>
                         <div data-path="players" class="mt-0 d-flex flex-row flex-wrap justify-content-around row g-1"></div>
                     </div>
                 </div>`);
@@ -1194,7 +1103,7 @@
                             case 'barracks'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"      ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
                             case 'sniper'     : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-cust-rifle"></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
                             case 'splinter'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            default: htmlEntries += `<div class="force-ellipsis text-center chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
+                            default: htmlEntries += `<div class="text-truncate text-center chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
                         }
                     }
                 }
@@ -1224,7 +1133,7 @@
                 {
                     // game mod(s)
                     for (let mod of game_mods) {
-                        htmlEntries += `<a href="${encodeAttr(mod.url)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none rule_game_mod chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(mod?.abbr ?? mod?.name ?? mod?.$id)}"><div class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="flex-grow-1 text-center text-truncate"><span class="force-ellipsis" data-path="session.name">${escapeHtml(mod?.abbr ?? mod?.name ?? mod?.$id)}</span></div></a>`;
+                        htmlEntries += `<a href="${encodeAttr(mod.url)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none rule_game_mod chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(mod?.abbr ?? mod?.name ?? mod?.$id)}"><div class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="flex-grow-1 text-center text-truncate"><span class="text-truncate" data-path="session.name">${escapeHtml(mod?.abbr ?? mod?.name ?? mod?.$id)}</span></div></a>`;
                     }
                 }
 
@@ -1233,27 +1142,6 @@
             } else {
                 sessionRulesElem.innerHTML = '';
             }
-
-            // Session Game Balance
-            //let game_balance_element = sessionDom.querySelector(`[data-path="session.level.game_balance"]`);
-            //let game_balance_data =
-            //    session.level?.rules?.game_balance ??
-            //    session.level?.map?.game_balance ??
-            //    session.level?.game_balance ??
-            //    session.game?.game_balance;
-            //
-            //if (game_balance_data) {
-            //    game_balance_element.textContent = game_balance_data?.name ?? game_balance_data?.$id;
-            //    if (game_balance_data.note) {
-            //        game_balance_element.setAttribute("title", game_balance_data.note);
-            //    } else {
-            //        game_balance_element.removeAttribute("title");
-            //    }
-            //} else {
-            //    game_balance_element.textContent = '';
-            //    game_balance_element.removeAttribute("title");
-            //}
-
 
 
             // Session Time
