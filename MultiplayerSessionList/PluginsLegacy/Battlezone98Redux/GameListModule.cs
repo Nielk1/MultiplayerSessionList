@@ -147,7 +147,7 @@ namespace MultiplayerSessionList.PluginsLegacy.Battlezone98Redux
                             game.Status.Add(GAMELIST_TERMS_OLD.STATUS_LOCKED, raw.isLocked);
                         }
                         game.Status.Add(GAMELIST_TERMS_OLD.STATUS_PASSWORD, raw.IsPassworded);
-                        game.Status.Add(GAMELIST_TERMS_OLD.STATUS_STATE, Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame));
+                        game.Status.Add(GAMELIST_TERMS_OLD.STATUS_STATE, raw.IsEnded ? SESSION_STATE.PostGame : raw.IsLaunched ? SESSION_STATE.InGame : SESSION_STATE.PreGame);
 
                         foreach (var dr in raw.users.Values)
                         {

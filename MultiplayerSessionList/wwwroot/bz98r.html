@@ -24,12 +24,12 @@
 <body>
     <style>
         :root {
-            --section-icons-count: 4;
+            --section-icons-count: 5;
             --section-icons-width: calc((25px * var(--section-icons-count)) + (4px * (var(--section-icons-count) - 1)));
 
             --section-mode-width: 200px;
 
-            --section-mode-extra-left: calc(var(--section-icons-width) + var(--section-mode-width) + (3 * 4px))
+            --section-mode-extra-left: calc(var(--section-icons-width) + var(--section-mode-width) + ((var(--section-icons-count) - 1) * 4px))
         }
 
         @media screen and (max-width: 992px) {
@@ -112,6 +112,21 @@
             /*color: #000;
             background-color: #4dad54;*/
         }
+
+
+        .icon_state_pregame {
+            color: #fff;
+            background-color: #7f00ff;
+        }
+        .icon_state_ingame {
+            color: #000;
+            background-color: #4dad54;
+        }
+        .icon_state_postgame {
+            color: #000;
+            background-color: #fe5b5b;
+        }
+
 
         .icon_leader {
             color: #fff;
@@ -874,6 +889,12 @@
                             <div data-path="session.game.mod.off" class="icon"></div>
                             <a title="Modded" data-path="session.game.mod" target="_blank" rel="noopener noreferrer" class="chamfer icon icon_mod text-decoration-none" style="display:none;"><i class="fa-solid fa-screwdriver-wrench"></i></a>
                         </div>
+                        <div>
+                            <div data-path="session.status.state.none" class="icon"></div>
+                            <div title="Pre-Game"  data-path="session.status.state.pre_game"  class="chamfer icon icon_state_pregame"  style="display:none;"><i class="fa-solid fa-hourglass"></i></div>
+                            <div title="In Game"   data-path="session.status.state.in_game"   class="chamfer icon icon_state_ingame"   style="display:none;"><i class="fa-solid fa-play"></i></div>
+                            <div title="Post-Game" data-path="session.status.state.post_game" class="chamfer icon icon_state_postgame" style="display:none;"><i class="fa-solid fa-flag-checkered"></i></div>
+                        </div>
                     </div>
                     <div class="me-1 d-flex game_mode_cell">
                         <div class="d-flex flex-row">
@@ -1001,6 +1022,34 @@
                 sessionDom.querySelector('[data-path="session.other.sync_join_off"]').style.display = "block";
                 sessionDom.querySelector('[data-path="session.other.sync_join"]').style.display = "none";
                 sessionDom.querySelector('[data-path="session.other.sync_script"]').style.display = "none";
+            }
+
+            // State
+            switch (session.status.state) {
+                case "pre_game":
+                    sessionDom.querySelector('[data-path="session.status.state.none"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.pre_game"]').style.display = "block";
+                    sessionDom.querySelector('[data-path="session.status.state.in_game"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.post_game"]').style.display = "none";
+                    break;
+                case "in_game":
+                    sessionDom.querySelector('[data-path="session.status.state.none"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.pre_game"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.in_game"]').style.display = "block";
+                    sessionDom.querySelector('[data-path="session.status.state.post_game"]').style.display = "none";
+                    break;
+                case "post_game":
+                    sessionDom.querySelector('[data-path="session.status.state.none"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.pre_game"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.in_game"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.post_game"]').style.display = "block";
+                    break;
+                default:
+                    sessionDom.querySelector('[data-path="session.status.state.none"]').style.display = "block";
+                    sessionDom.querySelector('[data-path="session.status.state.pre_game"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.in_game"]').style.display = "none";
+                    sessionDom.querySelector('[data-path="session.status.state.post_game"]').style.display = "none";
+                    break;
             }
 
             let game_mods = [];

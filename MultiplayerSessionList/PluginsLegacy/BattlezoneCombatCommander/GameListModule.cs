@@ -183,22 +183,22 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                             switch (raw.ServerInfoMode)
                             {
                                 case 0: // ServerInfoMode_Unknown
-                                    ServerState = Enum.GetName(typeof(ESessionState), ESessionState.Unknown);
+                                    ServerState = SESSION_STATE.Unknown;
                                     break;
                                 case 1: // ServerInfoMode_OpenWaiting
                                 case 2: // ServerInfoMode_ClosedWaiting (full)
                                     if (raw.pl.Any(dr => dr != null && ((dr.Score ?? 0) != 0 || (dr.Deaths ?? 0) != 0 || (dr.Kills ?? 0) != 0)))
                                         // PreGame status applied in error, players have in-game sourced data
-                                        ServerState = Enum.GetName(typeof(ESessionState), ESessionState.InGame);
+                                        ServerState = SESSION_STATE.InGame;
                                     else
-                                        ServerState = Enum.GetName(typeof(ESessionState), ESessionState.PreGame);
+                                        ServerState = SESSION_STATE.PreGame;
                                     break;
                                 case 3: // ServerInfoMode_OpenPlaying
                                 case 4: // ServerInfoMode_ClosedPlaying (full)
-                                    ServerState = Enum.GetName(typeof(ESessionState), ESessionState.InGame);
+                                    ServerState = SESSION_STATE.InGame;
                                     break;
                                 case 5: // ServerInfoMode_Exiting
-                                    ServerState = Enum.GetName(typeof(ESessionState), ESessionState.PostGame);
+                                    ServerState = SESSION_STATE.PostGame;
                                     break;
                             }
                         }

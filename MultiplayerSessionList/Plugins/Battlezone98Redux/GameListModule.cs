@@ -163,7 +163,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 }
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", raw.IsPassworded);
                 
-                string ServerState = Enum.GetName(typeof(ESessionState), raw.IsEnded ? ESessionState.PostGame : raw.IsLaunched ? ESessionState.InGame : ESessionState.PreGame);
+                string ServerState = raw.IsEnded ? SESSION_STATE.PostGame : raw.IsLaunched ? SESSION_STATE.InGame : SESSION_STATE.PreGame;
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_STATE}", ServerState);
 
                 List<DatumRef> Players = new List<DatumRef>();
