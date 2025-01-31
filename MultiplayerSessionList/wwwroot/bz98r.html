@@ -369,7 +369,17 @@
                 padding-right: 0.2rem;*/
                 padding-left: 0.1rem;
                 padding-right: 0.1rem;
-                box-sizing: content-box;
+                /*box-sizing: content-box;*/
+
+                /*white-space: pre;*/
+                flex: 0 1 100%;
+                width: var(--section-icons-width);
+            }
+
+            .rules_list div.half,
+            .rules_list a.half {
+                flex: 0 1 calc(50% - 2px);
+                width: calc((var(--section-icons-width) / 2) - 2px);
             }
 
             .rules_list div.on {
@@ -910,7 +920,7 @@
                     <div style="flex:0 0 0;" class="me-1 text-nowrap bg-transparent text-end" data-path="session.player_count"></div>
                 </div>
                 <div class="mb-2 d-flex flex-row flex-nowrap extra_row" id="/session/${encodeAttr($id)}/row2">
-                    <div class="me-1 rules_list d-flex flex-column" data-path="session.level.rules"></div>
+                    <div class="me-1 rules_list d-flex align-content-start justify-content-between flex-wrap" data-path="session.level.rules"></div>
                     <div class="map_cell d-flex me-1 flex-column text-center">
                         <div class="map_image chamfer bg-secondary mb-1">
                             <div style="background: black; left: 1px; top: 1px; height: calc(100% - 2px); width: calc(100% - 2px); position: relative;" class="chamfer">
@@ -1145,14 +1155,14 @@
                 for (let prop in session.level.rules) {
                     if (session.level.rules[prop] != null) {
                         switch (prop) {
-                            case 'lives'      : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Lives"   ><div class="icon"><i class="fa-solid fa-user-group"></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
-                            case 'kill_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr('' + session.level.rules[prop])} Kills"   ><div class="icon"><i class="fa-solid fa-skull"     ></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
-                            case 'time_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1" style="white-space:pre;" title="Time Limit ${session.level.rules[prop]} Minutes"       ><div class="icon"><i class="fa-solid fa-stopwatch" ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(session.level.rules[prop] / 60)}:${String(session.level.rules[prop] % 60).padStart(2, '0')}`)}</div></div>`; break;
-                            case 'satellite'  : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title= "Satellite ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-satellite" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'barracks'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"      ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'sniper'     : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-cust-rifle"></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'splinter'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1" style="white-space:pre;" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            default: htmlEntries += `<div class="text-truncate text-center chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
+                            case 'lives'      : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1 half" title="${encodeAttr('' + session.level.rules[prop])} Lives"   ><div class="icon"><i class="fa-solid fa-user-group"></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
+                            case 'kill_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1 half" title="${encodeAttr('' + session.level.rules[prop])} Kills"   ><div class="icon"><i class="fa-solid fa-skull"     ></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
+                            case 'time_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1"      title="Time Limit ${session.level.rules[prop]} Minutes"       ><div class="icon"><i class="fa-solid fa-stopwatch" ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(session.level.rules[prop] / 60)}:${String(session.level.rules[prop] % 60).padStart(2, '0')}`)}</div></div>`; break;
+                            case 'satellite'  : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title= "Satellite ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-satellite" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'barracks'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"      ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'sniper'     : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-cust-rifle"></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            case 'splinter'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
+                            default:            htmlEntries += `<div class="text-truncate text-center                   chamfer d-flex flex-row mb-1"      title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
                         }
                     }
                 }
