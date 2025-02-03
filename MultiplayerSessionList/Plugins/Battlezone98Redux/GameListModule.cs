@@ -26,6 +26,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         private SteamInterface steamInterface;
         private CachedAdvancedWebClient cachedAdvancedWebClient;
 
+        private Dictionary<string, DataCache> FactionDataHardcode;
+
         public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
             queryUrl = configuration["bigboat:battlezone_98_redux:sessions"];
@@ -33,6 +35,14 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.gogInterface = gogInterface;
             this.steamInterface = steamInterface;
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
+
+            // this logic is not final, as it doesn't hand mod subset factions at all and assumes top level unique factions
+            FactionDataHardcode = new Dictionary<string, DataCache>();
+            FactionDataHardcode["a"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "National Space Defense Force" }, { GAMELIST_TERMS.FACTION_ABBR, "NSDF" }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_a.png" } };
+            FactionDataHardcode["s"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Cosmo Colonist Army"          }, { GAMELIST_TERMS.FACTION_ABBR, "CCA"  }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_s.png" } };
+            FactionDataHardcode["c"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Chinese Red Army"             }, { GAMELIST_TERMS.FACTION_ABBR, "CRA"  }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_c.png" } };
+            FactionDataHardcode["b"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Black Dogs"                   }, { GAMELIST_TERMS.FACTION_ABBR, "BDog" }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_b.png" } };
+            FactionDataHardcode["r"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Red Wolves"                   }, { GAMELIST_TERMS.FACTION_ABBR, "RW"   }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_r.png" } };
         }
 
         public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -61,6 +71,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
             SemaphoreSlim heroesAlreadyReturnedLock = new SemaphoreSlim(1, 1);
             HashSet<string> heroesAlreadyReturnedFull = new HashSet<string>();
+
+            // factions are locked inside of a hero lock so it's probably redundant and possibly a risk to have this
+            SemaphoreSlim factionsAlreadyReturnedLock = new SemaphoreSlim(1, 1);
+            HashSet<string> factionsAlreadyReturnedFull = new HashSet<string>();
 
             SemaphoreSlim modsAlreadyReturnedLock = new SemaphoreSlim(1, 1);
             HashSet<string> modsAlreadyReturnedFull = new HashSet<string>();
@@ -257,6 +271,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         gametypeFullAlreadySentLock, gametypeFullAlreadySent,
                         gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
                         heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
+                        factionsAlreadyReturnedLock, factionsAlreadyReturnedFull,
                         gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
                         //playerCacheLock, playerCache));
 
@@ -301,6 +316,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent,
             SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent,
             SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull,
+            SemaphoreSlim factionsAlreadyReturnedLock, HashSet<string> factionsAlreadyReturnedFull,
             SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
             //SemaphoreSlim playerCacheLock, Dictionary<string, Tuple<int>> playerCache)
         {
@@ -549,6 +565,35 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                 Datum heroData = new Datum(GAMELIST_TERMS.TYPE_HERO, $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}", new DataCache() {
                                     { GAMELIST_TERMS.HERO_NAME, vehicle.Value.name },
                                 });
+
+                                {
+                                    string odf = vehicle.Key.Split(':').Last();
+                                    if (odf.Length > 0)
+                                    {
+                                        string faction = odf[0].ToString();
+                                        if (FactionDataHardcode.ContainsKey(faction.ToString()))
+                                        {
+                                            heroData[GAMELIST_TERMS.HERO_FACTION] = new DatumRef(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}");
+
+                                            await factionsAlreadyReturnedLock.WaitAsync();
+                                            try
+                                            {
+                                                if (factionsAlreadyReturnedFull.Add(faction))
+                                                {
+                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}", FactionDataHardcode[faction]), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", false));
+                                                }
+                                                else
+                                                {
+                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}"), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", true));
+                                                }
+                                            }
+                                            finally
+                                            {
+                                                factionsAlreadyReturnedLock.Release();
+                                            }
+                                        }
+                                    }
+                                }
 
                                 // todo handle language logic
                                 if (vehicle.Value.description != null)

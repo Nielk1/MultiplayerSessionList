@@ -114,6 +114,7 @@ namespace MultiplayerSessionList.Modules
         public const string TYPE_HERO = "hero";
             public const string HERO_NAME = "name";
             public const string HERO_DESCRIPTION = "description";
+            public const string HERO_FACTION = "faction";
 
         public const string TYPE_GAMEBALANCE = "game_balance";
             public const string GAMEBALANCE_NAME = "name";
@@ -149,7 +150,12 @@ namespace MultiplayerSessionList.Modules
             public const string PLAYERTYPE_TYPES_VALUE_PLAYER = "player";
             public const string PLAYERTYPE_TYPES_VALUE_SPECTATOR = "spectator";
             public const string PLAYERTYPE_TYPES_VALUE_BOT = "bot";
-        public const string PLAYERTYPE_MAX = "max";
+            public const string PLAYERTYPE_MAX = "max";
+
+        public const string TYPE_FACTION = "faction";
+            public const string FACTION_NAME = "name";
+            public const string FACTION_ABBR = "abbr";
+            public const string FACTION_BLOCK = "block";
     }
 
     public interface IGameListModuleOld

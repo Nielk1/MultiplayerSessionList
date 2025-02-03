@@ -775,7 +775,7 @@
             }
         }
 
-        function GenerateHtml_Player(player, is_leader, is_over_limit, teamed) {
+        function GenerateHtml_Player(player, is_leader, is_over_limit, teamed, game_type_id) {
             let plaform_avatar = '';
             let player_avatar_source = '';
             let player_avatar_id = '';
@@ -851,18 +851,28 @@
             //if (player.other)
             //    playerHtmlEntries += GenerateHtml_MicroList("Other", player.other, true);
 
-            playerHtmlEntries += `
-            </div>`
+            playerHtmlEntries += `</div>`
 
             if (player.hero) {
-                playerHtmlEntries += `
-            <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
-                <img data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}" title="${encodeAttr(player.hero.name || player.hero.$id)}" src="/img/no_steam_pfp.jpg" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
-            </div>`;
+                if (game_type_id != null && game_type_id.split(':').at(-1) == "STRAT") {
+                    // it's a strat, so show faction instead
+                    let faction = player.hero.faction;
+                    if (faction) {
+                        playerHtmlEntries += `
+                        <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
+                            <img data-path="faction_name" data-type="faction" data-id="${encodeAttr(faction.$id)}" title="${encodeAttr(faction.name || faction.$id)}" src="${encodeAttr(faction.block) }" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
+                        </div>`;
+                    }  else {
+                        playerHtmlEntries += `<div class="d-flex m-1 d-block chamfer" style="flex: 0 0 50px;width:50px;background:green;"></div>`;
+                    }
+                } else {
+                    playerHtmlEntries += `
+                    <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
+                        <img data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}" title="${encodeAttr(player.hero.name || player.hero.$id)}" src="/img/no_steam_pfp.jpg" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
+                    </div>`;
+                }
             } else {
-                playerHtmlEntries += `
-            <div class="d-flex m-1 d-block chamfer" style="flex: 0 0 50px;width:50px;background:green;">
-            </div>`;
+                playerHtmlEntries += `<div class="d-flex m-1 d-block chamfer" style="flex: 0 0 50px;width:50px;background:green;"></div>`;
             }
 
             playerHtmlEntries += `
@@ -1086,6 +1096,10 @@
 
             // Session Game Type
             let game_type_element = sessionDom.querySelector(`[data-path="session.level.game_type"]`);
+            let game_type_id =
+                session.level?.rules?.game_type?.$id ??
+                session.level?.map?.game_type?.$id ??
+                session.level?.game_type?.$id
             game_type_element.setAttribute("title",
                 session.level?.rules?.game_type?.name ?? session.level?.rules?.game_type?.$id ??
                 session.level?.map?.game_type?.name ?? session.level?.map?.game_type?.$id ??
@@ -1432,7 +1446,7 @@
                                 //playerHtmlEntries += '<div style="flex:0 0 300px;">';
                                 //playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
                             }
-                            playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit, in_team);
+                            playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit, in_team, game_type_id);
                             playerHtmlEntries += '</div>';
 
                         } else {
