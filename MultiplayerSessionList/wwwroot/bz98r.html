@@ -384,19 +384,18 @@
 
             .rules_list div.on {
                 color: #000000;
-                /*background: #00ff00;*/
                 background: #4dad54;
             }
 
             .rules_list div.off {
-                /*color: #000000;
-                background: #ff0000;*/
-                /*color: #ff0000;
-                background: transparent;
-                border: 1px solid #ff0000;*/
-
                 color: #000;
                 background: #fe5b5b;
+            }
+
+            .rules_list div.disabled {
+                color: #fff;
+                /*background: gray;*/
+                opacity: 0.333;
             }
 
         /*.rules_list div.balance {
@@ -1107,7 +1106,7 @@
             //if (game_type_icon) {
             //    game_type_element.style.backgroundImage = `url("${game_type_icon}")`;
             //} else {
-            //    game_type_element.style.backgroundImage = 'url("//gamelistassets.iondriver.com/bz98r/icons/icon_unknown.png")';
+            //    game_type_element.style.backgroundImage = 'url("//gamelistassets.iondriver.com/bz98r/resources/icon_unknown.png")';
             //}
 
             // Session Game Mode
@@ -1144,55 +1143,138 @@
             if (game_mode_icon) {
                 game_mode_icon_element.style.backgroundImage = `url("${game_mode_icon}")`;
             } else {
-                game_mode_icon_element.style.backgroundImage = 'url("//gamelistassets.iondriver.com/bz98r/icons/icon_unknown.png")';
+                game_mode_icon_element.style.backgroundImage = 'url("//gamelistassets.iondriver.com/bz98r/resources/icon_unknown.png")';
             }
 
             // Session Level Rules
+            // +---------------+
+            // |    Version    |
+            // +---------------+
+            // |    Balance    |
+            // +---------------+
+            // |      Mod      |
+            // +-------+-------+
+            // | Lives | Kills |
+            // +-------+-------+
+            // |     Time      |
+            // +-------+-------+
+            // |  Barr |  Sat  |
+            // +-------+-------+
+            // |  Snip | Splnt |
+            // +-------+-------+
             let sessionRulesElem = sessionDom2.querySelector(`[data-path="session.level.rules"]`);
             if (session.level.rules) {
                 let htmlEntries = '';
 
-                for (let prop in session.level.rules) {
-                    if (session.level.rules[prop] != null) {
-                        switch (prop) {
-                            case 'lives'      : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1 half" title="${encodeAttr('' + session.level.rules[prop])} Lives"   ><div class="icon"><i class="fa-solid fa-user-group"></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
-                            case 'kill_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1 half" title="${encodeAttr('' + session.level.rules[prop])} Kills"   ><div class="icon"><i class="fa-solid fa-skull"     ></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + session.level.rules[prop])}</div></div>`; break;
-                            case 'time_limit' : htmlEntries += `<div class=                                            "chamfer d-flex flex-row mb-1"      title="Time Limit ${session.level.rules[prop]} Minutes"       ><div class="icon"><i class="fa-solid fa-stopwatch" ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(session.level.rules[prop] / 60)}:${String(session.level.rules[prop] % 60).padStart(2, '0')}`)}</div></div>`; break;
-                            case 'satellite'  : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title= "Satellite ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-satellite" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'barracks'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title=  "Barracks ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"      ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'sniper'     : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title=    "Sniper ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-cust-rifle"></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            case 'splinter'   : htmlEntries += `<div class="${session.level.rules[prop] ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title=  "Splinter ${session.level.rules[prop] ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion" ></i></div><div class="flex-grow-1 text-center">${session.level.rules[prop] ? 'ON' : 'OFF'}</div></div>`; break;
-                            default:            htmlEntries += `<div class="text-truncate text-center                   chamfer d-flex flex-row mb-1"      title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`; break;
-                        }
-                    }
-                }
-
+                // Game Version
                 {
-                    // Game Version
                     let game_version = session.game?.version;
-
-                    if (game_version) {
+                    if (game_version != null)
                         htmlEntries += `<div class="rule_game_version chamfer d-flex flex-row mb-1" style="white-space:pre;" title="Game Version ${encodeAttr(game_version)}"><div class="icon"><i class="fa-solid fa-gamepad"></i></div><div class="flex-grow-1 text-center">${escapeHtml(game_version)}</div></div>`;
-                    }
                 }
 
+                // Session Game Balance
                 {
-                    // Session Game Balance
                     let game_balance_data =
                         session.level?.rules?.game_balance ??
                         session.level?.map?.game_balance ??
                         session.level?.game_balance ??
                         session.game?.game_balance;
+                    if (game_balance_data != null) {
+                        let game_balance_display_text = game_balance_data?.name ?? game_balance_data?.$id;
+                        if (game_balance_data?.abbr != null && game_balance_display_text.length > 7) {
+                            if (game_balance_data.abbr.length <= 7)
+                                game_balance_display_text = game_balance_data.abbr;
+                        }
 
-                    if (game_balance_data) {
-                        htmlEntries += `<div class="rule_balance chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(game_balance_data.note ?? `Balance: ${game_balance_data?.name ?? game_balance_data?.abbr ?? game_balance_data?.$id}`)}"><div class="icon"><i class="fa-solid fa-scale-balanced"></i></div><div class="flex-grow-1 text-center">${game_balance_data?.abbr ?? game_balance_data?.name ?? game_balance_data?.$id}</div></div>`;
+                        htmlEntries += `<div class="rule_balance chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(game_balance_data.note ?? `Balance: ${game_balance_data?.name ?? game_balance_data?.abbr ?? game_balance_data?.$id}`)}"><div class="icon"><i class="fa-solid fa-scale-balanced"></i></div><div class="flex-grow-1 text-center">${escapeHtml(game_balance_display_text)}</div></div>`;
                     }
                 }
 
+                // game mod(s)
                 {
-                    // game mod(s)
                     for (let mod of game_mods) {
                         htmlEntries += `<a href="${encodeAttr(mod.url)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none rule_game_mod chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(mod?.abbr ?? mod?.name ?? mod?.$id)}"><div class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="flex-grow-1 text-center text-truncate"><span class="text-truncate" data-path="session.name">${escapeHtml(mod?.abbr ?? mod?.name ?? mod?.$id)}</span></div></a>`;
+                    }
+                }
+
+                // lives and kill_limit
+                {
+                    let rule_lives = session.level?.rules?.["lives"];
+                    let rule_kill_limit = session.level?.rules?.["kill_limit"];
+                    if (rule_lives != null || rule_kill_limit != null) {
+                        if (rule_lives != null) {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half" title="${encodeAttr('' + rule_lives)} Lives"><div class="icon"><i class="fa-solid fa-user-group"></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + rule_lives)}</div></div>`;
+                        } else {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half disabled"></div>`;
+                        }
+                        if (rule_kill_limit != null) {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half" title="${encodeAttr('' + rule_kill_limit)} Kills"><div class="icon"><i class="fa-solid fa-skull"></i></div><div class="flex-grow-1 text-center">${escapeHtml('' + rule_kill_limit)}</div></div>`;
+                        } else {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half disabled"></div>`;
+                        }
+                    }
+                }
+
+                // time_limit
+                {
+                    let rule_time_limit = session.level?.rules?.["time_limit"];
+                    if (rule_time_limit != null)
+                        htmlEntries += `<div class="chamfer d-flex flex-row mb-1" title="Time Limit ${rule_time_limit} Minutes"><div class="icon"><i class="fa-solid fa-stopwatch" ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(rule_time_limit / 60)}:${String(rule_time_limit % 60).padStart(2, '0')}`)}</div></div>`;
+                }
+
+                // barracks and satellite
+                {
+                    let rule_satellite = session.level?.rules?.["satellite"];
+                    let rule_barracks = session.level?.rules?.["barracks"];
+                    if (rule_satellite != null || rule_barracks != null) {
+                        if (rule_satellite != null) {
+                            htmlEntries += `<div class="${rule_satellite ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title="Satellite ${rule_satellite ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-satellite" ></i></div><div class="flex-grow-1 text-center">${rule_satellite ? 'ON' : 'OFF'}</div></div>`;
+                        } else {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half disabled"></div>`;
+                        }
+                        if (rule_barracks != null) {
+                            htmlEntries += `<div class="${rule_barracks ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title="Barracks ${rule_barracks ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-tent"></i></div><div class="flex-grow-1 text-center">${rule_barracks ? 'ON' : 'OFF'}</div></div>`;
+                        } else {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half disabled"></div>`;
+                        }
+                    }
+                }
+
+                // sniper and splinter
+                {
+                    let rule_sniper = session.level?.rules?.["sniper"];
+                    let rule_splinter = session.level?.rules?.["splinter"];
+                    if (rule_sniper != null || rule_splinter != null) {
+                        if (rule_sniper != null) {
+                            htmlEntries += `<div class="${rule_sniper ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title="Sniper ${rule_sniper ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-cust-rifle"></i></div><div class="flex-grow-1 text-center">${rule_sniper ? 'ON' : 'OFF'}</div></div>`;
+                        } else {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half disabled"></div>`;
+                        }
+                        if (rule_splinter != null) {
+                            htmlEntries += `<div class="${rule_splinter ? "on" : "off"} chamfer d-flex flex-row mb-1 half" title="Splinter ${rule_splinter ? "On" : "Off"}"><div class="icon"><i class="fa-solid fa-explosion" ></i></div><div class="flex-grow-1 text-center">${rule_splinter ? 'ON' : 'OFF'}</div></div>`;
+                        } else {
+                            htmlEntries += `<div class="chamfer d-flex flex-row mb-1 half disabled"></div>`;
+                        }
+                    }
+                }
+
+                // other rules we missed
+                for (let prop in session.level.rules) {
+                    if (session.level.rules[prop] != null) {
+                        switch (prop) {
+                            case 'lives':
+                            case 'kill_limit':
+                            case 'time_limit':
+                            case 'satellite':
+                            case 'barracks':
+                            case 'sniper':
+                            case 'splinter':
+                                break;
+                            default:
+                                htmlEntries += `<div class="text-truncate text-center chamfer d-flex flex-row mb-1" title="${encodeAttr(prop)}">${escapeHtml('' + session.level.rules[prop])}</div>`;
+                                break;
+                        }
                     }
                 }
 

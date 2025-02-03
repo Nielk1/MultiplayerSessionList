@@ -97,9 +97,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             HashSet<string> modStubAlreadySent = new HashSet<string>();
             HashSet<string> mapStubAlreadySent = new HashSet<string>();
             HashSet<string> gametypeFullAlreadySent = new HashSet<string>();
-            HashSet<string> gametypeStubAlreadySent = new HashSet<string>();
+            //HashSet<string> gametypeStubAlreadySent = new HashSet<string>();
             HashSet<string> gamemodeFullAlreadySent = new HashSet<string>();
-            HashSet<string> gamemodeStubAlreadySent = new HashSet<string>();
+            //HashSet<string> gamemodeStubAlreadySent = new HashSet<string>();
 
             //yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
             //modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
@@ -320,10 +320,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             {
                                 yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Deathmatch" } });
                             }
-                            else if (gametypeStubAlreadySent.Add($"DM"))
-                            {
-                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM");
-                            }
+                            // we can't get out of order so we don't need stubs
+                            //else if (gametypeStubAlreadySent.Add($"DM"))
+                            //{
+                            //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM");
+                            //}
 
                             switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                             {
@@ -333,10 +334,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
+                                    //}
                                     break;
                                 case 1: // King of the Hill
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"));
@@ -344,10 +346,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}King of the Hill" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH");
+                                    //}
                                     break;
                                 case 2: // Capture the Flag
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"));
@@ -355,10 +358,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Capture the Flag" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF");
+                                    //}
                                     break;
                                 case 3: // Loot
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"));
@@ -366,17 +370,19 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Loot" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT");
+                                    //}
                                     break;
                                 case 4: // DM [RESERVED]
                                     break;
                                 case 5: // Race
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
                                     if      (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } }); }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"); }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"); }
                                     break;
                                 case 6: // Race (Vehicle Only)
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
@@ -384,10 +390,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE");
+                                    //}
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
                                     break;
                                 case 7: // DM (Vehicle Only)
@@ -396,10 +403,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
+                                    //}
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
                                     break;
                                 default:
@@ -417,10 +425,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             {
                                 yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Strategy" } });
                             }
-                            else if (gametypeStubAlreadySent.Add($"STRAT"))
-                            {
-                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
-                            }
+                            // we can't get out of order so we don't need stubs
+                            //else if (gametypeStubAlreadySent.Add($"STRAT"))
+                            //{
+                            //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
+                            //}
 
                             switch ((GameMode)GetGameModeOutput)
                             {
@@ -432,10 +441,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Team Strategy" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add("STRAT"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add("STRAT"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
+                                    //}
                                     break;
                                 case GameMode.GAMEMODE_STRAT:
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA"));
@@ -445,10 +455,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Free for All" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add("FFA"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add("FFA"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA");
+                                    //}
                                     break;
                                 case GameMode.GAMEMODE_MPI:
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI"));
@@ -458,10 +469,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Multiplayer Instant Action" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add("MPI"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add("MPI"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI");
+                                    //}
                                     break;
                                 default:
                                     //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
@@ -469,10 +481,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     {
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{GetGameModeOutput}" } });
                                     }
-                                    else if (gamemodeStubAlreadySent.Add("STRAT"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}");
-                                    }
+                                    // we can't get out of order so we don't need stubs
+                                    //else if (gamemodeStubAlreadySent.Add("STRAT"))
+                                    //{
+                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}");
+                                    //}
                                     break;
                             }
                         }
