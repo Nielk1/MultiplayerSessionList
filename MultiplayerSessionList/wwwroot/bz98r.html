@@ -138,6 +138,23 @@
             background-color: #222;
         }
 
+        .icon_gog {
+            color: #fff;
+            background-color: #222;
+        }
+
+            .icon_gog img {
+                width: 25px;
+                line-height: 25px;
+                text-align: center;
+                display: block;
+                padding: 3px;
+                filter: invert(1);
+            }
+            /*.icon_gog img.color {
+                fill: #fff;
+            }*/
+
         .icon_steam {
             color: #fff;
             background-color: #222;
@@ -769,9 +786,11 @@
             let platform_name = identity.username || identity.$id;
             let platform_profile = identity.profile_url;
             if (platform_profile) {
-                return `<a href="${platform_profile}" title="${encodeAttr(platform_name)}" target="_blank" rel="noopener noreferrer" class="chamfer icon icon_steam text-decoration-none me-1" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-gog" aria-hidden="true" title="GOG"></i></a>`;
+                //return `<a href="${platform_profile}" title="${encodeAttr(platform_name)}" target="_blank" rel="noopener noreferrer" class="chamfer icon icon_gog text-decoration-none me-1" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-gog" aria-hidden="true" title="GOG"></i></a>`;
+                return `<a href="${platform_profile}" title="${encodeAttr(platform_name)}" target="_blank" rel="noopener noreferrer" class="chamfer icon icon_gog text-decoration-none me-1" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><img src="/img/gog-icon.svg" class="icon" aria-hidden="true" title="GOG"></img></a>`;
             } else {
-                return `<div title="Steam" class="chamfer icon icon_steam me-1" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-gog" aria-hidden="true" title="GOG"></i></div>`;
+                //return `<div title="Steam" class="chamfer icon icon_gog me-1" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><i class="icon icon-gog" aria-hidden="true" title="GOG"></i></div>`;
+                return `<div title="Steam" class="chamfer icon icon_gog me-1" data-id="${encodeAttr(identity.$id)}" data-type="${encodeAttr(identity.$type)}"><img src="/img/gog-icon.svg" class="icon" aria-hidden="true" title="GOG"></img></div>`;
             }
         }
 

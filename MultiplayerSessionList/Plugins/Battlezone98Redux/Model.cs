@@ -422,6 +422,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
     public class MapData_Vehicle
     {
         public string name { get; set; }
+        public string faction { get; set; }
         //public Dictionary<string, MapData_Vehicle_Description> description { get; set; }
         public Dictionary<string, string> description { get; set; }
     }

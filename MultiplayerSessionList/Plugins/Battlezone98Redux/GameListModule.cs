@@ -26,7 +26,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         private SteamInterface steamInterface;
         private CachedAdvancedWebClient cachedAdvancedWebClient;
 
-        private Dictionary<string, DataCache> FactionDataHardcode;
+        //Dictionary<string, DataCache> FactionDataHardcode;
 
         public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
@@ -37,16 +37,18 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
 
             // this logic is not final, as it doesn't hand mod subset factions at all and assumes top level unique factions
-            FactionDataHardcode = new Dictionary<string, DataCache>();
-            FactionDataHardcode["a"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "National Space Defense Force" }, { GAMELIST_TERMS.FACTION_ABBR, "NSDF" }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_a.png" } };
-            FactionDataHardcode["s"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Cosmo Colonist Army"          }, { GAMELIST_TERMS.FACTION_ABBR, "CCA"  }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_s.png" } };
-            FactionDataHardcode["c"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Chinese Red Army"             }, { GAMELIST_TERMS.FACTION_ABBR, "CRA"  }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_c.png" } };
-            FactionDataHardcode["b"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Black Dogs"                   }, { GAMELIST_TERMS.FACTION_ABBR, "BDog" }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_b.png" } };
-            FactionDataHardcode["r"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Red Wolves"                   }, { GAMELIST_TERMS.FACTION_ABBR, "RW"   }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_r.png" } };
+            //FactionDataHardcode = new Dictionary<string, DataCache>();
+            //FactionDataHardcode["a"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "National Space Defense Force" }, { GAMELIST_TERMS.FACTION_ABBR, "NSDF" }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_a.png" } };
+            //FactionDataHardcode["s"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Cosmo Colonist Army"          }, { GAMELIST_TERMS.FACTION_ABBR, "CCA"  }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_s.png" } };
+            //FactionDataHardcode["c"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Chinese Red Army"             }, { GAMELIST_TERMS.FACTION_ABBR, "CRA"  }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_c.png" } };
+            //FactionDataHardcode["b"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Black Dogs"                   }, { GAMELIST_TERMS.FACTION_ABBR, "BDog" }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_b.png" } };
+            //FactionDataHardcode["r"] = new DataCache() { { GAMELIST_TERMS.FACTION_NAME, "Red Wolves"                   }, { GAMELIST_TERMS.FACTION_ABBR, "RW"   }, { GAMELIST_TERMS.FACTION_BLOCK, $"{mapUrl.TrimEnd('/')}/resources/faction_block_r.png" } };
         }
 
         public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            var fact_task = cachedAdvancedWebClient.GetObject<Dictionary<string, DataCache>>($"{mapUrl.TrimEnd('/')}/factions.json", TimeSpan.FromHours(24), TimeSpan.FromHours(1));
+
             var res_raw = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
             var res = res_raw.Data;
             var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
@@ -271,7 +273,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         gametypeFullAlreadySentLock, gametypeFullAlreadySent,
                         gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
                         heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
-                        factionsAlreadyReturnedLock, factionsAlreadyReturnedFull,
+                        factionsAlreadyReturnedLock, factionsAlreadyReturnedFull, fact_task,
                         gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
                         //playerCacheLock, playerCache));
 
@@ -316,7 +318,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent,
             SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent,
             SemaphoreSlim heroesAlreadyReturnedLock, HashSet<string> heroesAlreadyReturnedFull,
-            SemaphoreSlim factionsAlreadyReturnedLock, HashSet<string> factionsAlreadyReturnedFull,
+            SemaphoreSlim factionsAlreadyReturnedLock, HashSet<string> factionsAlreadyReturnedFull, Task<CachedData<Dictionary<string, DataCache>>> fact_task,
             SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
             //SemaphoreSlim playerCacheLock, Dictionary<string, Tuple<int>> playerCache)
         {
@@ -567,11 +569,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                 });
 
                                 {
-                                    string odf = vehicle.Key.Split(':').Last();
-                                    if (odf.Length > 0)
+                                    string faction = vehicle.Value.faction;
+                                    if (faction != null && faction.Length > 0)
                                     {
-                                        string faction = odf[0].ToString();
-                                        if (FactionDataHardcode.ContainsKey(faction.ToString()))
+                                        var factionDataX = await fact_task;
+                                        var factionData = factionDataX?.Data;
+                                        if (factionData != null && factionData.ContainsKey(faction))
                                         {
                                             heroData[GAMELIST_TERMS.HERO_FACTION] = new DatumRef(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}");
 
@@ -580,12 +583,19 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                             {
                                                 if (factionsAlreadyReturnedFull.Add(faction))
                                                 {
-                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}", FactionDataHardcode[faction]), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", false));
+                                                    var fd = factionData[faction];
+                                                    var fact = new DataCache();
+                                                    fact[GAMELIST_TERMS.FACTION_NAME] = fd["name"];
+                                                    if (fd.ContainsKey("abbr"))
+                                                        fact[GAMELIST_TERMS.FACTION_ABBR] = fd["abbr"];
+                                                    if (fd.ContainsKey("block"))
+                                                        fact[GAMELIST_TERMS.FACTION_BLOCK] = $"{mapUrl.TrimEnd('/')}/resources/{fd["block"]}";
+                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}", fact), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", false));
                                                 }
-                                                else
-                                                {
-                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}"), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", true));
-                                                }
+                                                //else
+                                                //{
+                                                //    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}"), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", true));
+                                                //}
                                             }
                                             finally
                                             {
