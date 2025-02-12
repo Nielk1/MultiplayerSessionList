@@ -1452,45 +1452,14 @@
                             let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
                             let is_leader = null;
 
-                            if (team) {
-                                playerHtmlEntries += '<div class="player_flex_box">';
-                                //playerHtmlEntries += '<div style="flex:1 1 auto;">';
-                                //playerHtmlEntries += '<div style="flex:0 0 300px;">';
-                                //playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
-                                //playerHtmlEntries += '<div class="col-12">';
+                            playerHtmlEntries += '<div class="player_flex_box">';
+                            if (team)
                                 is_leader = player.leader; // can't have a team leader without a team (I guess some games will be 1 team?)
-                            } else {
-                                playerHtmlEntries += '<div class="player_flex_box">';
-                                //playerHtmlEntries += '<div style="flex:1 1 auto;">';
-                                //playerHtmlEntries += '<div style="flex:0 0 300px;">';
-                                //playerHtmlEntries += '<div class="col-6 col-md-4 col-lg-3">';
-                            }
                             playerHtmlEntries += GenerateHtml_Player(player.player, is_leader, is_over_limit, in_team, game_type_id);
                             playerHtmlEntries += '</div>';
 
                         } else {
                             let is_beyond_balance = team_balance >= 0 && i >= team_balance;
-
-//                            playerHtmlEntries += `
-//<div class="col-6 col-md-4">
-//    <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
-//        <span class="text-nowrap overflow-hidden align-middle">
-//            <i class="fa fa-user" aria-hidden="true"></i> Open
-//        </span>
-//    </div>
-//</div>`;
-//                            playerHtmlEntries += `
-//<div class="col-6 col-md-4">
-//    <div class="player_info_box chamfer d-flex" style="padding:2px;">
-//        <div class="chamfer d-flex" style="background:black;flex:100% 0 0;">
-//            <div class="m-1 ms-0">
-//                <span class="text-nowrap overflow-hidden align-middle">
-//                    <i class="fa fa-user" aria-hidden="true"></i> Open
-//                </span>
-//            </div>
-//        </div>
-//    </div>
-//</div>`;
                         }
                     }
                     if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
@@ -1514,6 +1483,8 @@
 //    </div>
 //</div>`);
                         } else {
+                            // team is not null and has no computer members
+                            //let slots_left = player_count - total_players;
                             playerListDom.insertAdjacentHTML('beforeend', `
 ${(Teams.length > 1 && teamCounter > 0) ? '<hr class="mb-2 mt-2 col-12 team-hr" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
 <div class="team-col">
@@ -1524,10 +1495,11 @@ ${(Teams.length > 1 && teamCounter > 0) ? '<hr class="mb-2 mt-2 col-12 team-hr" 
 </div>`);
                         }
                     } else {
+                        // team is null
                         playerListDom.insertAdjacentHTML('beforeend', `
 ${(Teams.length > 1 && team == null) ? '<hr class="mb-2 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
 <div class="col-12">
-    <div class="d-flex flex-row flex-wrap justify-content-around row g-1">${playerHtmlEntries}</div>
+    <div class="d-flex flex-row flex-wrap justify-content-start row g-1">${playerHtmlEntries}</div>
 </div>`);
                     }
 

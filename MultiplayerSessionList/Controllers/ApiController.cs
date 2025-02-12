@@ -49,7 +49,7 @@ namespace MultiplayerSessionList.Controllers
 
         [EnableCors("Sessions")]
         [Route("api/2.0/sessions")]
-        public async Task<IActionResult> Sessions2([FromQuery] string[] game, string admin_password, int? simulate_delay, CancellationToken cancellationToken)
+        public async Task<IActionResult> Sessions2([FromQuery] string[] game, string admin_password, int? simulate_delay, bool? mock, CancellationToken cancellationToken)
         {
             string[] games = game.Distinct().Where(g => _gameListModuleManager.GameListPlugins.ContainsKey(g)).ToArray();
             if (games.Length == 0)
@@ -61,10 +61,12 @@ namespace MultiplayerSessionList.Controllers
 
             string AdminDataPassword = _configuration["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
+            bool Mock = mock ?? false;
 
             if (!Admin)
             {
                 simulate_delay = 0;
+                Mock = false;
                 games = games.Where(g => _gameListModuleManager.GameListPlugins[g].IsPublic).ToArray();
             }
             if (games.Length == 0)
@@ -83,7 +85,7 @@ namespace MultiplayerSessionList.Controllers
             //}
 
             ////return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
-            return new NdjsonAsyncEnumerableResult<Datum>(SelectManyAsync(games.Select(g => _gameListModuleManager.GameListPlugins[g].GetGameListChunksAsync(games.Length > 1, Admin, cancellationToken)), simulate_delay ?? 0));
+            return new NdjsonAsyncEnumerableResult<Datum>(SelectManyAsync(games.Select(g => _gameListModuleManager.GameListPlugins[g].GetGameListChunksAsync(games.Length > 1, Admin, Mock, cancellationToken)), simulate_delay ?? 0));
             //return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
             //return Sessions2Internal(games, Admin, cancellationToken);
             //yield break;

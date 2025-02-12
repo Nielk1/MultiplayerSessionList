@@ -195,7 +195,7 @@ namespace MultiplayerSessionList.Modules
         string Title { get; }
         bool IsPublic { get; }
 
-        IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, CancellationToken cancellationToken = default);
     }
 
     public class GameListData

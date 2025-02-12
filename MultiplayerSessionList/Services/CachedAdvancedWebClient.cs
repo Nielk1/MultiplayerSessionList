@@ -12,13 +12,13 @@ namespace MultiplayerSessionList.Services
 {
     public class CachedAdvancedWebClient
     {
-        private HttpClient httpClient;
+        private IHttpClientFactory httpClientFactory;
         private IMemoryCache memCache;
 
-        public CachedAdvancedWebClient(IMemoryCache memCache, HttpClient client)
+        public CachedAdvancedWebClient(IMemoryCache memCache, IHttpClientFactory clientFactory)
         {
             //this.httpClient = new HttpClient();
-            this.httpClient = client;
+            this.httpClientFactory = clientFactory;
             this.memCache = memCache;
         }
 
@@ -52,21 +52,26 @@ namespace MultiplayerSessionList.Services
                 string actualUrl = url;
                 if (actualUrl.StartsWith("//"))
                     actualUrl = "https:" + actualUrl;
-                var response = await httpClient.GetAsync(actualUrl);
-                T data = default(T);
-                if (typeof(T) == typeof(string))
+                Uri destUrl = new Uri(actualUrl);
+                string clientName = $"Hostname_{destUrl.Host}";
+                using (HttpClient httpClient = httpClientFactory.CreateClient(clientName))
+                using (var response = await httpClient.GetAsync(actualUrl))
                 {
-                    data = (T)Convert.ChangeType(await response.Content.ReadAsStringAsync(), typeof(T));
+                    T data = default(T);
+                    if (typeof(T) == typeof(string))
+                    {
+                        data = (T)Convert.ChangeType(await response.Content.ReadAsStringAsync(), typeof(T));
+                    }
+                    else
+                    {
+                        data = JsonConvert.DeserializeObject<T>(await response.Content.ReadAsStringAsync());
+                    }
+                    //if (data == null) // TODO consider caching null
+                    //    return null;
+                    var cacheData = new CachedData<T>(data, DateTime.UtcNow.Add(newTime), response.Content.Headers.LastModified?.UtcDateTime);
+                    memCache.Set(url, cacheData, cacheTime);
+                    return cacheData;
                 }
-                else
-                {
-                    data = JsonConvert.DeserializeObject<T>(await response.Content.ReadAsStringAsync());
-                }
-                //if (data == null) // TODO consider caching null
-                //    return null;
-                var cacheData = new CachedData<T>(data, DateTime.UtcNow.Add(newTime), response.Content.Headers.LastModified?.UtcDateTime);
-                memCache.Set(url, cacheData, cacheTime);
-                return cacheData;
             }
             catch { }
 
