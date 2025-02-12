@@ -49,9 +49,10 @@ namespace MultiplayerSessionList.Services
 
             try
             {
-                if (url.StartsWith("//"))
-                    url = "https:" + url;
-                var response = await httpClient.GetAsync(url);
+                string actualUrl = url;
+                if (actualUrl.StartsWith("//"))
+                    actualUrl = "https:" + actualUrl;
+                var response = await httpClient.GetAsync(actualUrl);
                 T data = default(T);
                 if (typeof(T) == typeof(string))
                 {
