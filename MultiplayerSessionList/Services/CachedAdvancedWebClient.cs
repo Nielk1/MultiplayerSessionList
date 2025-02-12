@@ -15,9 +15,10 @@ namespace MultiplayerSessionList.Services
         private HttpClient httpClient;
         private IMemoryCache memCache;
 
-        public CachedAdvancedWebClient(IMemoryCache memCache)
+        public CachedAdvancedWebClient(IMemoryCache memCache, HttpClient client)
         {
-            this.httpClient = new HttpClient();
+            //this.httpClient = new HttpClient();
+            this.httpClient = client;
             this.memCache = memCache;
         }
 

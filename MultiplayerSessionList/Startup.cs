@@ -46,6 +46,7 @@ namespace MultiplayerSessionList
 
             services.AddSingleton<GogInterface>();
             services.AddSingleton<SteamInterface>();
+            services.AddHttpClient();
             services.AddSingleton<CachedAdvancedWebClient>();
 
             services.AddSingleton<GameListModuleManager>();
