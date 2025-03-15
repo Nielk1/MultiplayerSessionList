@@ -97,55 +97,50 @@ namespace MultiplayerSessionList.Controllers
         /// </summary>
         public static async IAsyncEnumerable<TItem> SelectManyAsync<TItem>(IEnumerable<IAsyncEnumerable<TItem>> source, int testDelay = 0)
         {
-            // get enumerators from all inner IAsyncEnumerable
+            // Get enumerators from all inner IAsyncEnumerable
             var enumerators = source.Select(x => x.GetAsyncEnumerator()).ToList();
+            var runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool)>>();
 
-            List<Task<(IAsyncEnumerator<TItem>, bool)>> runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool)>>();
-
-            // start all inner IAsyncEnumerable
-            foreach (var asyncEnumerator in enumerators)
+            try
             {
-                runningTasks.Add(MoveNextWrapped(asyncEnumerator));
-            }
+                // Start all enumerators
+                foreach (var enumerator in enumerators)
+                    runningTasks.Add(MoveNextWrapped(enumerator));
 
-            // while there are any running tasks
-            while (runningTasks.Any())
-            {
-                // get next finished task and remove it from list
-                var finishedTask = await Task.WhenAny(runningTasks);
-                runningTasks.Remove(finishedTask);
-
-                // get result from finished IAsyncEnumerable
-                var result = await finishedTask;
-                var asyncEnumerator = result.Item1;
-                var hasItem = result.Item2;
-
-                // if IAsyncEnumerable has item, return it and put it back as running for next item
-                if (hasItem)
+                // Process items as they arrive
+                while (runningTasks.Any())
                 {
-                    yield return asyncEnumerator.Current;
+                    var finishedTask = await Task.WhenAny(runningTasks);
+                    runningTasks.Remove(finishedTask);
 
-                    runningTasks.Add(MoveNextWrapped(asyncEnumerator));
+                    var (enumerator, hasItem) = await finishedTask;
 
-                    if (testDelay > 0)
-                        await Task.Delay(testDelay);
+                    if (hasItem)
+                    {
+                        yield return enumerator.Current;
+                        runningTasks.Add(MoveNextWrapped(enumerator));
+
+                        if (testDelay > 0)
+                            await Task.Delay(testDelay);
+                    }
                 }
             }
-
-            // don't forget to dispose, should be in finally
-            foreach (var asyncEnumerator in enumerators)
+            finally
             {
-                await asyncEnumerator.DisposeAsync();
+                // Ensure enumerators are disposed
+                foreach (var asyncEnumerator in enumerators)
+                {
+                    await asyncEnumerator.DisposeAsync();
+                }
             }
         }
 
         /// <summary>
         /// Helper method that returns Task with tuple of IAsyncEnumerable and it's result of MoveNextAsync.
         /// </summary>
-        private static async Task<(IAsyncEnumerator<TItem>, bool)> MoveNextWrapped<TItem>(IAsyncEnumerator<TItem> asyncEnumerator)
+        private static async Task<(IAsyncEnumerator<TItem>, bool)> MoveNextWrapped<TItem>(IAsyncEnumerator<TItem> enumerator)
         {
-            var res = await asyncEnumerator.MoveNextAsync();
-            return (asyncEnumerator, res);
+            return (enumerator, await enumerator.MoveNextAsync());
         }
 
         [EnableCors("Games")]
