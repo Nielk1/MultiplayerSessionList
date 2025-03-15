@@ -604,10 +604,11 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                                         fact[GAMELIST_TERMS.FACTION_BLOCK] = $"{mapUrl.TrimEnd('/')}/resources/{fd["block"]}";
                                                     retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}", fact), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", false));
                                                 }
-                                                //else
-                                                //{
-                                                //    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}"), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", true));
-                                                //}
+                                                else
+                                                {
+                                                    // trying to fix odd bug where sometimes the hero loads before the faction causing a bad ref
+                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}"), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", true));
+                                                }
                                             }
                                             finally
                                             {
@@ -636,7 +637,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             }
                             else
                             {
-                                // removed this since we're just sending stubs every time now instead via the actualy allowed_heroes list
+                                // removed this since we're just sending stubs every time now instead via the actually allowed_heroes list
                                 // to deal with interlacing spit out some stubs too
                                 //retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"), $"hero\t{vehicle.Key}", true));
                             }
