@@ -7,6 +7,8 @@ using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Runtime;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace MultiplayerSessionList
 {
@@ -50,6 +52,8 @@ namespace MultiplayerSessionList
             services.AddSingleton<CachedAdvancedWebClient>();
 
             services.AddSingleton<GameListModuleManager>();
+            services.AddScoped<ScopedGameListModuleManager>();
+            GameListModuleManager.RegisterHandlers(services);
 
             services.AddControllersWithViews()
                 .AddNewtonsoftJson(options =>
@@ -62,6 +66,10 @@ namespace MultiplayerSessionList
                         NamingStrategy = new DefaultNamingStrategy(),
                     };
                 })
+                /*.AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+                });*/
                 //.AddNdjson();
                 .AddNewtonsoftNdjson();
             //AddStreamedJson();

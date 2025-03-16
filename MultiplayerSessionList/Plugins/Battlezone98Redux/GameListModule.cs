@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
+    [GameListModule("bigboat:battlezone_98_redux", "Battlezone 98 Redux", true)]
     public class GameListModule : IGameListModule
     {
         public string GameID => "bigboat:battlezone_98_redux";

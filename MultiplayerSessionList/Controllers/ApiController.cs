@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MultiplayerSessionList.Extensions;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
@@ -20,12 +21,14 @@ namespace MultiplayerSessionList.Controllers
     {
         private readonly ILogger<ApiController> _logger;
         private readonly GameListModuleManager _gameListModuleManager;
+        private readonly ScopedGameListModuleManager _scopedGameListModuleManager;
         private readonly IConfiguration _configuration;
 
-        public ApiController(ILogger<ApiController> logger, GameListModuleManager gameListModuleManager, IConfiguration configuration)
+        public ApiController(ILogger<ApiController> logger, GameListModuleManager gameListModuleManager, ScopedGameListModuleManager scopedGameListModuleManager, IConfiguration configuration)
         {
             _logger = logger;
             _gameListModuleManager = gameListModuleManager;
+            _scopedGameListModuleManager = scopedGameListModuleManager;
             _configuration = configuration;
         }
 
@@ -51,7 +54,7 @@ namespace MultiplayerSessionList.Controllers
         [Route("api/2.0/sessions")]
         public async Task<IActionResult> Sessions2([FromQuery] string[] game, string admin_password, int? simulate_delay, bool? mock, CancellationToken cancellationToken)
         {
-            string[] games = game.Distinct().Where(g => _gameListModuleManager.GameListPlugins.ContainsKey(g)).ToArray();
+            string[] games = game.Distinct().Where(g => _gameListModuleManager.HasPlugin(g)).ToArray();
             if (games.Length == 0)
             {
                 return NotFound();
@@ -67,7 +70,7 @@ namespace MultiplayerSessionList.Controllers
             {
                 simulate_delay = 0;
                 Mock = false;
-                games = games.Where(g => _gameListModuleManager.GameListPlugins[g].IsPublic).ToArray();
+                games = games.Where(g => _gameListModuleManager.IsPublic(g)).ToArray();
             }
             if (games.Length == 0)
             {
@@ -85,62 +88,13 @@ namespace MultiplayerSessionList.Controllers
             //}
 
             ////return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
-            return new NdjsonAsyncEnumerableResult<Datum>(SelectManyAsync(games.Select(g => _gameListModuleManager.GameListPlugins[g].GetGameListChunksAsync(games.Length > 1, Admin, Mock, cancellationToken)), simulate_delay ?? 0));
+            return new NdjsonAsyncEnumerableResult<Datum>(games.Select(g => _scopedGameListModuleManager.GetPlugin(g)?.GetGameListChunksAsync(games.Length > 1, Admin, Mock, cancellationToken))
+                                                               .SelectManyAsync()
+                                                               .DelayAsync(simulate_delay ?? 0));
             //return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
             //return Sessions2Internal(games, Admin, cancellationToken);
             //yield break;
             //return new NdjsonAsyncEnumerableResult<dynamic>(_gameListModuleManager.GameListPlugins[game].GetGameListChunksAsync(Admin, cancellationToken));
-        }
-
-        /// <summary>
-        /// Starts all inner IAsyncEnumerable and returns items from all of them in order in which they come.
-        /// </summary>
-        public static async IAsyncEnumerable<TItem> SelectManyAsync<TItem>(IEnumerable<IAsyncEnumerable<TItem>> source, int testDelay = 0)
-        {
-            // Get enumerators from all inner IAsyncEnumerable
-            var enumerators = source.Select(x => x.GetAsyncEnumerator()).ToList();
-            var runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool)>>();
-
-            try
-            {
-                // Start all enumerators
-                foreach (var enumerator in enumerators)
-                    runningTasks.Add(MoveNextWrapped(enumerator));
-
-                // Process items as they arrive
-                while (runningTasks.Any())
-                {
-                    var finishedTask = await Task.WhenAny(runningTasks);
-                    runningTasks.Remove(finishedTask);
-
-                    var (enumerator, hasItem) = await finishedTask;
-
-                    if (hasItem)
-                    {
-                        yield return enumerator.Current;
-                        runningTasks.Add(MoveNextWrapped(enumerator));
-
-                        if (testDelay > 0)
-                            await Task.Delay(testDelay);
-                    }
-                }
-            }
-            finally
-            {
-                // Ensure enumerators are disposed
-                foreach (var asyncEnumerator in enumerators)
-                {
-                    await asyncEnumerator.DisposeAsync();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Helper method that returns Task with tuple of IAsyncEnumerable and it's result of MoveNextAsync.
-        /// </summary>
-        private static async Task<(IAsyncEnumerator<TItem>, bool)> MoveNextWrapped<TItem>(IAsyncEnumerator<TItem> enumerator)
-        {
-            return (enumerator, await enumerator.MoveNextAsync());
         }
 
         [EnableCors("Games")]
@@ -165,10 +119,14 @@ namespace MultiplayerSessionList.Controllers
             string AdminDataPassword = _configuration["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
 
+            //return Ok(_gameListModuleManager
+            //    .GameListPlugins
+            //    .Values
+            //    .Where(dr => Admin || dr.IsPublic)
+            //    .Select(dr => new { Key = dr.GameID, Name = dr.Title })
+            //    .OrderBy(dr => dr.Name));
             return Ok(_gameListModuleManager
-                .GameListPlugins
-                .Values
-                .Where(dr => Admin || dr.IsPublic)
+                .GetPluginList(Admin)
                 .Select(dr => new { Key = dr.GameID, Name = dr.Title })
                 .OrderBy(dr => dr.Name));
         }

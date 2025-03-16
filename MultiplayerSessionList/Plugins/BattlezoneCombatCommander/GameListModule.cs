@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
+    [GameListModule("bigboat:battlezone_combat_commander", "Battlezone: Combat Commander", true)]
     public class GameListModule : IGameListModule
     {
         public string GameID => "bigboat:battlezone_combat_commander";
