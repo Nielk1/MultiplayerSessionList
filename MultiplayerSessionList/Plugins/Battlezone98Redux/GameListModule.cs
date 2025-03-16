@@ -13,7 +13,7 @@ using System.Runtime.CompilerServices;
 
 namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 {
-    [GameListModule("bigboat:battlezone_98_redux", "Battlezone 98 Redux", true)]
+    [GameListModule(GameID, "Battlezone 98 Redux", true)]
     public class GameListModule : IGameListModule
     {
         private const string GameID = "bigboat:battlezone_98_redux";
@@ -28,8 +28,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
         public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
-            queryUrl = configuration["bigboat:battlezone_98_redux:sessions"];
-            mapUrl = configuration["bigboat:battlezone_98_redux:maps"];
+            queryUrl = configuration[$"{GameID}:sessions"];
+            mapUrl = configuration[$"{GameID}:maps"];
             this.gogInterface = gogInterface;
             this.steamInterface = steamInterface;
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;

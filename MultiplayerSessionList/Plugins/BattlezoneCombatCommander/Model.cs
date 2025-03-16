@@ -60,12 +60,12 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         //public string __addr { get; set; }
         public string proxySource { get; set; }
 
-        public string g { get; set; } // ex "4M-CB73@GX" (seems to go with NAT type 5???) (NATNEGNEEDED_KEY)
+        [JsonProperty("g")] public string NATNegID { get; set; } // Raknet GUID, Base64 encoded with custom alphabet
         public string n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
         [JsonProperty("m")] public string MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
         public string k { get; set; } // tinyint      | Password Flag.
         public string d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
-        public string t { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
+        [JsonProperty("t")] public string NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
         public string v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
         public string l { get; set; } // locked
         [JsonProperty("h")] public string MOTD { get; set; } // server message (not base64 yet)
@@ -105,9 +105,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [JsonIgnore] public int? TimeLimit { get { int tmp = 0; return int.TryParse(ti, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? KillLimit { get { int tmp = 0; return int.TryParse(ki, out tmp) ? (int?)tmp : null; } }
 
-        [JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
-        //[JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
-        //[JsonIgnore] public string MOTD { get { try { return string.IsNullOrWhiteSpace(h) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(h)); } catch { return null; } } }
+        [JsonIgnore] public string SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 
         [JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
 

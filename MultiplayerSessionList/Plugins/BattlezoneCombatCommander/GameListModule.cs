@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
-    [GameListModule("bigboat:battlezone_combat_commander", "Battlezone: Combat Commander", true)]
+    [GameListModule(GameID, "Battlezone: Combat Commander", true)]
     public class GameListModule : IGameListModule
     {
         private const string GameID = "bigboat:battlezone_combat_commander";
@@ -48,8 +48,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
         public GameListModule(IConfiguration configuration, GogInterface gogInterface, SteamInterface steamInterface, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
-            queryUrl = configuration["bigboat:battlezone_combat_commander:sessions"];
-            mapUrl = configuration["bigboat:battlezone_combat_commander:maps"];
+            queryUrl = configuration[$"{GameID}:sessions"];
+            mapUrl = configuration[$"{GameID}:maps"];
             this.gogInterface = gogInterface;
             this.steamInterface = steamInterface;
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
@@ -71,7 +71,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
 #if DEBUG
             // any games that aren't my placeholder
-            mock = mock || !gamelist.GET.Where(raw => raw.g != "XXXXXXX@XX").Any();
+            mock = mock || !gamelist.GET.Where(raw => raw.NATNegID != "XXXXXXX@XX").Any();
 #endif
             if (mock)
                 gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(System.IO.File.ReadAllText(@"mock\bigboat\battlezone_combat_commander.json"));
@@ -106,18 +106,18 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             foreach (var raw in gamelist.GET)
             {
                 // ignore dummy games
-                if (raw.g == "XXXXXXX@XX")
+                if (raw.NATNegID == "XXXXXXX@XX")
                     continue;
 
-                UInt64 natNegId = Base64.DecodeRaknetGuid(raw.g);
+                UInt64 natNegId = Base64.DecodeRaknetGuid(raw.NATNegID);
                 Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
 
                 if (multiGame)
                     session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat", raw.g);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat", raw.NATNegID);
 
-                session[GAMELIST_TERMS.SESSION_NAME] = raw.Name;
+                session[GAMELIST_TERMS.SESSION_NAME] = raw.SessionName;
                 if (!string.IsNullOrWhiteSpace(raw.MOTD))
                     session[GAMELIST_TERMS.SESSION_MESSAGE] = raw.MOTD;
 
@@ -240,8 +240,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 if (raw.KillLimit.HasValue && raw.KillLimit > 0)
                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:kill_limit", raw.KillLimit);
 
-                if (!string.IsNullOrWhiteSpace(raw.t))
-                    switch (raw.t)
+                if (!string.IsNullOrWhiteSpace(raw.NATType))
+                    switch (raw.NATType)
                     {
                         case "0":
                             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", $"NONE"); /// Works with anyone
@@ -268,7 +268,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", $"SUPPORTS UPNP"); /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
                             break;
                         default:
-                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", $"[" + raw.t + "]");
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", $"[" + raw.NATType + "]");
                             break;
                     }
 

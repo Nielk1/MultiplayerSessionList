@@ -137,22 +137,22 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                     {
                         SessionItem game = new SessionItem();
 
-                        if (raw.g == "XXXXXXX@XX")
+                        if (raw.NATNegID == "XXXXXXX@XX")
                             return;
 
-                        game.ID = $"{raw.proxySource ?? "IonDriver"}:{raw.g}";
+                        game.ID = $"{raw.proxySource ?? "IonDriver"}:{raw.NATNegID}";
 
-                        game.Address["NAT"] = raw.g;
+                        game.Address["NAT"] = raw.NATNegID;
                         //if (!raw.Passworded)
                         //{
                         //    game.Address["Rich"] = string.Join(null, $"N,{raw.Name.Length},{raw.Name},{raw.mm.Length},{raw.mm},{raw.g},0,".Select(dr => $"{((int)dr):x2}"));
                         //}
                         if (admin)
                         {
-                            game.Address["NAT_bin"] = BitConverter.ToString(Base64DecodeBinary(raw.g));
+                            game.Address["NAT_bin"] = BitConverter.ToString(Base64DecodeBinary(raw.NATNegID));
                         }
 
-                        game.Name = raw.Name;
+                        game.Name = raw.SessionName;
                         if (!string.IsNullOrWhiteSpace(raw.MOTD))
                             game.Message = raw.MOTD;
 
@@ -228,8 +228,8 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                         if (raw.KillLimit.HasValue && raw.KillLimit > 0)
                             game.Level.AddObjectPath("Attributes:KillLimit", raw.KillLimit);
 
-                        if (!string.IsNullOrWhiteSpace(raw.t))
-                            switch (raw.t)
+                        if (!string.IsNullOrWhiteSpace(raw.NATType))
+                            switch (raw.NATType)
                             {
                                 case "0":
                                     game.Address.Add("NAT_TYPE", $"NONE"); /// Works with anyone
@@ -256,7 +256,7 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                                     game.Address.Add("NAT_TYPE", $"SUPPORTS UPNP"); /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
                                     break;
                                 default:
-                                    game.Address.Add("NAT_TYPE", $"[" + raw.t + "]");
+                                    game.Address.Add("NAT_TYPE", $"[" + raw.NATType + "]");
                                     break;
                             }
 
