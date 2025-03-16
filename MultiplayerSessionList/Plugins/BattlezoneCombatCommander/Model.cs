@@ -60,7 +60,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         //public string __addr { get; set; }
         public string proxySource { get; set; }
 
-        public string g { get; set; } // ex "4M-CB73@GX" (seems to go with NAT type 5???)
+        public string g { get; set; } // ex "4M-CB73@GX" (seems to go with NAT type 5???) (NATNEGNEEDED_KEY)
         public string n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
         [JsonProperty("m")] public string MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
         public string k { get; set; } // tinyint      | Password Flag.

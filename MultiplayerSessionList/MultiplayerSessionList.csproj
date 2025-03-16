@@ -2,6 +2,18 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Remove="mock\bigboat\battlezone_98_redux.json" />
+    <Content Remove="mock\bigboat\battlezone_combat_commander.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mock\bigboat\battlezone_98_redux.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="mock\bigboat\battlezone_combat_commander.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.10" />

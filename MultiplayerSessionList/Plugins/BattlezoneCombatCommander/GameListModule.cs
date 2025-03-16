@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
@@ -15,9 +16,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
     [GameListModule("bigboat:battlezone_combat_commander", "Battlezone: Combat Commander", true)]
     public class GameListModule : IGameListModule
     {
-        public string GameID => "bigboat:battlezone_combat_commander";
-        public string Title => "Battlezone: Combat Commander";
-        public bool IsPublic => true;
+        private const string GameID = "bigboat:battlezone_combat_commander";
+        //public string Title => "Battlezone: Combat Commander";
+        //public bool IsPublic => true;
 
         enum GameMode : int
         {
@@ -54,16 +55,6 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
         }
 
-        const string base64Chars    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        const string altBase64Chars = "@123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
-
-        private byte[] Base64DecodeBinary(string base64)
-        {
-            string newBase64 = new string(base64.Select(c => { int idx = altBase64Chars.IndexOf(c); return idx < 0 ? c : base64Chars[altBase64Chars.IndexOf(c)]; }).ToArray());
-            newBase64 = newBase64.PadRight((newBase64.Length + 3) & ~3, '=');
-            return Convert.FromBase64String(newBase64);
-        }
-
         public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             TaskFactory taskFactory = new TaskFactory(cancellationToken);
@@ -83,7 +74,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             mock = mock || !gamelist.GET.Where(raw => raw.g != "XXXXXXX@XX").Any();
 #endif
             if (mock)
-                gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>("{\"GET\":[{\"n\":\"UmViZWxsaW9uJ3Mgc2VydmVyIGlzIFVQ\",\"l\":\"1\",\"m\":\"bismuth\",\"g\":\"XXXXXXX@XX\",\"h\":\"Fix your host files!\",\"mm\":\"0\",\"gid\":\"BZCC\",\"rid\":-1,\"ts\":300,\"mu\":\"\"},{\"v\":\"2.0.185\",\"gtm\":68,\"g\":\"IGiq_J1@@E\",\"m\":\"mpiwoho\",\"mu\":\"\",\"gt\":2,\"gtd\":13,\"pg\":118,\"pgm\":750,\"d\":\"nrI7n\",\"t\":1,\"n\":\"Q2Fubm9uIEZvZGRlcidzIE1QSQAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\",\"mm\":\"2967047003\",\"pm\":5,\"pl\":[{\"i\":\"S76561198022218242\",\"n\":\"e09URH0gQ2Fubm9uIEZvZGRlcg==\",\"t\":1},{\"i\":\"S76561198819788857\",\"n\":\"R29sZHk=\",\"k\":3,\"s\":15,\"t\":2}],\"tps\":20,\"si\":3,\"proxySource\":\"Rebellion\",\"gid\":\"BZCC\",\"rid\":-2,\"ts\":60},{\"v\":\"2.0.185\",\"gtm\":69,\"g\":\"Aoy-t61@mE\",\"k\":1,\"m\":\"mpidunes\",\"mu\":\"\",\"gt\":2,\"gtd\":83,\"pg\":2,\"pgm\":750,\"d\":\"nrI7n\",\"t\":4,\"n\":\"enp4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\",\"mm\":\"0\",\"h\":\"Spastic\",\"pm\":4,\"pl\":[{\"i\":\"S76561198020970950\",\"n\":\"Sm9zZXBoTTBF\",\"t\":1},{\"i\":\"S76561198074321925\",\"n\":\"U3Bhc3RpY1NwYXo=\",\"t\":2}],\"tps\":20,\"si\":1,\"proxySource\":\"Rebellion\",\"gid\":\"BZCC\",\"rid\":-3,\"ts\":60},{\"v\":\"2.0.191\",\"gtm\":37,\"g\":\"BwHUzL2@Wg\",\"m\":\"vsrJade\",\"mu\":\"\",\"gt\":2,\"gtd\":40,\"pg\":96,\"pgm\":750,\"d\":\"Dx7b73\",\"t\":4,\"n\":\"SG9zdCBTRWlnZQAAAAAAAAAAAACABwAAOAQAAAEAAAAAAAAAgAcAAA==\",\"mm\":\"1325933293\",\"pm\":10,\"pl\":[{\"i\":\"S76561198063204817\",\"n\":\"U0VpZ2VfU21va2ll\",\"t\":2},{\"i\":\"S76561198058690608\",\"n\":\"anVkZ2VndW5z\",\"t\":3},{\"i\":\"S76561197996696789\",\"n\":\"LT1KYWJiQT0tICpwMHAq\",\"t\":1},{\"i\":\"S76561197962996353\",\"n\":\"SGVycCBNY0RlcnBlcnNvbg==\",\"t\":4},{\"i\":\"S76561199653748651\",\"n\":\"U2V2\",\"t\":6}],\"tps\":20,\"si\":1,\"proxySource\":\"Rebellion\",\"gid\":\"BZCC\",\"rid\":-4,\"ts\":60},{\"v\":\"2.0.185\",\"gtm\":32,\"g\":\"-HGcNV@@@U\",\"m\":\"MPIAN\",\"mu\":\"\",\"gt\":0,\"gtd\":0,\"pg\":213,\"pgm\":750,\"d\":\"nrI7n\",\"t\":2,\"n\":\"bXBpIHJldCB4IGJsaXR6AAAAAABJ2wM0TczOQDrTLkAAAIA/AACAvw==\",\"mm\":\"1821482708;1570504567;1374954711;1370034148;1329659846;1374955473;1374956537;2034315080\",\"pm\":3,\"pl\":[{\"i\":\"S76561198955093685\",\"n\":\"b2NmZXJuYW4=\",\"k\":1,\"s\":5,\"t\":1},{\"i\":\"S76561198177918123\",\"n\":\"Q2FwdGFpbl9RdWlyaw==\",\"k\":25,\"d\":1,\"s\":123,\"t\":2},{\"i\":\"S76561198005362083\",\"n\":\"Y2hpbGxlcl81Ng==\",\"k\":30,\"d\":1,\"s\":148,\"t\":3}],\"tps\":20,\"si\":4,\"proxySource\":\"Rebellion\",\"gid\":\"BZCC\",\"rid\":-5,\"ts\":60}],\"requestURL\":\"raknetsrv2.iondriver.com/lobbyServer?__pluginShowSource=true&__pluginQueryServers=true&__pluginShowStatus=true\",\"plugin\":\"Battlezone CC GameList\",\"proxyStatus\":{\"Rebellion\":{\"updated\":\"2024-09-15T01:23:44.9077017Z\",\"status\":\"cached\",\"success\":true}}}");
+                gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(System.IO.File.ReadAllText(@"mock\bigboat\battlezone_combat_commander.json"));
 
             foreach (var proxyStatus in gamelist.proxyStatus)
                 yield return new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{proxyStatus.Key}", new DataCache() {
@@ -118,12 +109,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 if (raw.g == "XXXXXXX@XX")
                     continue;
 
-                //byte[] natNegId = Base64DecodeBinary(raw.g);
-                //var natNegIdPad = new byte[8];
-                //var startAt = natNegIdPad.Length - natNegId.Length;
-                //Array.Copy(natNegId, 0, natNegIdPad, startAt, natNegId.Length);
-                //Datum game = new Datum("session", $"{raw.proxySource ?? "IonDriver"}:{natNegIdPad[7]:x2}{natNegIdPad[6]:x2}{natNegIdPad[5]:x2}{natNegIdPad[4]:x2}{natNegIdPad[3]:x2}{natNegIdPad[2]:x2}{natNegIdPad[1]:x2}{natNegIdPad[0]:x2}");
-                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.proxySource ?? "IonDriver"}:{raw.g}");
+                UInt64 natNegId = Base64.DecodeRaknetGuid(raw.g);
+                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
 
                 if (multiGame)
                     session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
