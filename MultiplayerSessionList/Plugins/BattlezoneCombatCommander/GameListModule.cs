@@ -65,7 +65,8 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 });
 
             var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
-            if (admin) yield return new Datum("debug", "raw", new DataCache () { { "raw", res.Data } });
+            //if (admin)
+            //    yield return new Datum("debug", "raw", new DataCache () { { "raw", res.Data } });
 
             var gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(res.Data);
 
