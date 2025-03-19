@@ -16,14 +16,14 @@
 # session
 * type: `string` (enum) `"listen","dedicated"`
 * sources:
-   * *key*: `object` (source)
+   * *key*: `object` ([source](#source))
 * name: `string`
 * message: `string`
 * game:
-  * mod: `object` (mod)
-  * mods: `[object]` (mod)
+  * mod: `object` ([mod](#mod))
+  * mods: `[object]` ([mod](#mod))
   * version: `string` (version format or any?)
-  * game_balance: `object` (game_balance)
+  * game_balance: `object` ([game_balance](#game_balance))
   * other: *object* (game specific)
 * status:
   * is_locked: `bool`
@@ -34,9 +34,9 @@
   * token: `string`
   * other: *object* (game specific)
 * level:
-  * game_type: `object` (game_type)
-  * game_mode: `object` (game_mode)
-  * map: `object` (map)
+  * game_type: `object` ([game_type](#game_type))
+  * game_mode: `object` ([game_mode](#game_mode))
+  * map: `object` ([map](#map))
   * rules: *object* (game specific)
     * time_limit: `integer` [bigboat:battlezone_98_redux]
     * lives: `integer` [bigboat:battlezone_98_redux]
@@ -55,8 +55,8 @@
   * resolution: `integer`
   * max: `bool`
   * context: `string` (enum session_state)
-* players: `[object]` (player)
-* player_types: `[object]` (!player_type)
+* players: `[object]` ([player](#player))
+* player_types: `[object]` ([!player_type](#!player_type))
 * player_count:
   * *key*: `integer`
 * other: *object* (game specific)
@@ -79,7 +79,7 @@
   * *key*: ("slot", "bzr_net", "steam", "gog")
     * id: `string`
 	* raw: `string`
-	* identity: `object` (identity/steam or identity/gog)
+	* identity: `object` ([identity/steam or identity/gog](#identity/steam or identity/gog))
 * team:
   * id: `string`
   * leader: `bool`
@@ -89,32 +89,32 @@
   * kills: `integer` [bigboat:battlezone_combat_commander]
   * deaths: `integer` [bigboat:battlezone_combat_commander]
   * score: `integer` [bigboat:battlezone_combat_commander]
-* hero: `object` (hero)
+* hero: `object` ([hero](#hero))
 * other: *object* (game specific)
 
 # mod
 * name: `string`
 * image: `string` (url)
 * url: `string` (url)
-* dependencies: `[object]` (mod)
+* dependencies: `[object]` ([mod](#mod))
 
 # map
 * name: `string`
 * description: `string`
 * image: `string` (url)
 * map_file: `string` (filename)
-* game_type: `object` (game_type)
-* game_mode: `object` (game_mode)
-* game_balance: `object` (game_balance)
+* game_type: `object` ([game_type](#game_type))
+* game_mode: `object` ([game_mode](#game_mode))
+* game_balance: `object` ([game_balance](#game_balance))
 * teams:
   * *key*:
     * name: `string`
-* allowed_heroes: `[object]` (hero)
+* allowed_heroes: `[object]` ([hero](#hero))
 
 # hero
 * name: `string`
 * description: `string`
-* faction: `object` (faction)
+* faction: `object` ([faction](#faction))
 
 # game_balance
 * name: `string`
