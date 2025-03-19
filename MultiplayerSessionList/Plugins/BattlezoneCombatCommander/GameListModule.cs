@@ -751,7 +751,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 {
                                     // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
                                     foreach (var dep in mod.Value.dependencies)
-                                        retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"mod\t{dep}", true));
+                                        retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{dep}", true));
                                     modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
                                 }
 
