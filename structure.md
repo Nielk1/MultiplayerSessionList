@@ -79,7 +79,7 @@
   * *key*: ("slot", "bzr_net", "steam", "gog")
     * id: `string`
 	* raw: `string`
-	* identity: `object` ([identity/steam(#identitysteam) or [identity/gog](#identitygog))
+	* identity: `object` ([identity/steam](#identitysteam) or [identity/gog](#identitygog))
 * team:
   * id: `string`
   * leader: `bool`
