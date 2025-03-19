@@ -56,7 +56,7 @@
   * max: `bool`
   * context: `string` (enum session_state)
 * players: `[object]` ([player](#player))
-* player_types: `[object]` ([!player_type](#!player_type))
+* player_types: `[object]` ([!player_type](#player_type))
 * player_count:
   * *key*: `integer`
 * other: *object* (game specific)
@@ -79,7 +79,7 @@
   * *key*: ("slot", "bzr_net", "steam", "gog")
     * id: `string`
 	* raw: `string`
-	* identity: `object` ([identity/steam or identity/gog](#identity/steam or identity/gog))
+	* identity: `object` ([identity/steam(#identitysteam) or [identity/gog](#identitygog))
 * team:
   * id: `string`
   * leader: `bool`
