@@ -72,8 +72,6 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                 session[GAMELIST_TERMS.SESSION_NAME] = $"{s.Username} - {s.GameName}";
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:IP", s.IP);
-
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:IP", s.IP);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:Port", s.Port);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:HostMethod", s.HostMethod.ToString());
                 if (s.HostMethod == HostMethod.HostMethodMITM)

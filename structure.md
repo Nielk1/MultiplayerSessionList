@@ -1,3 +1,17 @@
+# notes
+## data priority
+Some data paths override others.
+For example session.level.rules data can override session.level.map data can override session.level data.
+This allows for logic where the level has set a game mode, but the map data contains more narrowly tailored game mode data, but the user can further override the active game mode should rules selection.
+This is because rules and level are session instance specific but map data is likely fixed (as map data objects are often reused).
+
+## Game Notation
+At this stage unusual and other fields listed are tagged with their game of origin.
+This notation is for the current stage where the spec is still fluid.
+Generally reading the API should do so with fallback chains for all properties as some games may set properties and others may not.
+Once the spec is more stable I will try to document game specifics globally.
+
+
 # enum string values
 ## session_state
 * `unknown` // Normally has a state, but it is unknown
@@ -26,14 +40,25 @@
   * version: `string` (version format or any?)
   * game_balance: `object` ([game_balance](#game_balance))
   * other: *object* (game specific)
+    * mod_hash: `string` [bigboat:battlezone_combat_commander]
 * status:
   * is_locked: `bool`
   * has_password: `bool`
+  * has_password.spectator: `bool` [retroarch:netplay] **likely needs adjustment**
   * state: `string` (enum)
   * other: *object* (game specific)
+    * sync_too_late: `bool` [bigboat:battlezone_98_redux] (too late to join due to sync_join bug)
 * address: **work needed here**
   * token: `string`
   * other: *object* (game specific)
+    * lobby_id: `integer` [bigboat:battlezone_98_redux]
+    * nat: `string` [bigboat:battlezone_combat_commander]
+    * IP: `string` [retroarch:netplay]
+    * Port: `integer` [retroarch:netplay]
+    * HostMethod: `string` [retroarch:netplay]
+    * MitmAddress: `string` [retroarch:netplay]
+    * MitmPort: `integer` [retroarch:netplay]
+    * Country: `string` [retroarch:netplay]
 * level:
   * game_type: `object` ([game_type](#game_type))
   * game_mode: `object` ([game_mode](#game_mode))
@@ -45,7 +70,13 @@
     * barracks: `bool` [bigboat:battlezone_98_redux]
     * sniper: `bool` [bigboat:battlezone_98_redux]
     * splinter: `bool` [bigboat:battlezone_98_redux]
+    * game_type: `object` ([game_type](#game_type)) **not used by anything but possible**
+    * game_mode: `object` ([game_mode](#game_mode)) **not used by anything but possible**
   * other: *object* (game specific)
+    * crc32: `string` [bigboat:battlezone_98_redux] **likely needs adjustment**
+    * GameName: `string` [retroarch:netplay]
+    * GameCRC: `string` [retroarch:netplay]
+    * ID: `string` [retroarch:netplay]
 * teams:
   * *key*:
     * max: `integer`
@@ -61,6 +92,25 @@
 * player_count:
   * *key*: `integer`
 * other: *object* (game specific)
+  * sync_join: `bool` [bigboat:battlezone_98_redux]
+  * meta_data_version: `string` [bigboat:battlezone_98_redux]
+  * sync_script: `bool` [bigboat:battlezone_98_redux] (sync handled by script)
+  * tps: `integer` [bigboat:battlezone_combat_commander]
+  * max_ping: `integer` [bigboat:battlezone_combat_commander]
+  * worst_ping: `integer` [bigboat:battlezone_combat_commander]
+  * nat_type: `string` [bigboat:battlezone_combat_commander]
+  * Core: `object` [retroarch:netplay]
+    * Name: `string` [retroarch:netplay]
+    * Version: `string` [retroarch:netplay]
+    * SubsystemName: `string` [retroarch:netplay]
+  * RetroArchVersion: `string` [retroarch:netplay]
+  * UnsortedAttributes: `object` [retroarch:netplay]
+    * Username: `string` [retroarch:netplay]
+    * RoomID: `integer` [retroarch:netplay]
+    * Frontend: `string` [retroarch:netplay]
+    * CreatedAt: `string` [retroarch:netplay]
+    * UpdatedAt: `string` [retroarch:netplay]
+
 
 ## !player_type
   * types: `[string]`
@@ -79,8 +129,8 @@
 * ids:
   * *key*: ("slot", "bzr_net", "steam", "gog")
     * id: `string`
-	* raw: `string`
-	* identity: `object` ([identity/steam](#identitysteam) or [identity/gog](#identitygog))
+    * raw: `string`
+    * identity: `object` ([identity/steam](#identitysteam) or [identity/gog](#identitygog))
 * team:
   * id: `string`
   * leader: `bool`
@@ -92,6 +142,12 @@
   * score: `integer` [bigboat:battlezone_combat_commander]
 * hero: `object` ([hero](#hero))
 * other: *object* (game specific)
+  * launched: `bool` [bigboat:battlezone_98_redux]
+  * is_auth: `bool` [bigboat:battlezone_98_redux]
+  * wan_address: `string` [bigboat:battlezone_98_redux] (admin mode only)
+  * lan_addresses: `[string]` [bigboat:battlezone_98_redux] (admin mode only)
+  * community_patch: `[string]` [bigboat:battlezone_98_redux]
+  * community_patch_shim: `[string]` [bigboat:battlezone_98_redux]
 
 ## mod
 * name: `string`
