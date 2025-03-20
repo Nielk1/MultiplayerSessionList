@@ -1,19 +1,20 @@
 # enum string values
-* session_state
-  * `unknown` // Normally has a state, but it is unknown
-  * `pre_game` // Pre-Game Setup
-  * `loading` // Loading Game
-  * `in_game` // In-Game
-  * `post_game` // Post-Game or GameOver
-  * `paused` // unused options so far
-  * `away` // unused options so far
-  * `busy` // unused options so far
-  * `not_responding` // unused options so far
+## session_state
+* `unknown` // Normally has a state, but it is unknown
+* `pre_game` // Pre-Game Setup
+* `loading` // Loading Game
+* `in_game` // In-Game
+* `post_game` // Post-Game or GameOver
+* `paused` // unused options so far
+* `away` // unused options so far
+* `busy` // unused options so far
+* `not_responding` // unused options so far
 
-# default
+# objects
+## default
 * *type*: `object`
 
-# session
+## session
 * type: `string` (enum) `"listen","dedicated"`
 * sources:
    * *key*: `object` ([source](#source))
@@ -54,24 +55,24 @@
   * seconds: `integer`
   * resolution: `integer`
   * max: `bool`
-  * context: `string` (enum session_state)
+  * context: `string` (enum [session_state](#session_state))
 * players: `[object]` ([player](#player))
 * player_types: `[object]` ([!player_type](#player_type))
 * player_count:
   * *key*: `integer`
 * other: *object* (game specific)
 
-# !player_type
+## !player_type
   * types: `[string]`
   * max: `integer`
 
-# source
+## source
 * name: `string`
 * status: `string` (enum?) **not final**
 * success: `bool` **not final**
 * timestamp: `string` (timestamp) **not final**
 
-# player
+## player
 * name: `string`
 * type: `string`
 * index: `integer`
@@ -92,13 +93,13 @@
 * hero: `object` ([hero](#hero))
 * other: *object* (game specific)
 
-# mod
+## mod
 * name: `string`
 * image: `string` (url)
 * url: `string` (url)
 * dependencies: `[object]` ([mod](#mod))
 
-# map
+## map
 * name: `string`
 * description: `string`
 * image: `string` (url)
@@ -111,51 +112,51 @@
     * name: `string`
 * allowed_heroes: `[object]` ([hero](#hero))
 
-# hero
+## hero
 * name: `string`
 * description: `string`
 * faction: `object` ([faction](#faction))
 
-# game_balance
+## game_balance
 * name: `string`
 * abbr: `string` (short)
 * note: `string`
 
-# game_type
+## game_type
 * name: `string`
 * icon: `string` (url)
-* color: `string` (color)
-* color_f: `string` (color)
-* color_b: `string` (color)
-* color_df: `string` (color)
-* color_db: `string` (color)
-* color_lf: `string` (color)
-* color_lb: `string` (color)
+* color: `string` (color) (not forground or background, just "the color")
+* color_f: `string` (color) (forground) **not sure if we will keep these**
+* color_b: `string` (color) (background) **not sure if we will keep these**
+* color_df: `string` (color) (forground for dark) **not sure if we will keep these**
+* color_db: `string` (color) (background for dark) **not sure if we will keep these**
+* color_lf: `string` (color) (forground for light) **not sure if we will keep these**
+* color_lb: `string` (color) (background for light) **not sure if we will keep these**
 
-# game_mode
+## game_mode
 * name: `string`
 * icon: `string` (url)
-* color: `string` (color)
-* color_f: `string` (color)
-* color_b: `string` (color)
-* color_df: `string` (color)
-* color_db: `string` (color)
-* color_lf: `string` (color)
-* color_lb: `string` (color)
+* color: `string` (color) (not forground or background, just "the color")
+* color_f: `string` (color) (forground) **not sure if we will keep these**
+* color_b: `string` (color) (background) **not sure if we will keep these**
+* color_df: `string` (color) (forground for dark) **not sure if we will keep these**
+* color_db: `string` (color) (background for dark) **not sure if we will keep these**
+* color_lf: `string` (color) (forground for light) **not sure if we will keep these**
+* color_lb: `string` (color) (background for light) **not sure if we will keep these**
 
-# identity/steam
+## identity/steam
 * type: `string` "steam"
 * avatar_url: `string` (url)
 * nickname: `string`
 * profile_url: `string` (url)
 
-# identity/gog
+## identity/gog
 * type: `string` "gog"
 * avatar_url: `string` (url)
 * username: `string`
 * profile_url: `string` (url)
 
-# faction
+## faction
 * name: `string`
 * abbr: `string` (short)
 * block: `string` (url)
