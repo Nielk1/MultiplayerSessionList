@@ -24,4 +24,20 @@ namespace MultiplayerSessionList.Models
         public const string Busy = "busy";
         public const string NotResponding = "not_responding";
     }
+
+    public static class SESSION_STATE_LEGACY
+    {
+        public const string Unknown = "Unknown"; // Normally has a state, but it is unknown
+
+        public const string PreGame = "PreGame"; // Pre-Game Setup
+        public const string Loading = "Loading"; // Loading Game
+        public const string InGame = "InGame"; // In-Game
+        public const string PostGame = "PostGame"; // Post-Game or GameOver
+
+        // unused options so far
+        public const string Paused = "Paused";
+        public const string Away = "Away";
+        public const string Busy = "Busy";
+        public const string NotResponding = "NotResponding";
+    }
 }

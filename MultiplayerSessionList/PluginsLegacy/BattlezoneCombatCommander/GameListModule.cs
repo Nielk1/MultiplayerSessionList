@@ -177,28 +177,28 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                         game.Status.Add(GAMELIST_TERMS_OLD.STATUS_LOCKED, raw.Locked);
                         game.Status.Add(GAMELIST_TERMS_OLD.STATUS_PASSWORD, raw.Passworded);
 
-                        string ServerState = null;
+                        SESSION_STATE_LEGACY ServerState = null;
                         if (raw.ServerInfoMode.HasValue)
                         {
                             switch (raw.ServerInfoMode)
                             {
                                 case 0: // ServerInfoMode_Unknown
-                                    ServerState = SESSION_STATE.Unknown;
+                                    ServerState = SESSION_STATE_LEGACY.Unknown;
                                     break;
                                 case 1: // ServerInfoMode_OpenWaiting
                                 case 2: // ServerInfoMode_ClosedWaiting (full)
                                     if (raw.pl.Any(dr => dr != null && ((dr.Score ?? 0) != 0 || (dr.Deaths ?? 0) != 0 || (dr.Kills ?? 0) != 0)))
                                         // PreGame status applied in error, players have in-game sourced data
-                                        ServerState = SESSION_STATE.InGame;
+                                        ServerState = SESSION_STATE_LEGACY.InGame;
                                     else
-                                        ServerState = SESSION_STATE.PreGame;
+                                        ServerState = SESSION_STATE_LEGACY.PreGame;
                                     break;
                                 case 3: // ServerInfoMode_OpenPlaying
                                 case 4: // ServerInfoMode_ClosedPlaying (full)
-                                    ServerState = SESSION_STATE.InGame;
+                                    ServerState = SESSION_STATE_LEGACY.InGame;
                                     break;
                                 case 5: // ServerInfoMode_Exiting
-                                    ServerState = SESSION_STATE.PostGame;
+                                    ServerState = SESSION_STATE_LEGACY.PostGame;
                                     break;
                             }
                         }
