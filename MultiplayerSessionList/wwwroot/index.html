@@ -896,6 +896,9 @@
 
                 if (session.level?.rules)
                     modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Rules", session.level.rules, true) + "</div>");
+
+                if (session.level?.map?.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Map/Other", session.level.map.other, true) + "</div>");
             }
 
             if (session.game?.mod || session.game?.mods) {

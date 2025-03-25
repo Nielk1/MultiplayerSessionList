@@ -177,7 +177,7 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                         game.Status.Add(GAMELIST_TERMS_OLD.STATUS_LOCKED, raw.Locked);
                         game.Status.Add(GAMELIST_TERMS_OLD.STATUS_PASSWORD, raw.Passworded);
 
-                        SESSION_STATE_LEGACY ServerState = null;
+                        string ServerState = null;
                         if (raw.ServerInfoMode.HasValue)
                         {
                             switch (raw.ServerInfoMode)

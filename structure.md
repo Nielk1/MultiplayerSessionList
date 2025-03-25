@@ -1,4 +1,5 @@
 # notes
+
 ## data priority
 Some data paths override others.
 For example session.level.rules data can override session.level.map data can override session.level data.
@@ -11,8 +12,14 @@ This notation is for the current stage where the spec is still fluid.
 Generally reading the API should do so with fallback chains for all properties as some games may set properties and others may not.
 Once the spec is more stable I will try to document game specifics globally.
 
+## Formatting
+Text fields will be UTF-8 compliant as the wrapping JSON is UTF-8.
+For text fields that contain formatting hints they should be available as "name.raw" for their game native forms and "name.rich" for their JSON structure form.
+The JSON structure form should be similar to Slack's API or Dart.js or another custom structure.
+
 
 # enum string values
+
 ## session_state
 * `unknown` // Normally has a state, but it is unknown
 * `pre_game` // Pre-Game Setup
@@ -25,6 +32,7 @@ Once the spec is more stable I will try to document game specifics globally.
 * `not_responding` // unused options so far
 
 # objects
+
 ## default
 * *type*: `object`
 
@@ -37,10 +45,11 @@ Once the spec is more stable I will try to document game specifics globally.
 * game:
   * mod: `object` ([mod](#mod))
   * mods: `[object]` ([mod](#mod))
-  * version: `string` (version format or any?)
+  * version: `string` (version format or any?) [bigboat:battlezone_98_redux][bigboat:battlezone_combat_commander][retroarch:netplay]
   * game_balance: `object` ([game_balance](#game_balance))
   * other: *object* (game specific)
     * mod_hash: `string` [bigboat:battlezone_combat_commander]
+    * RetroArchVersion: `string` [retroarch:netplay]
 * status:
   * is_locked: `bool`
   * has_password: `bool`
@@ -74,9 +83,11 @@ Once the spec is more stable I will try to document game specifics globally.
     * game_mode: `object` ([game_mode](#game_mode)) **not used by anything but possible**
   * other: *object* (game specific)
     * crc32: `string` [bigboat:battlezone_98_redux] **likely needs adjustment**
-    * GameName: `string` [retroarch:netplay]
-    * GameCRC: `string` [retroarch:netplay]
     * ID: `string` [retroarch:netplay]
+    * Core: `object` [retroarch:netplay]
+	  * Version: `string` [retroarch:netplay]
+      * Name: `string` [retroarch:netplay]
+      * SubsystemName: `string` [retroarch:netplay]
 * teams:
   * *key*:
     * max: `integer`
@@ -99,11 +110,6 @@ Once the spec is more stable I will try to document game specifics globally.
   * max_ping: `integer` [bigboat:battlezone_combat_commander]
   * worst_ping: `integer` [bigboat:battlezone_combat_commander]
   * nat_type: `string` [bigboat:battlezone_combat_commander]
-  * Core: `object` [retroarch:netplay]
-    * Name: `string` [retroarch:netplay]
-    * Version: `string` [retroarch:netplay]
-    * SubsystemName: `string` [retroarch:netplay]
-  * RetroArchVersion: `string` [retroarch:netplay]
   * UnsortedAttributes: `object` [retroarch:netplay]
     * Username: `string` [retroarch:netplay]
     * RoomID: `integer` [retroarch:netplay]
@@ -167,6 +173,9 @@ Once the spec is more stable I will try to document game specifics globally.
   * *key*:
     * name: `string`
 * allowed_heroes: `[object]` ([hero](#hero))
+* other: *object* (game specific)
+  * GameName: `string` [retroarch:netplay]
+  * GameCRC: `string` [retroarch:netplay]
 
 ## hero
 * name: `string`

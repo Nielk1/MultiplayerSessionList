@@ -81,21 +81,27 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                 }
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:Country", s.Country);
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:GameName", s.GameName);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:GameCRC", s.GameCRC);
+
+                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{s.GameCRC}:{s.GameName}", new DataCache() {
+                    { GAMELIST_TERMS.MAP_NAME, s.GameName }, // consider a DB lookup or something
+                    { GAMELIST_TERMS.MAP_MAPFILE, s.GameName }, // no file extension
+                });
+                mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_OTHER}:GameCRC", s.GameCRC);
+                yield return mapDatum;
+
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{s.GameCRC}:{s.GameName}"));
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:ID", $"{s.GameCRC}:{s.GameName}");
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", s.HasPassword);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}.{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_SPECTATOR}", s.HasSpectatePassword);
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Core:Name", s.CoreName);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Core:Version", s.CoreVersion);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", s.RetroArchVersion);
 
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:Core:Name", s.CoreName);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:Core:Version", s.CoreVersion);
                 if (s.SubsystemName != "N/A")
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Core:SubsystemName", s.SubsystemName);
-
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:RetroArchVersion", s.RetroArchVersion);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:Core:SubsystemName", s.SubsystemName);
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:UnsortedAttributes:Username", s.Username);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:UnsortedAttributes:RoomID", s.RoomID);

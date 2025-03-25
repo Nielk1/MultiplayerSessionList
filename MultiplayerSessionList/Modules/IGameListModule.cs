@@ -110,7 +110,8 @@ namespace MultiplayerSessionList.Modules
             public const string MAP_TEAMS = "teams";
                 public const string MAP_TEAMS_X_NAME = "name";
             public const string MAP_ALLOWEDHEROES = "allowed_heroes";
-        
+            public const string MAP_OTHER = "other";
+
         public const string TYPE_HERO = "hero";
             public const string HERO_NAME = "name";
             public const string HERO_DESCRIPTION = "description";

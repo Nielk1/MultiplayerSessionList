@@ -39,6 +39,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
         {
             var fact_task = cachedAdvancedWebClient.GetObject<Dictionary<string, DataCache>>($"{mapUrl.TrimEnd('/')}/factions.json", TimeSpan.FromHours(24), TimeSpan.FromHours(1));
 
+            // need protection on gamelist being null somehow
             var res_raw = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
             var res = res_raw.Data;
             var gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(res);
