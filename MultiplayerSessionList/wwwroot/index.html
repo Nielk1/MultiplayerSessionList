@@ -604,6 +604,8 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">State</strong>
                             <span>
+                                <span data-path="session.status.is_locked"></span>
+                                <span data-path="session.status.has_password"></span>
                                 <span data-path="session.status.state"></span>
                                 <span data-path="session.time"></span>
                             </span>
@@ -729,6 +731,12 @@
             if (session.status?.state) {
                 let timeElem = sessionDom.querySelector(`[data-path="session.status.state"]`);
                 timeElem.textContent = session.status.state;
+
+                let lockedElem = sessionDom.querySelector(`[data-path="session.status.is_locked"]`);
+                lockedElem.textContent = session.status.is_locked ? "locked" : "";
+
+                let passwordElem = sessionDom.querySelector(`[data-path="session.status.has_password"]`);
+                passwordElem.textContent = session.status.has_password ? "passworded" : "";
             }
 
             // Player Count Text
