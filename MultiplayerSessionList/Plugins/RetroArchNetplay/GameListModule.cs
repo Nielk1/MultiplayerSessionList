@@ -43,7 +43,14 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
         public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+
+            if (res == null)
+                yield break;
+
             var gamelist = JsonConvert.DeserializeObject<List<SessionWrapper>>(res.Data);
+
+            if (gamelist == null)
+                yield break;
 
             if (!multiGame)
             {
@@ -91,8 +98,6 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{s.GameCRC}:{s.GameName}"));
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:ID", $"{s.GameCRC}:{s.GameName}");
-
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", s.HasPassword);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}.{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_SPECTATOR}", s.HasSpectatePassword);
 
@@ -109,7 +114,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:UnsortedAttributes:CreatedAt", s.CreatedAt);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:UnsortedAttributes:UpdatedAt", s.UpdatedAt);
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", (DateTime.UtcNow - s.CreatedAt).TotalSeconds);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", (int)(DateTime.UtcNow - s.CreatedAt).TotalSeconds);
 
                 yield return session;
             }

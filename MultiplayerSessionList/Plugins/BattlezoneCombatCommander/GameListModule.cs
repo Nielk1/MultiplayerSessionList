@@ -65,10 +65,17 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 });
 
             var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+
+            if (res == null)
+                yield break;
+
             //if (admin)
             //    yield return new Datum("debug", "raw", new DataCache () { { "raw", res.Data } });
 
             var gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(res.Data);
+
+            if (gamelist == null)
+                yield break;
 
 #if DEBUG
             // any games that aren't my placeholder
@@ -108,6 +115,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             {
                 // ignore dummy games
                 if (raw.NATNegID == "XXXXXXX@XX")
+                    continue;
+
+                // if the game's only player is the spam game account, ignore it
+                if (raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))
                     continue;
 
                 UInt64 natNegId = Base64.DecodeRaknetGuid(raw.NATNegID);

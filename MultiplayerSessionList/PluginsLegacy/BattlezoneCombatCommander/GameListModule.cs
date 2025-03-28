@@ -135,10 +135,14 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                 {
                     Tasks.Add(Task.Run(async () =>
                     {
-                        SessionItem game = new SessionItem();
-
                         if (raw.NATNegID == "XXXXXXX@XX")
                             return;
+
+                        // if the game's only player is the spam game account, ignore it
+                        if (raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))
+                            return;
+
+                        SessionItem game = new SessionItem();
 
                         game.ID = $"{raw.proxySource ?? "IonDriver"}:{raw.NATNegID}";
 

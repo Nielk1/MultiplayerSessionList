@@ -53,7 +53,7 @@
 
     <style id="extra_data_style">
         .extra_item {
-            display: none;
+            display: none !important;
         }
     </style>
 
@@ -302,9 +302,11 @@
             e.preventDefault();
 
             if ($('#btnExtra').hasClass('active')) {
-                document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "inherit";
+                //document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "inherit";
+                document.getElementById('extra_data_style').sheet.cssRules[0].style.setProperty("display", "inherit");
             } else {
-                document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "none";
+                //document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "none";
+                document.getElementById('extra_data_style').sheet.cssRules[0].style.setProperty("display", "none", "important");
             }
         });
         $('#btnRefresh').click(function (e) {
@@ -633,7 +635,9 @@
             sessionDom.querySelector('[data-path="session.level.map.image"]').setAttribute("src", session.level?.map?.image ?? "");
 
             // Map Filename
-            sessionDom.querySelector('[data-path="session.level.map.map_file"]').textContent = session.level?.map?.map_file ?? " ";
+            let map_file_elem = sessionDom.querySelector('[data-path="session.level.map.map_file"]');
+            map_file_elem.textContent = session.level?.map?.map_file ?? " ";
+            map_file_elem.setAttribute("title", session.level?.map?.map_file);
 
             // Map Name
             let map_name_elem = sessionDom.querySelector('[data-path="session.level.map.name"]');
