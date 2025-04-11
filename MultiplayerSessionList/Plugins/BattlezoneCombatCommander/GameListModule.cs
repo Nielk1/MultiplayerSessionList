@@ -118,7 +118,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     continue;
 
                 // if the game's only player is the spam game account, ignore it
-                if (raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))
+                if (!admin && raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))
                     continue;
 
                 UInt64 natNegId = Base64.DecodeRaknetGuid(raw.NATNegID);
