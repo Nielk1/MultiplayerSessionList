@@ -32,7 +32,7 @@
             --section-mode-extra-left: calc(var(--section-icons-width) + var(--section-mode-width) + ((var(--section-icons-count) - 1) * 4px))
         }
 
-        @media screen and (max-width: 992px) {
+        @media screen and (max-width: 768px) {
             :root {
                 --section-mode-width: 25px;
             }
@@ -291,14 +291,16 @@
                 min-width: 0;
             }
         }
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: 992px) {
             .player_flex_box {
                 flex: 0 1 100%;
             }
+
             .team-col {
                 flex: 0 0 auto;
                 width: 100%;
             }
+
             .team-hr {
                 display: block;
             }
@@ -441,8 +443,7 @@
             display: none;
         }
 
-        /*@media screen and (max-width: 768px) {*/
-        @media screen and (max-width: 992px) {
+        @media screen and (max-width: 768px) {
             /*.session_extra_panel {
                 padding-left: 120px;
                 margin-left: -120px;
@@ -483,12 +484,12 @@
                 flex: 0 0 var(--section-mode-width-mini);
             }*/
 
-                .map_cell > .map_name {
-                    flex: 1 0 0;
-                }
+            .map_cell > .map_name {
+                flex: 1 0 0;
+            }
         }
 
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: 992px) {
             /* if we're too thin and extra is open, hide the map name in the first row */
             #lobbyList.show_extra .session_name_cell {
                 display: none !important;
