@@ -32,6 +32,35 @@
             --section-mode-extra-left: calc(var(--section-icons-width) + var(--section-mode-width) + ((var(--section-icons-count) - 1) * 4px))
         }
 
+        /* This class will be more useful once we have a way to know if items are done or not */
+        .loading::before {
+            animation-duration: 2s;
+            animation-fill-mode: forwards;
+            animation-iteration-count: infinite;
+            animation-name: placeHolderShimmer;
+            animation-timing-function: linear;
+            background-color: #f6f7f8;
+            background: linear-gradient(to right, #00000000 8%, #bbbbbb 18%, #00000000 33%);
+            background-size: 800px 104px;
+            /*background-color: red;*/
+            content: "";
+            /*height: 70px;*/
+            width: 200%;
+            height: 200%;
+            position: relative;
+            margin: -10%;
+        }
+
+        @keyframes placeHolderShimmer {
+            0% {
+                background-position: -800px 0;
+            }
+
+            100% {
+                background-position: 800px 0;
+            }
+        }
+
         @media screen and (max-width: 768px) {
             :root {
                 --section-mode-width: 25px;
@@ -1222,6 +1251,8 @@
                         }
 
                         htmlEntries += `<div class="rule_balance chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(game_balance_data.note ?? `Balance: ${game_balance_data?.name ?? game_balance_data?.abbr ?? game_balance_data?.$id}`)}"><div class="icon"><i class="fa-solid fa-scale-balanced"></i></div><div class="flex-grow-1 text-center">${escapeHtml(game_balance_display_text)}</div></div>`;
+                    } else {
+                        htmlEntries += `<div class="rule_balance chamfer d-flex flex-row mb-1 disabled" style="white-space:pre;"></div>`;
                     }
                 }
 
@@ -1253,8 +1284,11 @@
                 // time_limit
                 {
                     let rule_time_limit = session.level?.rules?.["time_limit"];
-                    if (rule_time_limit != null)
+                    if (rule_time_limit != null) {
                         htmlEntries += `<div class="chamfer d-flex flex-row mb-1" title="Time Limit ${rule_time_limit} Minutes"><div class="icon"><i class="fa-solid fa-stopwatch" ></i></div><div class="flex-grow-1 text-center">${escapeHtml(`${Math.floor(rule_time_limit / 60)}:${String(rule_time_limit % 60).padStart(2, '0')}`)}</div></div>`;
+                    } else {
+                        htmlEntries += `<div class="chamfer d-flex flex-row mb-1 disabled"></div>`;
+                    }
                 }
 
                 // barracks and satellite
