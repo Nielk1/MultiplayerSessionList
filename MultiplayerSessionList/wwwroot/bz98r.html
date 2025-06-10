@@ -42,13 +42,13 @@
             background-color: #f6f7f8;
             background: linear-gradient(to right, #00000000 8%, #bbbbbb 18%, #00000000 33%);
             background-size: 800px 104px;
-            /*background-color: red;*/
             content: "";
-            /*height: 70px;*/
-            width: 200%;
-            height: 200%;
-            position: relative;
-            margin: -10%;
+            content: "";
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
 
         @keyframes placeHolderShimmer {
@@ -1539,6 +1539,20 @@ ${(Teams.length > 1 && team == null) ? '<hr class="mb-2 mt-2 col-12" style="bord
                     }
 
                     teamCounter++;
+                }
+            }
+
+            // sync animations
+            {
+                let b = -1;
+                for (let a of document.getAnimations()) {
+                    if (a.animationName != "placeHolderShimmer")
+                        continue;
+                    if (b >= 0) {
+                        b = a.startTime;
+                    } else {
+                        a.startTime = b;
+                    }
                 }
             }
         }
