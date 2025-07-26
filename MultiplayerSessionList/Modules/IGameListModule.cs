@@ -39,8 +39,10 @@ namespace MultiplayerSessionList.Modules
             public const string SESSION_NAME = "name";
             public const string SESSION_MESSAGE = "message";
             public const string SESSION_GAME = "game";
-                public const string SESSION_GAME_MOD = "mod";
                 public const string SESSION_GAME_MODS = "mods";
+                    public const string SESSION_GAME_MODS_MAJOR = "major";
+                    public const string SESSION_GAME_MODS_MINOR = "minor";
+                    public const string SESSION_GAME_MODS_OPTION = "option";
                 public const string SESSION_GAME_VERSION = "version";
                 public const string SESSION_GAME_GAMEBALANCE = "game_balance";
                 public const string SESSION_GAME_OTHER = "other";
@@ -92,6 +94,13 @@ namespace MultiplayerSessionList.Modules
             public const string PLAYER_STATS = "stats";
             public const string PLAYER_HERO = "hero";
             public const string PLAYER_OTHER = "other";
+
+        //public const string TYPE_MODWRAP = "modwrap";
+            public const string MODWRAP_ROLE = "role";
+            public const string MODWRAP_MOD = "mod";
+            public const string MODWRAP_ROLES_MAIN = "main";
+            public const string MODWRAP_ROLES_RULE = "rule"; // special, not used yet
+        public const string MODWRAP_ROLES_DEPENDENCY = "dependency";
 
         public const string TYPE_MOD = "mod";
             public const string MOD_NAME = "name";

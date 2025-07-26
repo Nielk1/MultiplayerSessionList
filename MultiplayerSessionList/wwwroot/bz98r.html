@@ -1121,12 +1121,9 @@
             }
 
             let game_mods = [];
-            if (session.game?.mod || (session.game?.mods?.length ?? 0) > 0) {
-                if (session.game?.mod) {
-                    game_mods.push(session.game.mod);
-                }
-                else {
-                    game_mods = session.game.mods;
+            if ((session.game?.mods?.major?.length ?? 0) > 0) {
+                for (let modwrap of session.game.mods.major) {
+                    game_mods.push(modwrap.mod);
                 }
             }
             if (game_mods.length > 0) {

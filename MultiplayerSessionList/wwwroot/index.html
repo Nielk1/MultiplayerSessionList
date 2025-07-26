@@ -386,27 +386,23 @@
 
         var parent = document.querySelector('#lobbyList');
 
-        function GenerateHtml_ModBoxes(mod, mods) {
+        function GenerateHtml_ModBoxes(mod) {
             let modBoxes = '';
-            if (mod && mod.dependencies) {
+
+            if (mod.dependencies) {
                 for (let m of mod.dependencies) {
                     modBoxes += GenerateHtml_ModBox(m, false);
                 }
-            } else {
-                if (mods) {
-                    for (let m of mods) {
-                        modBoxes += GenerateHtml_ModBox(m, false);
-                    }
-                }
             }
+
             return modBoxes;
         }
 
         // mapId is to allow the map to rewrite the sub-mods section, the modId of the base mod is also applied to allow this
         // mapId isn't actually a way updated can happen anymore so we can probably drop it
-        function GenerateHtml_ModsRow(mod, mods, mapId) {
-            let htmlOut = '';
-            let modBoxes = GenerateHtml_ModBoxes(mod, mods);
+        function GenerateHtml_ModsRow(mod, mapId) {
+            let htmlOut = ``;
+            let modBoxes = GenerateHtml_ModBoxes(mod);
 
             if (mod) {
                 htmlOut += `
@@ -913,13 +909,44 @@
                     modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Map/Other", session.level.map.other, true) + "</div>");
             }
 
-            if (session.game?.mod || session.game?.mods) {
+            {
                 let modWrapperDom = sessionDom.querySelector('[data-path="mods-container"]');
                 modWrapperDom.style.display = 'flex';
                 modWrapperDom.innerHTML = '';
 
-                // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
-                modWrapperDom.insertAdjacentHTML('beforeend', GenerateHtml_ModsRow(session.game.mod, session.game.mods, session.level.map.$id));
+                if ((session.game?.mods?.major?.length ?? 0) > 0) {
+                    for (let modwrapper of session.game.mods.major) {
+                        let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                            <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Major: ${modwrapper.role}</div>
+                            <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, session.level.map.$id)}</div>
+                        </div></div>`;
+
+                        // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
+                        modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
+                    }
+                }
+                if ((session.game?.mods?.minor?.length ?? 0) > 0) {
+                    for (let modwrapper of session.game.mods.minor) {
+                        let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                            <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
+                            <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, session.level.map.$id)}</div>
+                        </div></div>`;
+
+                        // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
+                        modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
+                    }
+                }
+                if ((session.game?.mods?.option?.length ?? 0) > 0) {
+                    for (let modwrapper of session.game.mods.option) {
+                        let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                            <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Option: ${modwrapper.role}</div>
+                            <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, session.level.map.$id)}</div>
+                        </div></div>`;
+
+                        // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
+                        modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
+                    }
+                }
             }
         }
 

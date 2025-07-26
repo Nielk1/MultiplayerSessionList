@@ -210,7 +210,12 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 {
                     if (raw.Mods[0] != @"0")
                     {
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MOD}", new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
+                        //session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MOD}", new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
+                        DataCache modwrap = new DataCache();
+                        modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
+                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}");
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
+
                         if (raw.Mods[0] == @"1325933293")
                         {
                             if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\tVSR"))
@@ -233,7 +238,19 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     }
                 }
                 if (ModsLen > 1)
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}", raw.Mods.Skip(1).Select(m => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));
+                {
+                    // this is the legacy path where dependencies get spun out as minor mods, only pre-community-patch does this
+
+                    //session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}", raw.Mods.Skip(1).Select(m => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));
+                    var dependencyMods = raw.Mods.Skip(1).Select(m =>
+                    {
+                        DataCache modwrap = new DataCache();
+                        modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_DEPENDENCY;
+                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}");
+                        return modwrap;
+                    }).ToArray();
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MINOR}", dependencyMods);
+                }
 
                 if (!string.IsNullOrWhiteSpace(raw.v))
                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.v);
