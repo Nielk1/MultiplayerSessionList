@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Okolni.Source.Query.Responses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -62,6 +63,20 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
         public string charModelFile { get; set; }
     }
     */
+    public class Player
+    {
+        public int characterId { get; set; }
+        public string? characterName { get; set; }
+        public DateTime joinedAt { get; set; }
+    }
+	public class Lobby
+    {
+        public int id { get; set; }
+        public string? name { get; set; }
+        public int playerCount { get; set; }
+        public string? type { get; set; }
+        public Player[]? players { get; set; }
+    }
 	public class AreaServer
     {
         [JsonProperty("categoryId")]

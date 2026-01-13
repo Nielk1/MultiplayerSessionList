@@ -1,13 +1,14 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+﻿using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using MultiplayerSessionList.Services;
-using static MultiplayerSessionList.Services.SteamInterface;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using static MultiplayerSessionList.Services.SteamInterface;
 
 namespace MultiplayerSessionList.Models
 {
@@ -83,9 +84,11 @@ namespace MultiplayerSessionList.Models
         public bool ContainsPath(string Path) => Data.ContainsPath(Path);
     }
 
-    public class DataCache : Dictionary<string, dynamic?>
+    public class DataCache : ConcurrentDictionary<string, dynamic?>
     {
         static Regex KeySplit = new Regex("(?<!\\\\):");
+
+        public void Add(string key, dynamic? value) => this.TryAdd(key, value);
 
         public void AddObjectPath(string? Path, dynamic? Value)
         {
