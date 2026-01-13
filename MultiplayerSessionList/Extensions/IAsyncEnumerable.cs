@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Extensions
@@ -19,36 +22,40 @@ namespace MultiplayerSessionList.Extensions
         /// <summary>
         /// Starts all inner IAsyncEnumerable and returns items from all of them in order in which they come.
         /// </summary>
-        public static async IAsyncEnumerable<TItem> SelectManyAsync<TItem>(this IEnumerable<IAsyncEnumerable<TItem>> source)
+        public static async IAsyncEnumerable<TItem> SelectManyAsync<TItem>(
+            this IEnumerable<IAsyncEnumerable<TItem>> sources,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // Get enumerators from all inner IAsyncEnumerable
-            var enumerators = source.Select(x => x.GetAsyncEnumerator()).ToList();
-            var runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool)>>();
+            var enumerators = sources.Select(x => x.GetAsyncEnumerator(cancellationToken)).ToList();
+            var runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool, Exception)>>();
 
             try
             {
-                // Start all enumerators
                 foreach (var enumerator in enumerators)
-                    runningTasks.Add(MoveNextWrapped(enumerator));
+                    runningTasks.Add(MoveNextWrapped(enumerator, cancellationToken));
 
-                // Process items as they arrive
                 while (runningTasks.Any())
                 {
                     var finishedTask = await Task.WhenAny(runningTasks);
                     runningTasks.Remove(finishedTask);
 
-                    var (enumerator, hasItem) = await finishedTask;
+                    var (enumerator, hasItem, ex) = await finishedTask;
+
+                    if (ex != null)
+                    {
+                        // Optionally log or handle the exception per stream
+                        continue;
+                    }
 
                     if (hasItem)
                     {
                         yield return enumerator.Current;
-                        runningTasks.Add(MoveNextWrapped(enumerator));
+                        runningTasks.Add(MoveNextWrapped(enumerator, cancellationToken));
                     }
                 }
             }
             finally
             {
-                // Ensure enumerators are disposed
                 foreach (var asyncEnumerator in enumerators)
                 {
                     await asyncEnumerator.DisposeAsync();
@@ -59,9 +66,19 @@ namespace MultiplayerSessionList.Extensions
         /// <summary>
         /// Helper method that returns Task with tuple of IAsyncEnumerable and it's result of MoveNextAsync.
         /// </summary>
-        private static async Task<(IAsyncEnumerator<TItem>, bool)> MoveNextWrapped<TItem>(IAsyncEnumerator<TItem> enumerator)
+        private static async Task<(IAsyncEnumerator<TItem>, bool, Exception)> MoveNextWrapped<TItem>(
+            IAsyncEnumerator<TItem> enumerator,
+            CancellationToken cancellationToken)
         {
-            return (enumerator, await enumerator.MoveNextAsync());
+            try
+            {
+                var hasItem = await enumerator.MoveNextAsync();
+                return (enumerator, hasItem, null);
+            }
+            catch (Exception ex)
+            {
+                return (enumerator, false, ex);
+            }
         }
     }
 }

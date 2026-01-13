@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using MultiplayerSessionList.Services;
 using static MultiplayerSessionList.Services.SteamInterface;
+using System.Text.Json.Serialization;
 
 namespace MultiplayerSessionList.Models
 {
@@ -26,6 +27,7 @@ namespace MultiplayerSessionList.Models
     public class DatumRef
     {
         [JsonProperty("$ref")]
+        [JsonPropertyName("$ref")]
         public string Ref { get; set; }
         public DatumRef(string type, string id)
         {
@@ -35,8 +37,10 @@ namespace MultiplayerSessionList.Models
     public class Datum
     {
         [JsonProperty("$type")]
+        [JsonPropertyName("$type")]
         public string Type { get; set; }
         [JsonProperty("$id")]
+        [JsonPropertyName("$id")]
         public string ID { get; set; }
 
         public dynamic this[string key]
@@ -54,6 +58,7 @@ namespace MultiplayerSessionList.Models
         }
 
         [JsonProperty("$data")]
+        [JsonPropertyName("$data")]
         //public dynamic Data { get; set; }
         public DataCache Data { get; set; }
         //public Datum(string type, string id, dynamic data)

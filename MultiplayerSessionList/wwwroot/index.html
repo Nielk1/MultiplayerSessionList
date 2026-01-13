@@ -159,6 +159,14 @@
                 .replace(/'/g, "&#039;");
         }
 
+        // Utility to get mode from query string
+        function getStreamMode() {
+            const params = new URLSearchParams(window.location.search);
+            const mode = params.get('mode');
+            if (mode === 'chunked') return 'chunked';
+            return 'event'; // default
+        }
+
         // local copy of list data
         var ListData = {};
 
@@ -317,7 +325,11 @@
             $('#codeRawJsonLines').empty();
 
             if (GetGamesAjax != null) {
-                GetGamesAjax.abort();
+                if (mode === 'chunked') {
+                    GetGamesAjax.abort();
+                } else {
+                    GetGamesAjax.close();
+                }
             }
 
             // forget any pending datums from a prior refresh
@@ -337,20 +349,23 @@
 
             // what ugly shit this is
             var keys = [].concat(...$('#dropdownMenuContainer .dropdown-item.active')).map(function (elem) { return 'game=' + $(elem).data('value') }).join('&');
+            var mode = getStreamMode();
 
-            GetGamesAjax = new XMLHttpRequest();
-            GetGamesAjax.open("GET", 'api/2.0/sessions?' + keys + windowSearch);
-            var last_index = 0;
-            GetGamesAjax.onprogress = function () {
-                var UpdatedThisPass = new Set();
+            ListData = {};
 
-                var end = 0;
-                while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
-                    var s = GetGamesAjax.responseText.substring(last_index, end + 1);
+            if (mode === 'event') {
+                // Use EventSource for SSE
+                var url = 'api/2.0/sessions?' + keys + windowSearch;
+                if (url.indexOf('mode=') === -1) {
+                    url += (url.indexOf('?') === -1 ? '?' : '&') + 'mode=event';
+                }
+                var eventSource = new EventSource(url);
+                eventSource.onmessage = function (event) {
+                    var UpdatedThisPass = new Set();
 
+                    var s = event.data + "\n";
                     document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
-
-                    var data = JSON.parse(s);
+                    var data = JSON.parse(event.data);
                     if (data.$type == 'debug') {
                         console.log(data.$data);
                     } else {
@@ -371,17 +386,62 @@
                                 break;
                         }
                     }
-
-                    last_index = end + 1;
+                    if (UpdatedThisPass.size > 0)
+                        UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
+                };
+                eventSource.onerror = function () {
+                    eventSource.close();
+                };
+                // Optionally store eventSource for later closing
+                GetGamesAjax = eventSource;
+            } else {
+                // Use XMLHttpRequest for chunked NDJson
+                var url = 'api/2.0/sessions?' + keys + windowSearch;
+                if (url.indexOf('mode=') === -1) {
+                    url += (url.indexOf('?') === -1 ? '?' : '&') + 'mode=chunked';
                 }
-                if (UpdatedThisPass.size > 0)
-                    UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
-            };
-            GetGamesAjax.onload = function () {
+                GetGamesAjax = new XMLHttpRequest();
+                GetGamesAjax.open("GET", url);
+                var last_index = 0;
+                GetGamesAjax.onprogress = function () {
+                    var UpdatedThisPass = new Set();
 
+                    var end = 0;
+                    while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
+                        var s = GetGamesAjax.responseText.substring(last_index, end + 1);
+
+                        document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
+
+                        var data = JSON.parse(s);
+                        if (data.$type == 'debug') {
+                            console.log(data.$data);
+                        } else {
+                            ListData[data.$type] = ListData[data.$type] || {};
+                            if (data.$type == 'default') {
+                                // defaults are wonky, no need to copy their ID and Type back into them as it would just break things reading from them
+                                ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, data.$data));
+                            } else {
+                                // for everything that isn't a default or a debug copy the $type and $id into it so we have an easier time
+                                ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, (ListData['default'] || {})[data.$type], data.$data));
+                            }
+                            switch (data.$type) {
+                                // tokens we don't care about, even if they updated the composite data (we aren't ever rendering them)
+                                //case 'source':
+                                //    break;
+                                default:
+                                    UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
+                                    break;
+                            }
+                        }
+
+                        last_index = end + 1;
+                    }
+                    if (UpdatedThisPass.size > 0)
+                        UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
+                };
+                GetGamesAjax.onload = function () { }
+                GetGamesAjax.send();
             }
-            ListData = {};
-            GetGamesAjax.send();
         });
 
         var parent = document.querySelector('#lobbyList');

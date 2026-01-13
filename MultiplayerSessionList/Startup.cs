@@ -71,7 +71,8 @@ namespace MultiplayerSessionList
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
                 });*/
                 //.AddNdjson();
-                .AddNewtonsoftNdjson();
+                //.AddNewtonsoftNdjson();
+                ;
             //AddStreamedJson();
         }
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Cors;
@@ -12,7 +13,6 @@ using MultiplayerSessionList.Extensions;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
-using Ndjson.AsyncStreams.AspNetCore.Mvc;
 
 namespace MultiplayerSessionList.Controllers
 {
@@ -52,14 +52,19 @@ namespace MultiplayerSessionList.Controllers
 
         [EnableCors("Sessions")]
         [Route("api/2.0/sessions")]
-        public async Task<IActionResult> Sessions2([FromQuery] string[] game, string admin_password, int? simulate_delay, bool? mock, CancellationToken cancellationToken)
+        public async Task Sessions2(
+            [FromQuery] string[] game,
+            string admin_password,
+            int? simulate_delay,
+            bool? mock,
+            string? mode, // "chunked", "event", "websock" (handle "websock" later)
+            CancellationToken cancellationToken)
         {
             string[] games = game.Distinct().Where(g => _gameListModuleManager.HasPlugin(g)).ToArray();
             if (games.Length == 0)
             {
-                return NotFound();
-                //Response.StatusCode = StatusCodes.Status404NotFound;
-                //yield break;
+                Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
             }
 
             string AdminDataPassword = _configuration["AdminDataPassword"];
@@ -74,27 +79,38 @@ namespace MultiplayerSessionList.Controllers
             }
             if (games.Length == 0)
             {
-                return Unauthorized();
-                //Response.StatusCode = StatusCodes.Status401Unauthorized;
-                //yield break;
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
             }
             if (simulate_delay > 5000)
                 simulate_delay = 5000;
-            //GameListData data = await _gameListModuleManager.GameListPlugins[game].GetGameList(Admin);
-            //return Ok(data);
-            //await foreach(var item in _gameListModuleManager.GameListPlugins[game].GetGameListChunksAsync(Admin, cancellationToken))
-            //{
-            //    yield return item;
-            //}
 
-            ////return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
-            return new NdjsonAsyncEnumerableResult<Datum>(games.Select(g => _scopedGameListModuleManager.GetPlugin(g)?.GetGameListChunksAsync(games.Length > 1, Admin, Mock, cancellationToken))
-                                                               .SelectManyAsync()
-                                                               .DelayAsync(simulate_delay ?? 0));
-            //return new NdjsonAsyncEnumerableResult<Datum>(_gameListModuleManager.GameListPlugins[game[0]].GetGameListChunksAsync(Admin, cancellationToken));
-            //return Sessions2Internal(games, Admin, cancellationToken);
-            //yield break;
-            //return new NdjsonAsyncEnumerableResult<dynamic>(_gameListModuleManager.GameListPlugins[game].GetGameListChunksAsync(Admin, cancellationToken));
+            var pluginStreams = games
+                .Select(g => _scopedGameListModuleManager.GetPlugin(g)?.GetGameListChunksAsync(games.Length > 1, Admin, Mock, cancellationToken))
+                .Where(s => s != null);
+
+            Response.Headers.Add("Cache-Control", "no-store");
+
+            if (mode == "event")
+            {
+                Response.ContentType = "text/event-stream";
+                await foreach (var datum in pluginStreams.SelectManyAsync().DelayAsync(simulate_delay ?? 0))
+                {
+                    var json = JsonSerializer.Serialize(datum);
+                    await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
+            else // Default: chunked NDJson
+            {
+                Response.ContentType = "application/x-ndjson";
+                await foreach (var datum in pluginStreams.SelectManyAsync().DelayAsync(simulate_delay ?? 0))
+                {
+                    var json = JsonSerializer.Serialize(datum);
+                    await Response.WriteAsync(json + "\n", cancellationToken);
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
         }
 
         [EnableCors("Games")]
