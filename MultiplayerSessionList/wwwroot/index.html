@@ -383,6 +383,38 @@ for (let ref in DataRefs_last_touched) {
             return local_memo;
         }
 
+        // Shared queue and debouncer
+        let incomingDataQueue = [];
+        let incomingDataDebounceTimeout = null;
+        const INCOMING_DATA_DEBOUNCE_MS = 100;
+
+        function processIncomingDataDebounced() {
+            if (incomingDataDebounceTimeout !== null) return;
+            incomingDataDebounceTimeout = setTimeout(() => {
+                let UpdatedThisPass = new Set();
+                while (incomingDataQueue.length > 0) {
+                    let data = incomingDataQueue.shift();
+                    if (data.$type == 'debug') {
+                        console.log(data.$data);
+                    } else {
+                        ListData[data.$type] = ListData[data.$type] || {};
+                        DataRefs_last_touched[`${data.$type}\t${data.$id}`] = Date.now();
+                        ListData[data.$type][data.$id] = MergeReferences(
+                            MergeIntoFirstObject(
+                                ListData[data.$type][data.$id] || {},
+                                { $id: data.$id, $type: data.$type },
+                                data.$data
+                            )
+                        );
+                        UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
+                    }
+                }
+                if (UpdatedThisPass.size > 0)
+                    UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
+                incomingDataDebounceTimeout = null;
+            }, INCOMING_DATA_DEBOUNCE_MS);
+        }
+
         var GetGamesAjax = null;
         $('#btnExtra').click(function (e) {
             e.preventDefault();
@@ -435,6 +467,13 @@ for (let ref in DataRefs_last_touched) {
 
             ListData = {};
 
+            // Clear the shared queue and debounce timer
+            incomingDataQueue = [];
+            if (incomingDataDebounceTimeout !== null) {
+                clearTimeout(incomingDataDebounceTimeout);
+                incomingDataDebounceTimeout = null;
+            }
+
             if (mode === 'event') {
                 // Use EventSource for SSE
                 var url = 'api/2.0/sessions?' + keys + windowSearch;
@@ -443,33 +482,15 @@ for (let ref in DataRefs_last_touched) {
                 }
                 var eventSource = new EventSource(url);
                 eventSource.onmessage = function (event) {
-                    var UpdatedThisPass = new Set();
-
                     var s = event.data + "\n";
                     document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
                     var data = JSON.parse(event.data);
-                    if (data.$type == 'debug') {
-                        console.log(data.$data);
-                    } else {
-                        ListData[data.$type] = ListData[data.$type] || {};
-                        DataRefs_last_touched[`${data.$type}\t${data.$id}`] = Date.now();
-                        ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, /*(ListData['default'] || {})[data.$type],*/ data.$data));
-                        switch (data.$type) {
-                            // tokens we don't care about, even if they updated the composite data (we aren't ever rendering them)
-                            //case 'source':
-                            //    break;
-                            default:
-                                UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
-                                break;
-                        }
-                    }
-                    if (UpdatedThisPass.size > 0)
-                        UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
+                    incomingDataQueue.push(data);
+                    processIncomingDataDebounced();
                 };
                 eventSource.onerror = function () {
                     eventSource.close();
                 };
-                // Optionally store eventSource for later closing
                 GetGamesAjax = eventSource;
             } else {
                 // Use XMLHttpRequest for chunked NDJson
@@ -481,34 +502,15 @@ for (let ref in DataRefs_last_touched) {
                 GetGamesAjax.open("GET", url);
                 var last_index = 0;
                 GetGamesAjax.onprogress = function () {
-                    var UpdatedThisPass = new Set();
-
                     var end = 0;
                     while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
                         var s = GetGamesAjax.responseText.substring(last_index, end + 1);
-
                         document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
-
                         var data = JSON.parse(s);
-                        if (data.$type == 'debug') {
-                            console.log(data.$data);
-                        } else {
-                            ListData[data.$type] = ListData[data.$type] || {};
-                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, /*(ListData['default'] || {})[data.$type],*/ data.$data));
-                            switch (data.$type) {
-                                // tokens we don't care about, even if they updated the composite data (we aren't ever rendering them)
-                                //case 'source':
-                                //    break;
-                                default:
-                                    UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
-                                    break;
-                            }
-                        }
-
+                        incomingDataQueue.push(data);
                         last_index = end + 1;
                     }
-                    if (UpdatedThisPass.size > 0)
-                        UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
+                    processIncomingDataDebounced();
                 };
                 GetGamesAjax.onload = function () { }
                 GetGamesAjax.send();
@@ -592,7 +594,9 @@ for (let ref in DataRefs_last_touched) {
     <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
     <ul class="list-group list-group-flush">`;
             for (let prop in object) {
-                if (typeof (object[prop]) == 'object') {
+                if (object[prop] === null) {
+
+                } else if (typeof (object[prop]) == 'object') {
                     htmlEntries += `<li class="p-1 list-group-item force-ellipsis">${GenerateHtml_MicroList(`${name}/${prop}`, object[prop], false)}</li>`;
                 } else {
                     htmlEntries += `<li class="p-1 list-group-item force-ellipsis" style="white-space:pre;">${prop}: ${object[prop]}</li>`;
@@ -625,7 +629,7 @@ for (let ref in DataRefs_last_touched) {
             playerHtmlEntries += `
     <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
         `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
-        +`<div class="col-3 m-2 d-block float-end" style="max-width:100px;">
+        +`<div class="col-3 m-2 mb-0 d-block float-end" style="max-width:100px;">
             <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
         </div>
         <div class=" m-2 d-block">

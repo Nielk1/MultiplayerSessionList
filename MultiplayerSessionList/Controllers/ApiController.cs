@@ -86,7 +86,7 @@ namespace MultiplayerSessionList.Controllers
                 simulate_delay = 5000;
 
             var pluginStreams = games
-                .Select(g => _scopedGameListModuleManager.GetPlugin(g)?.GetGameListChunksAsync(games.Length > 1, Admin, Mock, cancellationToken))
+                .Select(g => _scopedGameListModuleManager.GetPlugin(g)?.GetGameListChunksAsync(Admin, Mock, cancellationToken))
                 .Where(s => s != null);
 
             Response.Headers.Add("Cache-Control", "no-store");
