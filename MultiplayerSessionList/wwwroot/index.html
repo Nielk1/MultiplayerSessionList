@@ -688,8 +688,21 @@ for (let ref in DataRefs_last_touched) {
             var session = data.session[$id];
             var sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
 
+            if (sessionDom) {
+                let mapImage_ExistingDom = !!sessionDom.querySelector('[data-path="session.level.map.image"]');
+                let mapImage_NewDom = !!session.level?.map?.image;
+
+                let mapFile_ExistingDom = !!sessionDom.querySelector('[data-path="session.level.map.map_file"]');
+                let mapFile_NewDom = !!session.level?.map?.map_file;
+
+                // if either of these values changed their nature, we will change the dom structure, so act like the structure is all new
+                if (mapImage_ExistingDom != mapImage_NewDom || mapFile_ExistingDom != mapFile_NewDom) {
+                    sessionDom = null;
+                }
+            }
+
             if (!sessionDom) {
-                parent.insertAdjacentHTML('beforeend', `
+                let dom_string = `
 <div id="/session/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
     <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -699,7 +712,9 @@ for (let ref in DataRefs_last_touched) {
             <li data-path="session.message" class="list-group-item force-ellipsis" style="white-space:pre;"></li>
         </ul>
         <div class="container-fluid pb-1">
-            <div class="row border-bottom">
+            <div class="row border-bottom">`;
+                if (!!session.level?.map?.image || !!session.level?.map?.map_file) {
+                    dom_string += `
                 <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
                     <div class="ratio ratio-1x1">
                         <img data-path="session.level.map.image" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
@@ -708,7 +723,11 @@ for (let ref in DataRefs_last_touched) {
                         <small data-path="session.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
                     </div>
                 </div>
-                <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">
+                <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">`;
+                } else {
+                    dom_string += `<div class="col-12 p-0 border-0 border-start border-start-xs-0 small">`;
+                }
+                dom_string += `
                     <ul class="list-group list-group-flush text-secondary">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <strong class="text-muted">Map</strong>
@@ -760,31 +779,60 @@ for (let ref in DataRefs_last_touched) {
             <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
             <div data-path="players" class="row"></div>
         </div>
-    </div>`);
+    </div>`;
+                parent.insertAdjacentHTML('beforeend', dom_string);
                 sessionDom = parent.lastElementChild;
             }
 
             // Map Image
-            sessionDom.querySelector('[data-path="session.level.map.image"]').setAttribute("src", session.level?.map?.image ?? "");
+            let map_image_elem = sessionDom.querySelector('[data-path="session.level.map.image"]');
+            if (map_image_elem)
+                map_image_elem.setAttribute("src", session.level?.map?.image ?? "");
 
             // Map Filename
             let map_file_elem = sessionDom.querySelector('[data-path="session.level.map.map_file"]');
-            map_file_elem.textContent = session.level?.map?.map_file ?? " ";
-            map_file_elem.setAttribute("title", session.level?.map?.map_file);
+            if (map_file_elem) {
+                map_file_elem.textContent = session.level?.map?.map_file ?? " ";
+                map_file_elem.setAttribute("title", session.level?.map?.map_file);
+            }
 
             // Map Name
             let map_name_elem = sessionDom.querySelector('[data-path="session.level.map.name"]');
             map_name_elem.setAttribute('title', session.level?.map?.map_file);
             map_name_elem.textContent = session.level?.map?.name ?? session.level?.map?.map_file ?? '';
+            if (!!map_name_elem.textContent) {
+                map_name_elem.parentElement.style.removeProperty("display");
+            } else {
+                map_name_elem.parentElement.style.setProperty("display", "none", "important");
+            }
 
             // Game Version
-            sessionDom.querySelector('[data-path="session.game.version"]').textContent = session.game?.version || " ";
+            let game_version_elem = sessionDom.querySelector('[data-path="session.game.version"]');
+            game_version_elem.textContent = session.game?.version || "";
+            if (!!game_version_elem.textContent) {
+                game_version_elem.parentElement.style.removeProperty("display");
+            } else {
+                game_version_elem.parentElement.style.setProperty("display", "none", "important");
+            }
 
             // Session Name
-            sessionDom.querySelector('[data-path="session.name"]').textContent = session.name || " ";
+            let session_name_elem = sessionDom.querySelector('[data-path="session.name"]');
+            session_name_elem.textContent = session.name || "";
+            if (!!session_name_elem.textContent) {
+                session_name_elem.parentElement.style.removeProperty("display");
+            } else {
+                session_name_elem.parentElement.style.setProperty("display", "none", "important");
+            }
+
 
             // Session Message
-            sessionDom.querySelector('[data-path="session.message"]').textContent = session.message || " ";
+            let session_message_elem = sessionDom.querySelector('[data-path="session.message"]');
+            session_message_elem.textContent = session.message || "";
+            if (!!session_message_elem.textContent) {
+                session_message_elem.parentElement.style.removeProperty("display");
+            } else {
+                session_message_elem.parentElement.style.setProperty("display", "none", "important");
+            }
 
             // Session Game Mode
             let game_mode_element = sessionDom.querySelector(`[data-path="session.level.game_mode"]`);
@@ -803,6 +851,11 @@ for (let ref in DataRefs_last_touched) {
             } else {
                 game_mode_icon_element.style.display = "none";
                 game_mode_icon_element.setAttribute("src", "");
+            }
+            if (!!game_mode_element.textContent) {
+                game_mode_element.parentElement.parentElement.style.removeProperty("display");
+            } else {
+                game_mode_element.parentElement.parentElement.style.setProperty("display", "none", "important");
             }
 
             // Session Game Type
@@ -823,6 +876,11 @@ for (let ref in DataRefs_last_touched) {
                 game_type_icon_element.style.display = "none";
                 game_type_icon_element.setAttribute("src", "");
             }
+            if (!!game_type_element.textContent) {
+                game_type_element.parentElement.parentElement.style.removeProperty("display");
+            } else {
+                game_type_element.parentElement.parentElement.style.setProperty("display", "none", "important");
+            }
 
             // Session Game Balance
             let game_balance_element = sessionDom.querySelector(`[data-path="session.level.game_balance"]`);
@@ -842,6 +900,11 @@ for (let ref in DataRefs_last_touched) {
             } else {
                 game_balance_element.textContent = '';
                 game_balance_element.removeAttribute("title");
+            }
+            if (!!game_balance_element.textContent) {
+                game_balance_element.parentElement.style.removeProperty("display");
+            } else {
+                game_balance_element.parentElement.style.setProperty("display", "none", "important");
             }
 
 
