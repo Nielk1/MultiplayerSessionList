@@ -40,7 +40,7 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
         }
 
-        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
 
@@ -52,29 +52,28 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
             if (gamelist == null)
                 yield break;
 
-            if (!multiGame)
-            {
-                DataCache defTmp = new DataCache() {
-                    { GAMELIST_TERMS.SESSION_TYPE, GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN },
-                };
-                defTmp.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 1);
-                yield return new Datum(GAMELIST_TERMS.TYPE_DEFAULT, GAMELIST_TERMS.TYPE_SESSION, defTmp);
-            }
+            if (admin)
+                yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
 
-            //if (admin)
-            //    yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } }); // data is too big somehow, possibly for the NDJson handler
+            Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID);
+
+            HashSet<DatumRef> sessions = new HashSet<DatumRef>();
+            foreach (SessionWrapper raw in gamelist)
+            {
+                Session s = raw.fields;
+                sessions.Add(new DatumRef(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:libretro:{s.RoomID}"));
+            }
+            root.AddObjectPath($"{GAMELIST_TERMS.TYPE_SESSION}", sessions);
+            yield return root;
 
             foreach (SessionWrapper raw in gamelist)
             {
                 Session s = raw.fields;
 
-                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}libretro:{s.RoomID}");
+                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:libretro:{s.RoomID}");
 
-                if (multiGame)
-                {
-                    session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 1);
-                }
+                session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 1);
 
                 session[GAMELIST_TERMS.SESSION_NAME] = $"{s.Username} - {s.GameName}";
 
@@ -89,14 +88,14 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:Country", s.Country);
 
 
-                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{s.GameCRC}:{s.GameName}", new DataCache() {
+                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{s.GameCRC}:{s.GameName}", new DataCache() {
                     { GAMELIST_TERMS.MAP_NAME, s.GameName }, // consider a DB lookup or something
                     { GAMELIST_TERMS.MAP_MAPFILE, s.GameName }, // no file extension
                 });
                 mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_OTHER}:GameCRC", s.GameCRC);
                 yield return mapDatum;
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{s.GameCRC}:{s.GameName}"));
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{s.GameCRC}:{s.GameName}"));
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", s.HasPassword);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}.{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_SPECTATOR}", s.HasSpectatePassword);

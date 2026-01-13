@@ -11,17 +11,19 @@ using System.Text.Json.Serialization;
 
 namespace MultiplayerSessionList.Models
 {
+    // add a timestamp of some kind to these so that the receiver can know if they come out of order to ignore old ones if a timestamp is set
+    // we want to avoid partial data but that would mean re-transmitting a rather large bulk of data if something small changes
+    // to get around this we are using sub-items and reference whenever logical so that the sub-items can be updated independently
+    // allowing us to still trust the concept of "later timestamp = more recent data" and the old data can be 100% tossed out
     public class PendingDatum
     {
         public Datum data { get; set; }
         public string key { get; set; }
-        public bool stub { get; set; }
 
-        public PendingDatum(Datum data, string key, bool isStub)
+        public PendingDatum(Datum data, string key)
         {
             this.data = data;
             this.key = key;
-            this.stub = isStub;
         }
     }
     public class DatumRef
@@ -144,7 +146,7 @@ namespace MultiplayerSessionList.Models
             if (!string.IsNullOrEmpty(playerData.Model.ProfileUrl))    accountDataSteam["profile_url"] = playerData.Model.ProfileUrl;
             if (playerData.IsPirate) accountDataSteam["is_pirate"] = true; // asshole
 
-            return new List<PendingDatum>() { new PendingDatum(accountDataSteam, $"identity/steam/{playerID.ToString()}", false) };
+            return new List<PendingDatum>() { new PendingDatum(accountDataSteam, $"identity/steam/{playerID.ToString()}") };
         }
         public static async Task<List<PendingDatum>> GetPendingDataAsync(this GogInterface gogInterface, ulong playerID)
         {
@@ -156,7 +158,7 @@ namespace MultiplayerSessionList.Models
                 { "username", playerData.username },
                 { "profile_url", $"https://www.gog.com/u/{playerData.username}" },
             });
-            return new List<PendingDatum> () { new PendingDatum(accountDataGog, $"identity/gog/{playerID.ToString()}", false) };
+            return new List<PendingDatum> () { new PendingDatum(accountDataGog, $"identity/gog/{playerID.ToString()}") };
         }
     }
 }

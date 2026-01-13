@@ -40,7 +40,7 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
         }
 
-        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
             var gamelist = JsonConvert.DeserializeObject<LobbyServerData>(res.Data);
@@ -54,27 +54,15 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
                 },
             ];
 
-            if (!multiGame)
-            {
-                DataCache defTmp = new DataCache() {
-                    { GAMELIST_TERMS.SESSION_TYPE, GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED },
-                    { GAMELIST_TERMS.SESSION_PLAYERTYPES, PlayerTypes },
-                };
-                yield return new Datum(GAMELIST_TERMS.TYPE_DEFAULT, GAMELIST_TERMS.TYPE_SESSION, defTmp);
-            }
-
-            //if (admin)
-            //    yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
+            if (admin)
+                yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
 
             foreach (var server in gamelist.AreaServerList)
             {
-                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}dothackers:{server.Name}");
+                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:dothackers:{server.Name}");
 
-                if (multiGame)
-                {
-                    session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED;
-                    session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
-                }
+                session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED;
+                session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
 
                 session[GAMELIST_TERMS.SESSION_NAME] = server.Name;
 

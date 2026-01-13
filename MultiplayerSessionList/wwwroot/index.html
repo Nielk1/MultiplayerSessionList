@@ -129,7 +129,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container-fluid">
-            &copy; 2025 - MultiplayerSessionList
+            &copy; 2026 - MultiplayerSessionList
         </div>
     </footer>
     <script src="/lib/jquery/dist/jquery.min.js"></script>
@@ -138,6 +138,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <script>
+        /*
+// Garbage Collector
+for (let parent in DataRefs_children) {
+    let existing_children = DataRefs_children[parent];
+    for (let child in existing_children) {
+        let existingSet = DataRefs_parents[child];
+        if (existingSet) {
+            existingSet.delete(parent_key);
+        }
+    }
+}
+for (let type in ListData) {
+    for (let id in ListData[type]) {
+        if (!DataRefs_parents[`${type}\t${id}`]) {
+            if (Date.now() - DataRefs_last_touched[`${type}\t${id}`] > 5000) {
+                console.log([type, id]); // items have no cached parent associations and are old enough to not be fresh
+            }
+        }
+    }
+}
+for (let ref in DataRefs_last_touched) {
+    let parts = ref.split('\t');
+    let type = parts[0];
+    let id = parts[1];
+    if (ListData[type]?.[id] == null) {
+        console.log(parts); // item to delete from time cache as the data is gone somehows
+    }
+}
+        */
+
         function encodeAttr(text) {
             const elem = document.createElement('p');
             elem.setAttribute('title', text);
@@ -171,7 +201,9 @@
         var ListData = {};
 
         // parent data relations so we can walk up to the session when data updates come in
-        var DataRefs = {};
+        var DataRefs_parents = {};
+        var DataRefs_children = {};
+        var DataRefs_last_touched = {};
 
         //$(document).ready(function () {
         {
@@ -215,37 +247,57 @@
         // this function merges all the sources into the destination object, and returns the destination object
         // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
         function MergeIntoFirstObject(target, ...sources) {
-            const source = sources.shift();
+            let source = sources.shift();
             if (source === undefined) return MergeIntoFirstObject(target, ...sources); // next source
-            if (isObject(target) && isObject(source)) {
-                for (const key in source) {
-                    if (isObject(source[key])) {
-                        if (!target[key]) Object.assign(target, { [key]: {} });
-                        MergeIntoFirstObject(target[key], source[key]);
-                    } else if (Array.isArray(source[key])) {
-                        // assign the array, but then iterate it to look for those references
-                        Object.assign(target, { [key]: source[key] });
-                        for (var i = 0; i < source[key].length; i++) {
-                            if (isObject(source[key][i])) {
-                                MergeIntoFirstObject(target[key][i], source[key][i]);
+            while (source !== undefined) {
+                if (isObject(target) && isObject(source)) {
+                    for (const key in source) {
+                        if (isObject(source[key])) {
+                            if (!target[key]) Object.assign(target, { [key]: {} });
+                            MergeIntoFirstObject(target[key], source[key]);
+                        } else if (Array.isArray(source[key])) {
+                            // assign the array, but then iterate it to look for those references
+                            Object.assign(target, { [key]: source[key] });
+                            for (var i = 0; i < source[key].length; i++) {
+                                if (isObject(source[key][i])) {
+                                    MergeIntoFirstObject(target[key][i], source[key][i]);
+                                }
                             }
+                        } else {
+                            Object.assign(target, { [key]: source[key] });
                         }
-                    } else {
-                        Object.assign(target, { [key]: source[key] });
                     }
                 }
+
+                // no sources left to merge, clean up references
+                if (sources.length == 0)
+                    return target;
+
+                //return MergeIntoFirstObject(target, ...sources); // next source
+                source = sources.shift();
             }
-
-            // no sources left to merge, clean up references
-            if (sources.length == 0)
-                return target;
-
-            return MergeIntoFirstObject(target, ...sources); // next source
         }
 
         function MergeReferences(target, parent_type, parent_id) {
             if (!isObject(target))
                 return target;
+
+            // clear old ref tracking
+            let parent_key = `${target.$type || parent_type}\t${target.$id || parent_id}`;
+            let existing_children = DataRefs_children[parent_key];
+            if (existing_children) {
+                // take the existing known children
+                // unlink those children from the immediate parent, since we're about to re-parse it we might just relink them
+
+                for (let child in existing_children) {
+                    let existingSet = DataRefs_parents[child];
+                    if (existingSet) {
+                        existingSet.delete(parent_key);
+                    }
+                }
+
+                existing_children.clear();
+            }
 
             for (const key in target) {
                 // Detect Object or Array
@@ -255,10 +307,23 @@
                         var split = target[key].$ref.split('/');
                         let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                         let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                        target[key] = ListData[frag_type][frag_id];
-                        if (!DataRefs[`${frag_type}\t${frag_id}`])
-                            DataRefs[`${frag_type}\t${frag_id}`] = new Set();
-                        DataRefs[`${frag_type}\t${frag_id}`].add(`${target.$type || parent_type}\t${target.$id || parent_id}`);
+                        if (ListData[frag_type] === undefined)
+                            ListData[frag_type] = {};
+                        let val = ListData[frag_type][frag_id];
+                        if (val == null) {
+                            val = {};
+                            ListData[frag_type][frag_id] = val;
+                        }
+                        target[key] = val;
+
+                        let child_key = `${frag_type}\t${frag_id}`;
+                        if (!DataRefs_parents[child_key])
+                            DataRefs_parents[child_key] = new Set();
+                        DataRefs_parents[child_key].add(parent_key);
+
+                        if (!DataRefs_children[parent_key])
+                            DataRefs_children[parent_key] = new Set();
+                        DataRefs_children[parent_key].add(child_key);
                     } else {
                         MergeReferences(target[key], target.$type || parent_type, target.$id || parent_id);
                     }
@@ -270,10 +335,23 @@
                                 var split = target[key][i].$ref.split('/');
                                 let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                                 let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                                target[key][i] = ListData[frag_type][frag_id];
-                                if (!DataRefs[`${frag_type}\t${frag_id}`])
-                                    DataRefs[`${frag_type}\t${frag_id}`] = new Set();
-                                DataRefs[`${frag_type}\t${frag_id}`].add(`${target.$type || parent_type}\t${target.$id || parent_id}`);
+                                if (ListData[frag_type] === undefined)
+                                    ListData[frag_type] = {};
+                                let val = ListData[frag_type][frag_id];
+                                if (val == null) {
+                                    val = {};
+                                    ListData[frag_type][frag_id] = val;
+                                }
+                                target[key][i] = val;
+
+                                let child_key = `${frag_type}\t${frag_id}`;
+                                if (!DataRefs_parents[child_key])
+                                    DataRefs_parents[child_key] = new Set();
+                                DataRefs_parents[child_key].add(parent_key);
+
+                                if (!DataRefs_children[parent_key])
+                                    DataRefs_children[parent_key] = new Set();
+                                DataRefs_children[parent_key].add(child_key);
                             } else {
                                 MergeReferences(target[key][i], target.$type || parent_type, target.$id || parent_id);
                             }
@@ -294,8 +372,8 @@
             // add ourself to the memo
             local_memo.add(`${$type}\t${$id}`)
             
-            if (DataRefs[`${$type}\t${$id}`]) {
-                for (let v of DataRefs[`${$type}\t${$id}`]) {
+            if (DataRefs_parents[`${$type}\t${$id}`]) {
+                for (let v of DataRefs_parents[`${$type}\t${$id}`]) {
                     let tmp = v.split('\t');
                     ExpandDataRefs(tmp[0], tmp[1], local_memo);
                 }
@@ -325,6 +403,8 @@
             $('#codeRawJsonLines').empty();
 
             if (GetGamesAjax != null) {
+                const params = new URLSearchParams(window.location.search);
+                const mode = params.get('mode');
                 if (mode === 'chunked') {
                     GetGamesAjax.abort();
                 } else {
@@ -341,7 +421,9 @@
             }
             debouncingTimeout = -1;
 
-            DataRefs = {};
+            DataRefs_parents = {};
+            DataRefs_children = {};
+            DataRefs_last_touched = {};
 
             var windowSearch = window.location.search;
             if (windowSearch.length > 0)
@@ -370,13 +452,8 @@
                         console.log(data.$data);
                     } else {
                         ListData[data.$type] = ListData[data.$type] || {};
-                        if (data.$type == 'default') {
-                            // defaults are wonky, no need to copy their ID and Type back into them as it would just break things reading from them
-                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, data.$data));
-                        } else {
-                            // for everything that isn't a default or a debug copy the $type and $id into it so we have an easier time
-                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, (ListData['default'] || {})[data.$type], data.$data));
-                        }
+                        DataRefs_last_touched[`${data.$type}\t${data.$id}`] = Date.now();
+                        ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, /*(ListData['default'] || {})[data.$type],*/ data.$data));
                         switch (data.$type) {
                             // tokens we don't care about, even if they updated the composite data (we aren't ever rendering them)
                             //case 'source':
@@ -417,13 +494,7 @@
                             console.log(data.$data);
                         } else {
                             ListData[data.$type] = ListData[data.$type] || {};
-                            if (data.$type == 'default') {
-                                // defaults are wonky, no need to copy their ID and Type back into them as it would just break things reading from them
-                                ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, data.$data));
-                            } else {
-                                // for everything that isn't a default or a debug copy the $type and $id into it so we have an easier time
-                                ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, (ListData['default'] || {})[data.$type], data.$data));
-                            }
+                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, /*(ListData['default'] || {})[data.$type],*/ data.$data));
                             switch (data.$type) {
                                 // tokens we don't care about, even if they updated the composite data (we aren't ever rendering them)
                                 //case 'source':

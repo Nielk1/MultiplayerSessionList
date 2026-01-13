@@ -55,22 +55,14 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
         }
 
-        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             TaskFactory taskFactory = new TaskFactory(cancellationToken);
-
-            if (!multiGame)
-                yield return new Datum(GAMELIST_TERMS.TYPE_DEFAULT, GAMELIST_TERMS.TYPE_SESSION, new DataCache() {
-                    { GAMELIST_TERMS.SESSION_TYPE, GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN }
-                });
 
             var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
 
             if (res == null)
                 yield break;
-
-            //if (admin)
-            //    yield return new Datum("debug", "raw", new DataCache () { { "raw", res.Data } });
 
             var gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(res.Data);
 
@@ -84,8 +76,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             if (mock)
                 gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(System.IO.File.ReadAllText(@"mock\bigboat\battlezone_combat_commander.json"));
 
+            if (admin && !mock)
+                yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
+
             foreach (var proxyStatus in gamelist.proxyStatus)
-                yield return new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{proxyStatus.Key}", new DataCache() {
+                yield return new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:{proxyStatus.Key}", new DataCache() {
                     { GAMELIST_TERMS.SOURCE_NAME, proxyStatus.Key },
                     { "status", proxyStatus.Value.status },
                     { "success", proxyStatus.Value.success },
@@ -103,13 +98,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             HashSet<string> modStubAlreadySent = new HashSet<string>();
             HashSet<string> mapStubAlreadySent = new HashSet<string>();
             HashSet<string> gametypeFullAlreadySent = new HashSet<string>();
-            //HashSet<string> gametypeStubAlreadySent = new HashSet<string>();
             HashSet<string> gamemodeFullAlreadySent = new HashSet<string>();
-            //HashSet<string> gamemodeStubAlreadySent = new HashSet<string>();
-
-            //yield return new Datum("mod", $"{(multiGame ? $"{GameID}:" : string.Empty)}0", new DataCache() { { "name", "Stock" } });
-            //modsAlreadyReturnedFull.Add("0"); // full data for stock already returned as there's so little data for it, remove this if stock gets more data
-            //DontSendStub.Add("mod\t0"); // we already sent the full data for stock, don't send stubs
 
             foreach (var raw in gamelist.GET)
             {
@@ -122,10 +111,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     continue;
 
                 UInt64 natNegId = Base64.DecodeRaknetGuid(raw.NATNegID);
-                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
+                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
 
-                if (multiGame)
-                    session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
+                session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat", raw.NATNegID);
 
@@ -149,19 +137,18 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 // map stub
                 if (mapStubAlreadySent.Add($"{modID}:{mapID}"))
                 {
-                    Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}");
+                    Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}");
                     if (!string.IsNullOrWhiteSpace(raw.MapFile))
                         mapData[GAMELIST_TERMS.MAP_MAPFILE] = raw.MapFile + @".bzn";
                     yield return mapData;
                     DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MAP}\t{modID}:{mapID}"); // we already sent the a stub don't send another
                 }
 
-                //game.AddObjectPath("level:id", $"{modID}:{mapID}");
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}"));
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
 
                 if (!string.IsNullOrWhiteSpace(raw.MapFile))
                     if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                        DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, multiGame, modsAlreadyReturnedLock, modsAlreadyReturnedFull));
+                        DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, modsAlreadyReturnedLock, modsAlreadyReturnedFull));
 
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_LOCKED}", raw.Locked);
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", raw.Passworded);
@@ -202,7 +189,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     foreach (string mod in raw.Mods)
                         if (modStubAlreadySent.Add(mod))
                         {
-                            yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod}");
+                            yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod}");
                             DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MOD}\t{mod}"); // we already sent the a stub don't send another
                         }
 
@@ -210,43 +197,41 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 {
                     if (raw.Mods[0] != @"0")
                     {
-                        //session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MOD}", new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}"));
+                        //session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MOD}", new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{raw.Mods[0]}"));
                         DataCache modwrap = new DataCache();
                         modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
-                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{raw.Mods[0]}");
+                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{raw.Mods[0]}");
                         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
 
                         if (raw.Mods[0] == @"1325933293")
                         {
                             if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\tVSR"))
-                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR", new DataCache() {
+                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR", new DataCache() {
                                     { GAMELIST_TERMS.GAMEBALANCE_NAME, "Vet Strategy Recycler Variant" },
                                     { GAMELIST_TERMS.GAMEBALANCE_ABBR, "VSR" },
                                     { GAMELIST_TERMS.GAMEBALANCE_NOTE, "This session uses a mod balance paradigm which emphasizes players over AI units and enables flight through the exploitation of physics quirks." }
                                 });
-                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}VSR"));
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR"));
                         }
                     }
                     else
                     {
                         // we aren't concurrent yet so we're safe to just do this
                         if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\tSTOCK"))
-                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK", new DataCache() {
+                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK", new DataCache() {
                                 { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" }
                             });
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
                     }
                 }
                 if (ModsLen > 1)
                 {
                     // this is the legacy path where dependencies get spun out as minor mods, only pre-community-patch does this
-
-                    //session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}", raw.Mods.Skip(1).Select(m => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}")));
                     var dependencyMods = raw.Mods.Skip(1).Select(m =>
                     {
                         DataCache modwrap = new DataCache();
                         modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_DEPENDENCY;
-                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{m}");
+                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{m}");
                         return modwrap;
                     }).ToArray();
                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MINOR}", dependencyMods);
@@ -301,7 +286,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             break;
                     }
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_SOURCES}:{(raw.proxySource ?? "IonDriver")}", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(raw.proxySource ?? "IonDriver")}"));
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_SOURCES}:{(raw.proxySource ?? "IonDriver")}", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:{(raw.proxySource ?? "IonDriver")}"));
 
                 bool m_TeamsOn = false;
                 bool m_OnlyOneTeam = false;
@@ -338,99 +323,49 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                     break;
                             }
 
-                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
                             if (gametypeFullAlreadySent.Add($"DM"))
-                            {
-                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Deathmatch" } });
-                            }
-                            // we can't get out of order so we don't need stubs
-                            //else if (gametypeStubAlreadySent.Add($"DM"))
-                            //{
-                            //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM");
-                            //}
+                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Deathmatch" } });
 
                             switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
                             {
                                 case 0: // Deathmatch
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"));
                                     if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
                                     break;
                                 case 1: // King of the Hill
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"));
                                     if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}King of the Hill" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}KOTH", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}King of the Hill" } });
                                     break;
                                 case 2: // Capture the Flag
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"));
                                     if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Capture the Flag" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}CTF", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Capture the Flag" } });
                                     break;
                                 case 3: // Loot
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"));
                                     if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Loot" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}LOOT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Loot" } });
                                     break;
                                 case 4: // DM [RESERVED]
                                     break;
                                 case 5: // Race
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
-                                    if      (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } }); }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE")) { yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"); }
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
+                                    if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } });
                                     break;
                                 case 6: // Race (Vehicle Only)
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"));
                                     if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Race" } });
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
                                     break;
                                 case 7: // DM (Vehicle Only)
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"));
                                     if (gamemodeFullAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add($"{(m_TeamsOn ? "TEAM_" : string.Empty)}DM"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{(m_TeamsOn ? "TEAM_" : string.Empty)}DM");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(m_TeamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(m_TeamsOn ? "Team " : string.Empty)}Deathmatch" } });
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
                                     break;
                                 default:
@@ -443,78 +378,43 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         {
                             int GetGameModeOutput = raw.GameSubType.Value % (int)GameMode.GAMEMODE_MAX; // extract if we are team or not
 
-                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT"));
                             if (gametypeFullAlreadySent.Add($"STRAT"))
-                            {
-                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Strategy" } });
-                            }
-                            // we can't get out of order so we don't need stubs
-                            //else if (gametypeStubAlreadySent.Add($"STRAT"))
-                            //{
-                            //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
-                            //}
+                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Strategy" } });
 
                             switch ((GameMode)GetGameModeOutput)
                             {
                                 case GameMode.GAMEMODE_TEAM_STRAT:
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT"));
                                     m_TeamsOn = true;
                                     m_OnlyOneTeam = false;
                                     if (gamemodeFullAlreadySent.Add("STRAT"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Team Strategy" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add("STRAT"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Team Strategy" } });
                                     break;
                                 case GameMode.GAMEMODE_STRAT:
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA"));
                                     m_TeamsOn = false;
                                     m_OnlyOneTeam = false;
                                     if (gamemodeFullAlreadySent.Add("FFA"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Free for All" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add("FFA"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}FFA");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Free for All" } });
                                     break;
                                 case GameMode.GAMEMODE_MPI:
-                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI"));
+                                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI"));
                                     m_TeamsOn = true;
                                     m_OnlyOneTeam = true;
                                     if (gamemodeFullAlreadySent.Add("MPI"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Multiplayer Instant Action" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add("MPI"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Multiplayer Instant Action" } });
                                     break;
                                 default:
                                     //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
                                     if (gamemodeFullAlreadySent.Add("STRAT"))
-                                    {
-                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{GetGameModeOutput}" } });
-                                    }
-                                    // we can't get out of order so we don't need stubs
-                                    //else if (gamemodeStubAlreadySent.Add("STRAT"))
-                                    //{
-                                    //    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}UNK{GetGameModeOutput}");
-                                    //}
+                                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:UNK{GetGameModeOutput}", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{GetGameModeOutput}" } });
                                     break;
                             }
                         }
                         break;
                     case 3: // impossible, BZCC limits to 0-2
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", $"{(multiGame ? $"{GameID}:" : string.Empty)}MPI"); //  "MPI [Invalid]";
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", $"{GameID}:MPI"); //  "MPI [Invalid]";
                         break;
                 }
 
@@ -530,7 +430,6 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                 if (raw.pl != null)
                 {
                     List<DataCache> Players = new List<DataCache>();
-                    //foreach (var dr in raw.pl)
                     for (int pl_i = 0; pl_i < raw.pl.Length; pl_i++)
                     {
                         var dr = raw.pl[pl_i];
@@ -679,10 +578,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     foreach (var datum in datums)
                     {
                         // don't send datums if we already sent the big guy
-                        if (datum.key != null)
-                            if (datum.stub)
-                                if (DontSendStub.Contains(datum.key))
-                                    continue;
+                        //if (datum.key != null)
+                        //    if (datum.stub)
+                        //        if (DontSendStub.Contains(datum.key))
+                        //            continue;
                         yield return datum.data;
                         DontSendStub.Add(datum.key);
                     }
@@ -732,14 +631,14 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             yield break;
         }
 
-        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, bool multiGame, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull)
+        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull)
         {
             List<PendingDatum> retVal = new List<PendingDatum>();
             CachedData<MapData> mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
             MapData mapData = mapDataC?.Data;
             if (mapData != null)
             {
-                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
+                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}", new DataCache() {
                     { GAMELIST_TERMS.MAP_NAME, mapData?.title },
                     { GAMELIST_TERMS.MAP_DESCRIPTION, mapData?.description },
                     { GAMELIST_TERMS.MAP_MAPFILE, mapID + @".bzn" },
@@ -754,7 +653,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:2:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", mapData.netVars["svar2"]);
                     }
                 }
-                retVal.Add(new PendingDatum(mapDatum, null, false));
+                retVal.Add(new PendingDatum(mapDatum, null));
 
                 if (mapData?.mods != null)
                 {
@@ -765,7 +664,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         {
                             if (!modsAlreadyReturnedFull.Contains(mod.Key))
                             {
-                                Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}", new DataCache() {
+                                Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}", new DataCache() {
                                     { GAMELIST_TERMS.MOD_NAME, mod.Value?.name ?? mod.Value?.workshop_name },
                                 });
 
@@ -778,12 +677,12 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                                 if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
                                 {
                                     // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
-                                    foreach (var dep in mod.Value.dependencies)
-                                        retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{dep}", true));
-                                    modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
+                                    //foreach (var dep in mod.Value.dependencies)
+                                    //    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{dep}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{dep}", true));
+                                    modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{dep}")));
                                 }
 
-                                retVal.Add(new PendingDatum(modData, null, false));
+                                retVal.Add(new PendingDatum(modData, null));
 
                                 modsAlreadyReturnedFull.Add(mod.Key);
                             }

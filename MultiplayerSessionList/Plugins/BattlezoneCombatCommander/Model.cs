@@ -84,6 +84,17 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public string pg { get; set; } // seen max ping
         public string pgm { get; set; } // max ping
 
+
+        //#define RAKNET_MASTERSERVER_GAMEID_KEY "gid"
+        //#define RAKNET_MASTERSERVER_CLIENTREQUESTID_KEY "cri"
+        //#define RAKNET_MASTERSERVER_ROWPASSWORD_KEY "rpwd"
+        //#define RAKNET_MASTERSERVER_ROWID_KEY "rid"
+        //#define RAKNET_MASTERSERVER_LISTINGTIMEOUT_KEY "to"
+        //#define RAKNET_MASTERSERVER_GAMEPASSWORD_KEY "upwd"
+
+        //public string mu { get; set; } // map url, often an empty string // RAKNET_MASTERSERVER_MAPULR_KEY
+
+
         public BZCCPlayerData[] pl { get; set; }
 
         [JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }

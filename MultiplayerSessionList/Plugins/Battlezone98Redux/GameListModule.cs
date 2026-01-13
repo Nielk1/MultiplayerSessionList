@@ -35,7 +35,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             this.cachedAdvancedWebClient = cachedAdvancedWebClient;
         }
 
-        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var fact_task = cachedAdvancedWebClient.GetObject<Dictionary<string, DataCache>>($"{mapUrl.TrimEnd('/')}/factions.json", TimeSpan.FromHours(24), TimeSpan.FromHours(1));
 
@@ -51,20 +51,23 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             if (mock)
                 gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(System.IO.File.ReadAllText(@"mock\bigboat\battlezone_98_redux.json"));
 
+            if (admin && !mock)
+                yield return new Datum("debug", "raw", new DataCache() { { "raw", res } });
+
             //TODO consider using memberlink for how many players can be in a game, as the text data above (before editing) has a 3/2 if its not used but 3/3 if it is.
 
             TaskFactory taskFactory = new TaskFactory(cancellationToken);
 
-            yield return new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion", new DataCache() {
+            yield return new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:Rebellion", new DataCache() {
                 { GAMELIST_TERMS.SOURCE_NAME, "Rebellion" },
                 { "timestamp", res_raw.LastModified },
             });
 
-            if (!multiGame)
-                yield return new Datum(GAMELIST_TERMS.TYPE_DEFAULT, GAMELIST_TERMS.TYPE_SESSION, new DataCache() {
-                    { GAMELIST_TERMS.SESSION_TYPE, GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN },
-                    { GAMELIST_TERMS.SESSION_SOURCES, new DataCache() { {"Rebellion", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } } },
-                });
+            //if (!multiGame)
+            //    yield return new Datum(GAMELIST_TERMS.TYPE_DEFAULT, GAMELIST_TERMS.TYPE_SESSION, new DataCache() {
+            //        { GAMELIST_TERMS.SESSION_TYPE, GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN },
+            //        { GAMELIST_TERMS.SESSION_SOURCES, new DataCache() { {"Rebellion", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:Rebellion") } } },
+            //    });
 
             HashSet<string> DontSendStub = new HashSet<string>();
 
@@ -88,6 +91,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             SemaphoreSlim gamebalanceFullAlreadySentLock = new SemaphoreSlim(1, 1);
             HashSet<string> gamebalanceFullAlreadySent = new HashSet<string>();
 
+            Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID);
+
             foreach (var raw in gamelist.Values)
             {
                 if (raw.LobbyType != Lobby.ELobbyType.Game)
@@ -96,12 +101,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 if (raw.isPrivate && !(raw.IsPassworded ?? false))
                     continue;
 
-                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{raw.id}");
-
-                if (multiGame) {
-                    session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
-                    session[GAMELIST_TERMS.SESSION_SOURCES] = new DataCache() { { $"Rebellion", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion") } };
-                }
+                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:Rebellion:B{raw.id}");
 
                 session[GAMELIST_TERMS.SESSION_NAME] = raw.Name;
 
@@ -126,12 +126,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 {
                     if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MOD}\t{modID}"))
                     {
-                        yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}");
+                        yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
                     }
 
                     DataCache modwrap = new DataCache();
                     modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
-                    modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}");
+                    modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
                 }
 
@@ -139,19 +139,19 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 {
                     // we aren't concurrent yet so we're safe to just do this
                     if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\tSTOCK"))
-                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK", new DataCache() { { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" } });
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
+                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK", new DataCache() { { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" } });
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
                 }
 
                 string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
 
                 // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
-                Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}");
+                Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}");
                 mapData[GAMELIST_TERMS.MAP_MAPFILE] = raw.MapFile.ToLowerInvariant();
                 yield return mapData;
                 DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MAP}\t{modID}:{mapID}"); // we already sent the a stub don't send another
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}"));
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:crc32", raw.CRC32);
 
                 if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:time_limit", raw.TimeLimit);
@@ -189,7 +189,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 List<DatumRef> Players = new List<DatumRef>();
                 foreach (var dr in raw.users.Values)
                 {
-                    Datum player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
+                    Datum player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}");
 
                     player[GAMELIST_TERMS.PLAYER_NAME] = dr.name;
                     player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER;
@@ -198,7 +198,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     if (admin)
                     {
                         player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:wan_address", dr.wanAddress);
-                        player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:lan_addresses", JArray.FromObject(dr.lanAddresses));
+                        player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:lan_addresses", dr.lanAddresses);
                     }
                     if (dr.CommunityPatch != null)
                         player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:community_patch", dr.CommunityPatch);
@@ -267,12 +267,12 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
 
                     yield return player;
 
-                    Players.Add(new DatumRef(GAMELIST_TERMS.TYPE_PLAYER, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}"));
+                    Players.Add(new DatumRef(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}"));
                 }
                 session[GAMELIST_TERMS.SESSION_PLAYERS] = Players;
 
                 if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw, multiGame,
+                    DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw,
                         modsAlreadyReturnedLock, modsAlreadyReturnedFull,
                         gametypeFullAlreadySentLock, gametypeFullAlreadySent,
                         gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
@@ -303,10 +303,10 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     foreach (var datum in doneTask.Result)
                     {
                         // don't send datums if we already sent the big guy
-                        if (datum.key != null)
-                            if (datum.stub)
-                                if (DontSendStub.Contains(datum.key))
-                                    continue;
+                        //if (datum.key != null)
+                        //    if (datum.stub)
+                        //        if (DontSendStub.Contains(datum.key))
+                        //            continue;
                         yield return datum.data;
                         DontSendStub.Add(datum.key);
                     }
@@ -317,7 +317,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             yield break;
         }
 
-        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session, bool multiGame,
+        private async Task<List<PendingDatum>> BuildDatumsForMapDataAsync(string modID, string mapID, Lobby session,
             SemaphoreSlim modsAlreadyReturnedLock, HashSet<string> modsAlreadyReturnedFull,
             SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent,
             SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent,
@@ -331,7 +331,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             MapData mapData = mapDataC?.Data;
             if (mapData != null)
             {
-                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{(multiGame ? $"{GameID}:" : string.Empty)}{modID}:{mapID}", new DataCache() {
+                Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}", new DataCache() {
                     { GAMELIST_TERMS.MAP_NAME, mapData?.map?.title },
                 });
                 if (mapData.map?.image != null)
@@ -342,31 +342,44 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 string mapMode = mapData?.map?.bzcp_type_override ?? mapData?.map?.bzcp_auto_type_override ?? mapType;
                 if (!string.IsNullOrWhiteSpace(mapType))
                 {
+                    PendingDatum? rv;
                     switch (mapType)
                     {
                         case "D": // Deathmatch
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/resources/icon_d.png", "#B70505", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
+                            rv = await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/resources/icon_d.png", "#B70505", gametypeFullAlreadySentLock, gametypeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "S": // Strategy
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
-                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/resources/icon_s.png", "#007FFF", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT"));
+                            rv = await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/resources/icon_s.png", "#007FFF", gametypeFullAlreadySentLock, gametypeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "K": // King of the Hill
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/resources/icon_d.png", "#B70505", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
+                            rv = await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/resources/icon_d.png", "#B70505", gametypeFullAlreadySentLock, gametypeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "M": // Mission MPI
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
-                            retVal.Add(await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/resources/icon_s.png", "#007FFF", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT"));
+                            rv = await BuildGameTypeDatumAsync("STRAT", "Strategy", $"{mapUrl.TrimEnd('/')}/resources/icon_s.png", "#007FFF", gametypeFullAlreadySentLock, gametypeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "A": // Action MPI
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
-                            retVal.Add(await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/resources/icon_d.png", "#B70505", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
+                            rv = await BuildGameTypeDatumAsync("DM", "Deathmatch", $"{mapUrl.TrimEnd('/')}/resources/icon_d.png", "#B70505", gametypeFullAlreadySentLock, gametypeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "X": // Other
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}OTHER"));
-                            retVal.Add(await BuildGameTypeDatumAsync("OTHER", "Other", $"{mapUrl.TrimEnd('/')}/resources/icon_x.png", "#666666", multiGame, gametypeFullAlreadySentLock, gametypeFullAlreadySent));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMETYPE, new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:OTHER"));
+                            rv = await BuildGameTypeDatumAsync("OTHER", "Other", $"{mapUrl.TrimEnd('/')}/resources/icon_x.png", "#666666", gametypeFullAlreadySentLock, gametypeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                     }
                 }
@@ -375,122 +388,157 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                 string MapModeColorB = null;
                 if (!string.IsNullOrWhiteSpace(mapMode))
                 {
+                    PendingDatum? rv;
                     switch (mapMode)
                     {
                         case "A": // Action MPI
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}A_MPI"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:A_MPI"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_a.png";
                             MapModeColorA = "#002C00";
                             MapModeColorB = "#007C03";
-                            retVal.Add(await BuildGameModeDatumAsync("A_MPI", "Action MPI", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("A_MPI", "Action MPI", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "C": // Custom
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}CUSTOM"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:CUSTOM"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_c.png";
                             MapModeColorA = "#FFFF00";
                             MapModeColorB = "#FFFF00";
-                            retVal.Add(await BuildGameModeDatumAsync("CUSTOM", "Custom", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("CUSTOM", "Custom", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "D": // Deathmatch
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}DM"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:DM"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_d.png";
                             MapModeColorA = "#B70505";
                             MapModeColorB = "#E90707";
-                            retVal.Add(await BuildGameModeDatumAsync("DM", "Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("DM", "Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "F": // Capture the Flag
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}CTF"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:CTF"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_f.png";
                             MapModeColorA = "#7F5422";
                             MapModeColorB = "#B0875E";
-                            retVal.Add(await BuildGameModeDatumAsync("CTF", "Capture the Flag", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("CTF", "Capture the Flag", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "G": // Race
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}RACE"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:RACE"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_g.png";
                             MapModeColorA = "#1A1A1A";
                             MapModeColorB = "#EEEEEE";
-                            retVal.Add(await BuildGameModeDatumAsync("RACE", "Race", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("RACE", "Race", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "K": // King of the Hill
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}KOTH"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:KOTH"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_k.png";
                             MapModeColorA = "#F0772D";
                             MapModeColorB = "#F0772D";
-                            retVal.Add(await BuildGameModeDatumAsync("KOTH", "King of the Hill", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("KOTH", "King of the Hill", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "L": // Loot
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}LOOT"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:LOOT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_l.png";
                             MapModeColorA = "#333333";
                             MapModeColorB = "#BFA88F";
-                            retVal.Add(await BuildGameModeDatumAsync("LOOT", "Loot", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("LOOT", "Loot", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "M": // Mission MPI
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}M_MPI"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:M_MPI"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_m.png";
                             MapModeColorA = "#B932FF";
                             MapModeColorB = "#B932FF";
-                            retVal.Add(await BuildGameModeDatumAsync("M_MPI", "Mission MPI", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("M_MPI", "Mission MPI", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "P": // Pilot/Sniper Deathmatch
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}PILOT"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:PILOT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_p.png";
                             MapModeColorA = "#7A0000";
                             MapModeColorB = "#B70606";
-                            retVal.Add(await BuildGameModeDatumAsync("PILOT", "Pilot Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("PILOT", "Pilot Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "Q": // Squad Deathmatch
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}SQUAD"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:SQUAD"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_q.png";
                             MapModeColorA = "#FF3F00";
                             MapModeColorB = "#FF3F00";
-                            retVal.Add(await BuildGameModeDatumAsync("SQUAD", "Squad Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("SQUAD", "Squad Deathmatch", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "R": // Capture the Relic
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}RELIC"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:RELIC"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_r.png";
                             MapModeColorA = "#7D007D";
                             MapModeColorB = "#7D007D";
-                            retVal.Add(await BuildGameModeDatumAsync("RELIC", "Capture the Relic", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("RELIC", "Capture the Relic", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "S": // Strategy
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STRAT"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_s.png";
                             MapModeColorA = "#007FFF";
                             MapModeColorB = "#007FFF";
-                            retVal.Add(await BuildGameModeDatumAsync("STRAT", "Strategy", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("STRAT", "Strategy", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "W": // Wingman
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}WINGMAN"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:WINGMAN"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_w.png";
                             MapModeColorA = "#0047CF";
                             MapModeColorB = "#0047CF";
-                            retVal.Add(await BuildGameModeDatumAsync("WINGMAN", "Wingman Strategy", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("WINGMAN", "Wingman Strategy", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                         case "X": // Other
-                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}OTHER"));
+                            mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:OTHER"));
                             MapModeIcon = $"{mapUrl.TrimEnd('/')}/resources/icon_x.png";
                             MapModeColorA = "#666666";
                             MapModeColorB = "#C3C3C3";
-                            retVal.Add(await BuildGameModeDatumAsync("OTHER", "Other", MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                            rv = await BuildGameModeDatumAsync("OTHER", "Other", MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                            if (rv != null)
+                                retVal.Add(rv);
                             break;
                     }
                 }
                 if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
                 {
-                    mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_{mapData.map.custom_type}"));
-                    retVal.Add(await BuildGameModeDatumAsync($"CUST_{mapData.map.custom_type}", mapData.map.custom_type_name, MapModeIcon, MapModeColorA, MapModeColorB, multiGame, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent));
+                    mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:CUST_{mapData.map.custom_type}"));
+                    PendingDatum? rv = await BuildGameModeDatumAsync($"CUST_{mapData.map.custom_type}", mapData.map.custom_type_name, MapModeIcon, MapModeColorA, MapModeColorB, gamemodeFullAlreadySentLock, gamemodeFullAlreadySent);
+                    if (rv != null)
+                        retVal.Add(rv);
                 }
 
                 if (mapData.map?.flags?.Contains("sbp") ?? false)
                 {
-                    mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEBALANCE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}CUST_SBP"));
-                    retVal.Add(await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "SBP", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                    mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEBALANCE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:CUST_SBP"));
+                    PendingDatum? rv = await BuildGameBalanceDatumAsync($"CUST_SBP", "Strat Balance Patch", "SBP", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent);
+                    if (rv != null)
+                        retVal.Add(rv);
                 } else if (mapData.map?.flags?.Contains("balance_stock") ?? false)
                 {
-                    mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEBALANCE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}STOCK"));
-                    retVal.Add(await BuildGameBalanceDatumAsync($"STOCK", "Stock", null, null, multiGame, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+                    mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEBALANCE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
+                    PendingDatum? rv = await BuildGameBalanceDatumAsync($"STOCK", "Stock", null, null, gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent);
+                    if (rv != null)
+                        retVal.Add(rv);
                 }
 
                 if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
@@ -513,7 +561,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         {
                             if (!modsAlreadyReturnedFull.Contains(mod.Key))
                             {
-                                Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}", new DataCache() {
+                                Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}", new DataCache() {
                                     { GAMELIST_TERMS.MOD_NAME, mod.Value?.name ?? mod.Value?.workshop_name },
                                 });
 
@@ -526,19 +574,19 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                 if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
                                 {
                                     // just spam out stubs for dependencies, they're a mess anyway, the reducer at the end will reduce it
-                                    foreach (var dep in mod.Value.dependencies)
-                                        retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{dep}", true));
-                                    modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dep}")));
+                                    //foreach (var dep in mod.Value.dependencies)
+                                    //    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{dep}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{dep}", true));
+                                    modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{dep}")));
                                 }
 
-                                retVal.Add(new PendingDatum(modData, $"{GAMELIST_TERMS.TYPE_MOD}\t{mod.Key}", false));
+                                retVal.Add(new PendingDatum(modData, $"{GAMELIST_TERMS.TYPE_MOD}\t{mod.Key}"));
 
                                 modsAlreadyReturnedFull.Add(mod.Key);
                             }
                             else
                             {
                                 // to deal with interlacing spit out some stubs too
-                                retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{(multiGame ? $"{GameID}:" : string.Empty)}{mod.Key}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{mod.Key}", true));
+                                //retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}"), $"{GAMELIST_TERMS.TYPE_MOD}\t{mod.Key}", true));
                             }
                         }
                         finally
@@ -561,14 +609,14 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     foreach (var vehicle in mapData.vehicles)
                     {
                         // breakpoint here to make sure the vehicle has the mod prefix
-                        //heroDatumList.Add(new DatumRef("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"));
+                        //heroDatumList.Add(new DatumRef("hero", $"{GameID}:{vehicle.Key}"));
 
                         await heroesAlreadyReturnedLock.WaitAsync();
                         try
                         {
                             if (!heroesAlreadyReturnedFull.Contains(vehicle.Key))
                             {
-                                Datum heroData = new Datum(GAMELIST_TERMS.TYPE_HERO, $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}", new DataCache() {
+                                Datum heroData = new Datum(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle.Key}", new DataCache() {
                                     { GAMELIST_TERMS.HERO_NAME, vehicle.Value.name },
                                 });
 
@@ -580,7 +628,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                         var factionData = factionDataX?.Data;
                                         if (factionData != null && factionData.ContainsKey(faction))
                                         {
-                                            heroData[GAMELIST_TERMS.HERO_FACTION] = new DatumRef(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}");
+                                            heroData[GAMELIST_TERMS.HERO_FACTION] = new DatumRef(GAMELIST_TERMS.TYPE_FACTION, $"{GameID}:{faction}");
 
                                             await factionsAlreadyReturnedLock.WaitAsync();
                                             try
@@ -594,12 +642,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                                         fact[GAMELIST_TERMS.FACTION_ABBR] = fd["abbr"];
                                                     if (fd.ContainsKey("block"))
                                                         fact[GAMELIST_TERMS.FACTION_BLOCK] = $"{mapUrl.TrimEnd('/')}/resources/{fd["block"]}";
-                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}", fact), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", false));
-                                                }
-                                                else
-                                                {
-                                                    // trying to fix odd bug where sometimes the hero loads before the faction causing a bad ref
-                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{(multiGame ? $"{GameID}:" : string.Empty)}{faction}"), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}", true));
+                                                    retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_FACTION, $"{GameID}:{faction}", fact), $"{GAMELIST_TERMS.TYPE_FACTION}\t{faction}"));
                                                 }
                                             }
                                             finally
@@ -623,7 +666,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                                     }
                                 }
 
-                                retVal.Add(new PendingDatum(heroData, $"{GAMELIST_TERMS.TYPE_HERO}\t{vehicle.Key}", false));
+                                retVal.Add(new PendingDatum(heroData, $"{GAMELIST_TERMS.TYPE_HERO}\t{vehicle.Key}"));
 
                                 heroesAlreadyReturnedFull.Add(vehicle.Key);
                             }
@@ -631,7 +674,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                             {
                                 // removed this since we're just sending stubs every time now instead via the actually allowed_heroes list
                                 // to deal with interlacing spit out some stubs too
-                                //retVal.Add(new PendingDatum(new Datum("hero", $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle.Key}"), $"hero\t{vehicle.Key}", true));
+                                //retVal.Add(new PendingDatum(new Datum("hero", $"{GameID}:{vehicle.Key}"), $"hero\t{vehicle.Key}", true));
                             }
                         }
                         finally
@@ -645,9 +688,9 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     foreach (var vehicle in mapData.map.vehicles)
                     {
                         // dump a stub for each unit before we add it to our list, just in case, extras will get supressed on the output
-                        retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_HERO, $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"), $"{GAMELIST_TERMS.TYPE_HERO}\t{vehicle}", true));
+                        //retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle}"), $"{GAMELIST_TERMS.TYPE_HERO}\t{vehicle}", true));
 
-                        heroDatumList.Add(new DatumRef(GAMELIST_TERMS.TYPE_HERO, $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"));
+                        heroDatumList.Add(new DatumRef(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle}"));
                     }
 
                     bool session_teamUpdate = session.PlayerLimit.HasValue && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false);
@@ -663,7 +706,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     Datum sessionUpdate = null;
                     if (session_teamUpdate || session_syncUpdate || session_is_deathmatch.HasValue)
                     {
-                        sessionUpdate = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{(multiGame ? $"{GameID}:" : string.Empty)}Rebellion:B{session.id}");
+                        sessionUpdate = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:Rebellion:B{session.id}");
                     }
                     if (session_teamUpdate)
                     {
@@ -707,7 +750,7 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     }
 
                     if (sessionUpdate != null)
-                        retVal.Add(new PendingDatum(sessionUpdate, null, false));
+                        retVal.Add(new PendingDatum(sessionUpdate, null));
 
                     foreach (var dr in session.users.Values)
                     {
@@ -716,16 +759,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         Datum player = null;
                         if (vehicle != null || (playerTeam > 0 && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)))
                         {
-                            player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{(multiGame ? $"{GameID}:" : string.Empty)}{dr.id}");
+                            player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}");
                         }
 
                         if (vehicle != null)
                         {
                             // stub the hero just in case, even though this stub should NEVER actually occur
-                            retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_HERO, $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}"), $"{GAMELIST_TERMS.TYPE_HERO}\t{vehicle}", true));
+                            //retVal.Add(new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle}"), $"{GAMELIST_TERMS.TYPE_HERO}\t{vehicle}", true));
 
                             // make the player data and shove in our hero
-                            player[GAMELIST_TERMS.PLAYER_HERO] = new DatumRef(GAMELIST_TERMS.TYPE_HERO, $"{(multiGame ? $"{GameID}:" : string.Empty)}{vehicle}");
+                            player[GAMELIST_TERMS.PLAYER_HERO] = new DatumRef(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle}");
                         }
 
                         if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
@@ -750,17 +793,17 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         }
 
                         if (player != null)
-                            retVal.Add(new PendingDatum(player, null, false));
+                            retVal.Add(new PendingDatum(player, null));
                     }
                     mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_ALLOWEDHEROES, heroDatumList);
                 }
 
-                retVal.Add(new PendingDatum(mapDatum, null, false));
+                retVal.Add(new PendingDatum(mapDatum, null));
             }
             return retVal;
         }
 
-        private async Task<PendingDatum> BuildGameBalanceDatumAsync(string code, string name, string name_short, string note, bool multiGame, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
+        private async Task<PendingDatum?> BuildGameBalanceDatumAsync(string code, string name, string name_short, string note, SemaphoreSlim gamebalanceFullAlreadySentLock, HashSet<string> gamebalanceFullAlreadySent)
         {
             await gamebalanceFullAlreadySentLock.WaitAsync();
             try
@@ -771,18 +814,17 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         cache[GAMELIST_TERMS.GAMEBALANCE_ABBR] = name_short;
                     if (!string.IsNullOrWhiteSpace(note))
                         cache[GAMELIST_TERMS.GAMEBALANCE_NOTE] = note;
-                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", cache), $"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\t{code}", false);
+                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:{code}", cache), $"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\t{code}");
                 }
-                else
-                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\t{code}", true);
             }
             finally
             {
                 gamebalanceFullAlreadySentLock.Release();
             }
+            return null;
         }
 
-        private async Task<PendingDatum> BuildGameTypeDatumAsync(string code, string name, string icon, string color, bool multiGame, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent)
+        private async Task<PendingDatum?> BuildGameTypeDatumAsync(string code, string name, string icon, string color, SemaphoreSlim gametypeFullAlreadySentLock, HashSet<string> gametypeFullAlreadySent)
         {
             await gametypeFullAlreadySentLock.WaitAsync();
             try
@@ -807,17 +849,16 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     // color_lf <Omitted> Light background Forground
                     // color_lb <Omitted> Light background Background (assume white if not present)
 
-                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", DataCacheItem), $"{GAMELIST_TERMS.TYPE_GAMETYPE}\t{code}", false);
+                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:{code}", DataCacheItem), $"{GAMELIST_TERMS.TYPE_GAMETYPE}\t{code}");
                 }
-                else
-                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"{GAMELIST_TERMS.TYPE_GAMETYPE}\t{code}", true);
             }
             finally
             {
                 gametypeFullAlreadySentLock.Release();
             }
+            return null;
         }
-        private async Task<PendingDatum> BuildGameModeDatumAsync(string code, string name, string icon, string colorA, string colorB, bool multiGame, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent)
+        private async Task<PendingDatum?> BuildGameModeDatumAsync(string code, string name, string icon, string colorA, string colorB, SemaphoreSlim gamemodeFullAlreadySentLock, HashSet<string> gamemodeFullAlreadySent)
         {
             await gamemodeFullAlreadySentLock.WaitAsync();
             try
@@ -841,15 +882,14 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                     // Light Backgrounded Color Pair
                     // color_lf <Omitted> Light background Forground
                     // color_lb <Omitted> Light background Background (assume white if not present)
-                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}", DataCacheItem), $"{GAMELIST_TERMS.TYPE_GAMEMODE}\t{code}", false);
+                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{code}", DataCacheItem), $"{GAMELIST_TERMS.TYPE_GAMEMODE}\t{code}");
                 }
-                else
-                    return new PendingDatum(new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(multiGame ? $"{GameID}:" : string.Empty)}{code}"), $"{GAMELIST_TERMS.TYPE_GAMEMODE}\t{code}", true);
             }
             finally
             {
                 gamemodeFullAlreadySentLock.Release();
             }
+            return null;
         }
     }
 }

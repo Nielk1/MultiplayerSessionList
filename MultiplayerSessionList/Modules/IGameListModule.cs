@@ -29,6 +29,8 @@ namespace MultiplayerSessionList.Modules
     }
     public static class GAMELIST_TERMS
     {
+        public const string TYPE_ROOT = "root";
+
         public const string TYPE_DEFAULT = "default";
 
         public const string TYPE_SESSION = "session";
@@ -205,7 +207,7 @@ namespace MultiplayerSessionList.Modules
         //string Title { get; }
         //bool IsPublic { get; }
 
-        IAsyncEnumerable<Datum> GetGameListChunksAsync(bool multiGame, bool admin, bool mock, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, bool mock, CancellationToken cancellationToken = default);
     }
 
     public class GameListData
