@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Plugins.DotHackFragment
 {
+    /*
 	public class LobbyServerData
 	{
 		[JsonProperty("playerList")]
@@ -60,19 +61,28 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
         [JsonProperty("charModelFile")]
         public string charModelFile { get; set; }
     }
-
+    */
 	public class AreaServer
     {
-        [JsonProperty("serverName")]
-        public string Name { get; set; }
+        [JsonProperty("categoryId")]
+        public byte CategoryId { get; set; }
 
-        [JsonProperty("serverLevel")]
+        [JsonProperty("name")]
+        public string? Name { get; set; }
+
+        [JsonProperty("level")]
         public byte Level { get; set; }
 
-        [JsonProperty("serverStatus")]
-        public string Status { get; set; }
+        [JsonProperty("status")]
+        public byte Status { get; set; }
 
-        [JsonProperty("numberOfPlayers")]
-        public byte NumberOfPlayers { get; set; }
+        [JsonProperty("state")]
+        public byte State { get; set; }
+
+        [JsonProperty("currentPlayerCount")]
+        public byte CurrentPlayerCount { get; set; }
+
+        [JsonProperty("onlineSince")]
+        public DateTime OnlineSince { get; set; }
     }
 }

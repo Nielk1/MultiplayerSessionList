@@ -212,12 +212,12 @@ namespace MultiplayerSessionList.Modules
 
     public class GameListData
     {
-        public DataCacheOld Metadata { get; set; }
-        public SessionItem SessionsDefault { get; set; }
-        public DataCacheOld DataCache { get; set; }
-        public DataCacheOld Heroes { get; set; }
-        public DataCacheOld Mods { get; set; }
-        public IEnumerable<SessionItem> Sessions { get; set; }
-        public string Raw { get; set; }
+        public DataCacheOld? Metadata { get; set; }
+        public SessionItem? SessionsDefault { get; set; }
+        public DataCacheOld? DataCache { get; set; }
+        public DataCacheOld? Heroes { get; set; }
+        public DataCacheOld? Mods { get; set; }
+        public IEnumerable<SessionItem>? Sessions { get; set; }
+        public string? Raw { get; set; }
     }
 }

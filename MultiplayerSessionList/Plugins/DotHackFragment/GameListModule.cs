@@ -20,20 +20,22 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
     {
         public const string GameID = "cyberconnect2:dothack_fragment";
 
-
-        private string queryUrl;
+        private string queryUrl_areaservers;
         private CachedAdvancedWebClient cachedAdvancedWebClient;
 
         public GameListModule(IConfiguration configuration, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
-            queryUrl = configuration[$"{GameID}"];
+            string? queryUrl_areaservers = configuration[$"{GameID}:areaservers"];
+            if (string.IsNullOrWhiteSpace(queryUrl_areaservers))
+                throw new InvalidOperationException($"Critical configuration value for '{GameID}:areaservers' is missing or empty.");
+            this.queryUrl_areaservers = queryUrl_areaservers;
 
             //IConfigurationSection myArraySection = configuration.GetSection("MyArray");
             //var itemArray = myArraySection.AsEnumerable();
 
             //"Clients": [ {..}, {..} ]
             //configuration.GetSection("Clients").GetChildren();
-            
+
             //"Clients": [ "", "", "" ]
             //configuration.GetSection("Clients").GetChildren().ToArray().Select(c => c.Value).ToArray();
 
@@ -42,8 +44,8 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
 
         public async IAsyncEnumerable<Datum> GetGameListChunksAsync(bool admin, bool mock, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var res = await cachedAdvancedWebClient.GetObject<string>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
-            var gamelist = JsonConvert.DeserializeObject<LobbyServerData>(res.Data);
+            CachedData<string> res = await cachedAdvancedWebClient.GetObject<string>(queryUrl_areaservers, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+            AreaServer[]? areaServerList = JsonConvert.DeserializeObject<AreaServer[]>(res.Data);
 
             List<DataCache> PlayerTypes =
             [
@@ -55,23 +57,26 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
             ];
 
             if (admin)
-                yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
+                yield return new Datum("debug", "raw", new DataCache() { { "areaservers", res.Data } });
 
-            foreach (var server in gamelist.AreaServerList)
+            if (areaServerList != null)
             {
-                Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:dothackers:{server.Name}");
+                foreach (var server in areaServerList)
+                {
+                    Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:dothackers:{server.Name}");
 
-                session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED;
-                session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
+                    session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED;
+                    session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
 
-                session[GAMELIST_TERMS.SESSION_NAME] = server.Name;
+                    session[GAMELIST_TERMS.SESSION_NAME] = server.Name;
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Level", server.Level);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Status", server.Status);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Level", server.Level);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:Status", server.Status);
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", server.NumberOfPlayers);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", server.CurrentPlayerCount);
 
-                yield return session;
+                    yield return session;
+                }
             }
         }
     }

@@ -20,20 +20,22 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
     {
         public const string GameID = "retroarch:netplay";
 
-
         private string queryUrl;
         private CachedAdvancedWebClient cachedAdvancedWebClient;
 
         public GameListModule(IConfiguration configuration, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
-            queryUrl = configuration[$"{GameID}"];
+            string? queryUrl = configuration[GameID];
+            if (string.IsNullOrWhiteSpace(queryUrl))
+                throw new InvalidOperationException($"Critical configuration value for '{GameID}' is missing or empty.");
+            this.queryUrl = queryUrl;
 
             //IConfigurationSection myArraySection = configuration.GetSection("MyArray");
             //var itemArray = myArraySection.AsEnumerable();
 
             //"Clients": [ {..}, {..} ]
             //configuration.GetSection("Clients").GetChildren();
-            
+
             //"Clients": [ "", "", "" ]
             //configuration.GetSection("Clients").GetChildren().ToArray().Select(c => c.Value).ToArray();
 

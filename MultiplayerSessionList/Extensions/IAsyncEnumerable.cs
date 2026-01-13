@@ -27,7 +27,7 @@ namespace MultiplayerSessionList.Extensions
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var enumerators = sources.Select(x => x.GetAsyncEnumerator(cancellationToken)).ToList();
-            var runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool, Exception)>>();
+            var runningTasks = new List<Task<(IAsyncEnumerator<TItem>, bool, Exception?)>>();
 
             try
             {
@@ -43,6 +43,7 @@ namespace MultiplayerSessionList.Extensions
 
                     if (ex != null)
                     {
+                        // TODO : decide how to handle exceptions from individual streams
                         // Optionally log or handle the exception per stream
                         continue;
                     }
@@ -66,7 +67,7 @@ namespace MultiplayerSessionList.Extensions
         /// <summary>
         /// Helper method that returns Task with tuple of IAsyncEnumerable and it's result of MoveNextAsync.
         /// </summary>
-        private static async Task<(IAsyncEnumerator<TItem>, bool, Exception)> MoveNextWrapped<TItem>(
+        private static async Task<(IAsyncEnumerator<TItem>, bool, Exception?)> MoveNextWrapped<TItem>(
             IAsyncEnumerator<TItem> enumerator,
             CancellationToken cancellationToken)
         {

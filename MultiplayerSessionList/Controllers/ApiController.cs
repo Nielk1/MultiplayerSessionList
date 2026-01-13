@@ -39,7 +39,7 @@ namespace MultiplayerSessionList.Controllers
             if (!_gameListModuleManager.GameListPluginsOld.ContainsKey(game))
                 return NotFound();
 
-            string AdminDataPassword = _configuration["AdminDataPassword"];
+            string? AdminDataPassword = _configuration?["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
 
             if (!Admin && !_gameListModuleManager.GameListPluginsOld[game].IsPublic)
@@ -67,7 +67,7 @@ namespace MultiplayerSessionList.Controllers
                 return;
             }
 
-            string AdminDataPassword = _configuration["AdminDataPassword"];
+            string? AdminDataPassword = _configuration?["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
             bool Mock = mock ?? false;
 
@@ -86,25 +86,29 @@ namespace MultiplayerSessionList.Controllers
                 simulate_delay = 5000;
 
             var pluginStreams = games
-                .Select(g => _scopedGameListModuleManager.GetPlugin(g)?.GetGameListChunksAsync(Admin, Mock, cancellationToken))
-                .Where(s => s != null);
+                .Select(g => _scopedGameListModuleManager.GetPlugin(g))
+                .Where(s => s != null)
+                .Select(s => s.GetGameListChunksAsync(Admin, Mock, cancellationToken));
 
-            Response.Headers.Add("Cache-Control", "no-store");
+            Response.Headers["Cache-Control"] = "no-store";
 
             if (mode == "event")
             {
                 Response.ContentType = "text/event-stream";
-                await foreach (var datum in pluginStreams.SelectManyAsync().DelayAsync(simulate_delay ?? 0))
+                if (pluginStreams != null)
                 {
-                    var json = JsonSerializer.Serialize(datum);
-                    await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
-                    await Response.Body.FlushAsync(cancellationToken);
+                    await foreach (var datum in pluginStreams.SelectManyAsync(cancellationToken: cancellationToken).DelayAsync(simulate_delay ?? 0))
+                    {
+                        var json = JsonSerializer.Serialize(datum);
+                        await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
+                        await Response.Body.FlushAsync(cancellationToken);
+                    }
                 }
             }
             else // Default: chunked NDJson
             {
                 Response.ContentType = "application/x-ndjson";
-                await foreach (var datum in pluginStreams.SelectManyAsync().DelayAsync(simulate_delay ?? 0))
+                await foreach (var datum in pluginStreams.SelectManyAsync(cancellationToken: cancellationToken).DelayAsync(simulate_delay ?? 0))
                 {
                     var json = JsonSerializer.Serialize(datum);
                     await Response.WriteAsync(json + "\n", cancellationToken);
@@ -117,7 +121,7 @@ namespace MultiplayerSessionList.Controllers
         [Route("api/1.0/games")]
         public IActionResult Games(string admin_password)
         {
-            string AdminDataPassword = _configuration["AdminDataPassword"];
+            string? AdminDataPassword = _configuration?["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
 
             return Ok(_gameListModuleManager
@@ -132,7 +136,7 @@ namespace MultiplayerSessionList.Controllers
         [Route("api/2.0/games")]
         public IActionResult Games2(string admin_password)
         {
-            string AdminDataPassword = _configuration["AdminDataPassword"];
+            string? AdminDataPassword = _configuration?["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
 
             //return Ok(_gameListModuleManager

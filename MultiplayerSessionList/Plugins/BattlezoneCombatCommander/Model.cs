@@ -9,9 +9,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
     public class BZCCRaknetData
     {
-        public List<BZCCGame> GET { get; set; }
+        public List<BZCCGame>? GET { get; set; }
 
-        public Dictionary<string, ProxyStatus> proxyStatus { get; set; }
+        public Dictionary<string, ProxyStatus>? proxyStatus { get; set; }
     }
 
     ///// All possible types of NATs (except NAT_TYPE_COUNT, which is an internal value) 
@@ -39,16 +39,16 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
     public class BZCCPlayerData
     {
-        public string n { get; set; } // name (base 64)
+        public string? n { get; set; } // name (base 64)
 
-        [JsonProperty("i")] public string PlayerID { get; set; } // id (player ID)
-        public string k { get; set; } // kills
-        public string d { get; set; } // deaths
-        public string s { get; set; } // score
-        public string t { get; set; } // team
+        [JsonProperty("i")] public string? PlayerID { get; set; } // id (player ID)
+        public string? k { get; set; } // kills
+        public string? d { get; set; } // deaths
+        public string? s { get; set; } // score
+        public string? t { get; set; } // team
 
         //[JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n)); } }
-        [JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n)); } }
+        [JsonIgnore] public string? Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n)); } }
         [JsonIgnore] public int? Kills { get { int tmp = 0; return int.TryParse(k, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? Deaths { get { int tmp = 0; return int.TryParse(d, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? Score { get { int tmp = 0; return int.TryParse(s, out tmp) ? (int?)tmp : null; } }
@@ -58,31 +58,31 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
     public class BZCCGame
     {
         //public string __addr { get; set; }
-        public string proxySource { get; set; }
+        public string? proxySource { get; set; }
 
-        [JsonProperty("g")] public string NATNegID { get; set; } // Raknet GUID, Base64 encoded with custom alphabet
-        public string n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
-        [JsonProperty("m")] public string MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
-        public string k { get; set; } // tinyint      | Password Flag.
-        public string d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
-        [JsonProperty("t")] public string NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
-        public string v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
-        public string l { get; set; } // locked
-        [JsonProperty("h")] public string MOTD { get; set; } // server message (not base64 yet)
+        [JsonProperty("g")] public string? NATNegID { get; set; } // Raknet GUID, Base64 encoded with custom alphabet
+        public string? n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
+        [JsonProperty("m")] public string? MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
+        public string? k { get; set; } // tinyint      | Password Flag.
+        public string? d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
+        [JsonProperty("t")] public string? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
+        public string? v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
+        public string? l { get; set; } // locked
+        [JsonProperty("h")] public string? MOTD { get; set; } // server message (not base64 yet)
 
-        public string mm { get; set; } // mod list ex: "1300825258;1300820029"
-        public string gt { get; set; } // game type
-        public string gtd { get; set; } // sub game type
-        public string pm { get; set; } // max players
+        public string? mm { get; set; } // mod list ex: "1300825258;1300820029"
+        public string? gt { get; set; } // game type
+        public string? gtd { get; set; } // sub game type
+        public string? pm { get; set; } // max players
 
-        public string tps { get; set; } // tps
-        public string si { get; set; } // gamestate
-        public string ti { get; set; } // time limit
-        public string ki { get; set; } // kill limit
+        public string? tps { get; set; } // tps
+        public string? si { get; set; } // gamestate
+        public string? ti { get; set; } // time limit
+        public string? ki { get; set; } // kill limit
 
-        public string gtm { get; set; } // game time min
-        public string pg { get; set; } // seen max ping
-        public string pgm { get; set; } // max ping
+        public string? gtm { get; set; } // game time min
+        public string? pg { get; set; } // seen max ping
+        public string? pgm { get; set; } // max ping
 
 
         //#define RAKNET_MASTERSERVER_GAMEID_KEY "gid"
@@ -95,7 +95,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         //public string mu { get; set; } // map url, often an empty string // RAKNET_MASTERSERVER_MAPULR_KEY
 
 
-        public BZCCPlayerData[] pl { get; set; }
+        public BZCCPlayerData[]? pl { get; set; }
 
         [JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }
         [JsonIgnore] public int? MaxPlayers { get { int tmp = 0; return int.TryParse(pm, out tmp) ? (int?)tmp : null; } }
@@ -116,7 +116,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [JsonIgnore] public int? TimeLimit { get { int tmp = 0; return int.TryParse(ti, out tmp) ? (int?)tmp : null; } }
         [JsonIgnore] public int? KillLimit { get { int tmp = 0; return int.TryParse(ki, out tmp) ? (int?)tmp : null; } }
 
-        [JsonIgnore] public string SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
+        [JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 
         [JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
 
@@ -133,19 +133,19 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
     public class MapData
     {
-        public Dictionary<string, MapData_Mods> mods { get; set; }
-        public string title { get; set; }
-        public string image { get; set; }
-        public string description { get; set; }
-        public Dictionary<string, string> netVars { get; set; }
+        public Dictionary<string, MapData_Mods>? mods { get; set; }
+        public string? title { get; set; }
+        public string? image { get; set; }
+        public string? description { get; set; }
+        public Dictionary<string, string>? netVars { get; set; }
     }
 
     public class MapData_Mods
     {
-        public string name { get; set; }
-        public string workshop_name { get; set; }
-        public string type { get; set; }
-        public List<string> dependencies { get; set; }
-        public string image { get; set; }
+        public string? name { get; set; }
+        public string? workshop_name { get; set; }
+        public string? type { get; set; }
+        public List<string>? dependencies { get; set; }
+        public string? image { get; set; }
     }
 }

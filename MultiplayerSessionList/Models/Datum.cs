@@ -18,9 +18,9 @@ namespace MultiplayerSessionList.Models
     public class PendingDatum
     {
         public Datum data { get; set; }
-        public string key { get; set; }
+        public string? key { get; set; }
 
-        public PendingDatum(Datum data, string key)
+        public PendingDatum(Datum data, string? key)
         {
             this.data = data;
             this.key = key;
@@ -45,7 +45,7 @@ namespace MultiplayerSessionList.Models
         [JsonPropertyName("$id")]
         public string ID { get; set; }
 
-        public dynamic this[string key]
+        public dynamic? this[string key]
         {
             get
             {
@@ -79,18 +79,23 @@ namespace MultiplayerSessionList.Models
             //}
         }
 
-        public void AddObjectPath(string Path, dynamic Value) => Data.AddObjectPath(Path, Value);
+        public void AddObjectPath(string Path, dynamic? Value) => Data.AddObjectPath(Path, Value);
         public bool ContainsPath(string Path) => Data.ContainsPath(Path);
     }
 
-    public class DataCache : Dictionary<string, dynamic>
+    public class DataCache : Dictionary<string, dynamic?>
     {
         static Regex KeySplit = new Regex("(?<!\\\\):");
 
-        public void AddObjectPath(string Path, dynamic Value)
+        public void AddObjectPath(string? Path, dynamic? Value)
         {
-            //string[] PathParts = Path.Split(':');
+            if (string.IsNullOrEmpty(Path))
+                return;
+
             string[] PathParts = KeySplit.Split(Path).Select(dr => dr.Replace("\\:", ":")).ToArray();
+
+            if (PathParts.Length == 0)
+                return;
 
             if (PathParts.Length == 1)
             {
@@ -101,26 +106,31 @@ namespace MultiplayerSessionList.Models
             if (!this.ContainsKey(PathParts[0]))
                 this[PathParts[0]] = new DataCache();
 
-            DataCache mrk = this[PathParts[0]] as DataCache;
+            DataCache? mrk = this[PathParts[0]] as DataCache;
             for (int i = 1; i < PathParts.Length - 1; i++)
             {
+                if (mrk == null)
+                    return;
                 if (!mrk.ContainsKey(PathParts[i]))
                     mrk[PathParts[i]] = new DataCache();
                 mrk = mrk[PathParts[i]] as DataCache;
             }
-            mrk[PathParts.Last()] = Value;
+            if (mrk != null)
+                mrk[PathParts.Last()] = Value;
         }
-        public bool ContainsPath(string Path)
+        public bool ContainsPath(string? Path)
         {
-            //string[] PathParts = Path.Split(':');
-            string[] PathParts = KeySplit.Split(Path).Select(dr => dr.Replace("\\:", ":")).ToArray();
-            if (!this.ContainsKey(PathParts[0]))
+            if (string.IsNullOrEmpty(Path))
                 return false;
 
-            DataCache mrk = this[PathParts[0]] as DataCache;
+            string[] PathParts = KeySplit.Split(Path).Select(dr => dr.Replace("\\:", ":")).ToArray();
+            if (PathParts.Length == 0 || !this.ContainsKey(PathParts[0]))
+                return false;
+
+            DataCache? mrk = this[PathParts[0]] as DataCache;
             for (int i = 1; i < PathParts.Length; i++)
             {
-                if (!mrk.ContainsKey(PathParts[i]))
+                if (mrk == null || !mrk.ContainsKey(PathParts[i]))
                     return false;
                 mrk = mrk[PathParts[i]] as DataCache;
             }
@@ -135,7 +145,7 @@ namespace MultiplayerSessionList.Models
             SteamInterface.WrappedPlayerSummaryModel playerData = await steamInterface.Users(playerID);
             if (playerData == null)
                 // TODO consider finding a way to cache total failures like this, maybe with a counter before they get cached, or make the cache longer and longer
-                return null;
+                return new List<PendingDatum>();
             Datum accountDataSteam = new Datum("identity/steam", playerID.ToString(), new DataCache()
             {
                 { "type", "steam" },
