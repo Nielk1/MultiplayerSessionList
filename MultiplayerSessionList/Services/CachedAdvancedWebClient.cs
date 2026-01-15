@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,12 +57,13 @@ namespace MultiplayerSessionList.Services
 
                 T? data;
                 var contentString = await response.Content.ReadAsStringAsync(cancellationToken);
+                DateTime readTime = DateTime.UtcNow;
                 if (typeof(T) == typeof(string))
                     data = (T)(object)contentString;
                 else
-                    data = JsonConvert.DeserializeObject<T>(contentString);
-
-                var cacheData = new CachedData<T>(data, DateTime.UtcNow.Add(newTime), response.Content.Headers.LastModified?.UtcDateTime);
+                    data = JsonSerializer.Deserialize<T>(contentString);
+                
+                var cacheData = new CachedData<T>(data, readTime.Add(newTime), response.Content.Headers.LastModified?.UtcDateTime ?? readTime);
                 memCache.Set(cacheKey, cacheData, cacheTime);
                 return cacheData;
             }

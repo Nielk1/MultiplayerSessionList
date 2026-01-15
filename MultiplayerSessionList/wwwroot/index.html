@@ -80,10 +80,22 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
-                        Rendered DOM Elements (Lobbies)
+                        Rendered DOM Elements (Sources)
                     </button>
                 </h2>
                 <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                        <div id="sourceList" class="row"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1a" aria-expanded="false" aria-controls="collapse1a">
+                        Rendered DOM Elements (Lobbies)
+                    </button>
+                </h2>
+                <div id="collapse1a" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
                     <div class="accordion-body">
                         <div id="lobbyList" class="row"></div>
                     </div>
@@ -452,6 +464,7 @@ for (let ref in DataRefs_last_touched) {
         $('#btnRefresh').click(function (e) {
             e.preventDefault();
 
+            $('#sourceList').empty();
             $('#lobbyList').empty();
             $('#sessionList').empty();
             $('#codeRawJson').empty();
@@ -540,8 +553,9 @@ for (let ref in DataRefs_last_touched) {
             }
         });
 
-        var sessionList = document.querySelector('#sessionList');
+        var sourceList = document.querySelector('#sourceList');
         var lobbyList = document.querySelector('#lobbyList');
+        var sessionList = document.querySelector('#sessionList');
 
         function GenerateHtml_ModBoxes(mod) {
             let modBoxes = '';
@@ -614,7 +628,7 @@ for (let ref in DataRefs_last_touched) {
 
         function GenerateHtml_MicroList(name, object, extra) {
             var htmlEntries = `
-<div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35; clear: both;">
+                    <div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35; clear: both;">
         <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
         <ul class="list-group list-group-flush">`;
             for (let prop in object) {
@@ -708,6 +722,89 @@ for (let ref in DataRefs_last_touched) {
             return playerHtmlEntries;
         }
 
+        function CreateOrUpdateSourceDom($id, data) {
+            var source = data.source[$id];
+            var elementDom = sourceList.querySelector(`#\\/source\\/${CSS.escape($id)}`);
+
+            if (!elementDom) {
+                let dom_string = `
+            <div id="/source/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
+                <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
+                    </div>
+                    <ul class="list-group list-group-flush text-secondary">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Status</strong>
+                            <span data-path="source.status" title=""></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Success</strong>
+                            <span data-path="source.success" title=""></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">TimeStamp</strong>
+                            <span data-path="source.timestamp" title=""></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong class="text-muted">Name</strong>
+                            <span data-path="source.name" title=""></span>
+                        </li>
+                    </ul>
+                    <div class="container-fluid pb-1">
+                        <div data-path="data-container" class="row" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>`;
+                sourceList.insertAdjacentHTML('beforeend', dom_string);
+                elementDom = sourceList.lastElementChild;
+            }
+
+            if (source.other) {
+                let modWrapperDom = elementDom.querySelector('[data-path="data-container"]');
+                modWrapperDom.style.display = 'flex';
+                modWrapperDom.innerHTML = '';
+
+                if (source.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("root", source.other) + "</div>");
+            }
+
+            // Status
+            let source_status_elem = elementDom.querySelector(`[data-path="source.status"]`);
+            source_status_elem.textContent = source.status || "";
+            if (!!source_status_elem.textContent) {
+                source_status_elem.parentElement.style.removeProperty("display");
+            } else {
+                source_status_elem.parentElement.style.setProperty("display", "none", "important");
+            }
+
+            // Success
+            let source_success_elem = elementDom.querySelector(`[data-path="source.success"]`);
+            source_success_elem.textContent = source.success || "";
+            if (!!source_success_elem.textContent) {
+                source_success_elem.parentElement.style.removeProperty("display");
+            } else {
+                source_success_elem.parentElement.style.setProperty("display", "none", "important");
+            }
+
+            // Timestamp
+            let source_timestamp_elem = elementDom.querySelector(`[data-path="source.timestamp"]`);
+            source_timestamp_elem.textContent = source.timestamp || "";
+            if (!!source_timestamp_elem.textContent) {
+                source_timestamp_elem.parentElement.style.removeProperty("display");
+            } else {
+                source_timestamp_elem.parentElement.style.setProperty("display", "none", "important");
+            }
+
+            // Name
+            let source_name_elem = elementDom.querySelector(`[data-path="source.name"]`);
+            source_name_elem.textContent = source.name || "";
+            if (!!source_name_elem.textContent) {
+                source_name_elem.parentElement.style.removeProperty("display");
+            } else {
+                source_name_elem.parentElement.style.setProperty("display", "none", "important");
+            }
+        }
         function CreateOrUpdateSessionDom($id, data) {
             var session = data.session[$id];
             var elementDom = sessionList.querySelector(`#\\/session\\/${CSS.escape($id)}`);
@@ -1233,6 +1330,9 @@ for (let ref in DataRefs_last_touched) {
                             for (const affected of debouncingSet) {
                                 let tmp = affected.split('\t');
                                 console.log("Pending Datum Triggered", tmp[0], tmp[1])
+                                if (tmp[0] == 'source') {
+                                    CreateOrUpdateSourceDom(tmp[1], data);
+                                }
                                 if (tmp[0] == 'session') {
                                     CreateOrUpdateSessionDom(tmp[1], data);
                                 }

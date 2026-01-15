@@ -81,9 +81,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
             if (mock)
                 gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(System.IO.File.ReadAllText(@"mock\bigboat\battlezone_combat_commander.json"));
 
-            if (admin && !mock)
-                yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
+            //if (admin && !mock)
+            //    yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
 
+            DataCache sources = new DataCache();
             if (gamelist != null)
             {
                 foreach (var proxyStatus in gamelist.proxyStatus)
@@ -96,6 +97,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         DatumSource["success"] = proxyStatus.Value.success;
                     if (proxyStatus.Value.updated != null)
                         DatumSource["timestamp"] = proxyStatus.Value.updated;
+                    sources[DatumSource.ID] = new DatumRef(DatumSource.Type, DatumSource.ID);
                     yield return DatumSource;
                 }
             }
@@ -621,6 +623,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                 Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID, new DataCache() {
                     { "sessions", sessions },
+                    { "sources", sources },
                 });
                 yield return root;
             }

@@ -56,8 +56,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             if (mock)
                 gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(System.IO.File.ReadAllText(@"mock\bigboat\battlezone_98_redux.json"));
 
-            if (admin && !mock)
-                yield return new Datum("debug", "raw", new DataCache() { { "raw", res } });
+            //if (admin && !mock)
+            //    yield return new Datum("debug", "raw", new DataCache() { { "raw", res } });
 
             //TODO consider using memberlink for how many players can be in a game, as the text data above (before editing) has a 3/2 if its not used but 3/3 if it is.
 

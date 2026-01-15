@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Plugins.RetroArchNetplay
@@ -21,43 +21,43 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
 
 	public class Session
 	{
-		[JsonProperty("id")]
+		[JsonPropertyName("id")]
 		public Int32 RoomID { get; set; }
-		[JsonProperty("username")]
+		[JsonPropertyName("username")]
 		public string Username { get; set; }
-		[JsonProperty("country")]
+		[JsonPropertyName("country")]
 		public string Country { get; set; }
-		[JsonProperty("game_name")]
+		[JsonPropertyName("game_name")]
 		public string GameName { get; set; }
-		[JsonProperty("game_crc")]
+		[JsonPropertyName("game_crc")]
 		public string GameCRC { get; set; }
-		[JsonProperty("core_name")]
+		[JsonPropertyName("core_name")]
 		public string CoreName { get; set; }
-		[JsonProperty("core_version")]
+		[JsonPropertyName("core_version")]
 		public string CoreVersion { get; set; }
-		[JsonProperty("subsystem_name")]
+		[JsonPropertyName("subsystem_name")]
 		public string SubsystemName { get; set; }
-		[JsonProperty("retroarch_version")]
+		[JsonPropertyName("retroarch_version")]
 		public string RetroArchVersion { get; set; }
-		[JsonProperty("frontend")]
+		[JsonPropertyName("frontend")]
 		public string Frontend { get; set; }
-		[JsonProperty("ip")]
+		[JsonPropertyName("ip")]
 		public string IP { get; set; }
-		[JsonProperty("port")]
+		[JsonPropertyName("port")]
 		public UInt16 Port { get; set; }
-		[JsonProperty("mitm_ip")]
+		[JsonPropertyName("mitm_ip")]
 		public string MitmAddress { get; set; }
-		[JsonProperty("mitm_port")]
+		[JsonPropertyName("mitm_port")]
 		public UInt16 MitmPort { get; set; }
-		[JsonProperty("host_method")]
+		[JsonPropertyName("host_method")]
 		public HostMethod HostMethod { get; set; }
-		[JsonProperty("has_password")]
+		[JsonPropertyName("has_password")]
 		public bool HasPassword { get; set; }
-		[JsonProperty("has_spectate_password")]
+		[JsonPropertyName("has_spectate_password")]
 		public bool HasSpectatePassword { get; set; }
-		[JsonProperty("created")]
+		[JsonPropertyName("created")]
 		public DateTime CreatedAt { get; set; }
-		[JsonProperty("updated")]
+		[JsonPropertyName("updated")]
 		public DateTime UpdatedAt { get; set; }
 	}
 }

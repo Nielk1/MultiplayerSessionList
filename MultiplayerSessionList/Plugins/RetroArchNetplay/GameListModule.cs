@@ -2,14 +2,13 @@
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Steam.Models.SteamCommunity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -49,15 +48,26 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
             if (res == null)
                 yield break;
 
-            var gamelist = JsonConvert.DeserializeObject<List<SessionWrapper>>(res.Data);
+            var gamelist = JsonSerializer.Deserialize<List<SessionWrapper>>(res.Data);
 
             if (gamelist == null)
                 yield break;
 
-            if (admin)
-                yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
+            //if (admin)
+            //    yield return new Datum("debug", "raw", new DataCache() { { "raw", res.Data } });
 
             Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID);
+
+            DataCache sources = new DataCache();
+            Datum sourceDatum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:libretro", new DataCache() {
+                { GAMELIST_TERMS.SOURCE_NAME, "Libretro" },
+            });
+            if (res.LastModified != null)
+                sourceDatum["timestamp"] = res.LastModified;
+            yield return sourceDatum;
+            sources[sourceDatum.ID] = new DatumRef(sourceDatum.Type, sourceDatum.ID);
+
+            root["source"] = sources;
 
             HashSet<DatumRef> sessions = new HashSet<DatumRef>();
             foreach (SessionWrapper raw in gamelist)
@@ -73,6 +83,8 @@ namespace MultiplayerSessionList.Plugins.RetroArchNetplay
                 Session s = raw.fields;
 
                 Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:libretro:{s.RoomID}");
+
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_SOURCES}:libretro", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:libretro"));
 
                 session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 1);

@@ -109,8 +109,8 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
             CachedData<string>? res = await cachedAdvancedWebClient.GetObject<string>(queryUrl_lobbies, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
             if (res?.Data == null)
                 yield break;
-            if (admin)
-                yield return new Datum("debug", $"{GameID}:dothackers:lobbies", new DataCache() { { "raw", res.Data } });
+            //if (admin)
+            //    yield return new Datum("debug", $"{GameID}:dothackers:lobbies", new DataCache() { { "raw", res.Data } });
             Lobby[]? lobbyList = JsonSerializer.Deserialize<Lobby[]>(res.Data);
             if (lobbyList != null)
             {
