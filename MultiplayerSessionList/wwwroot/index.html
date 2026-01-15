@@ -286,7 +286,10 @@ for (let ref in DataRefs_last_touched) {
             while (source !== undefined) {
                 if (isObject(target) && isObject(source)) {
                     for (const key in source) {
-                        if (isObject(source[key])) {
+                        if (source[key] === null) {
+                            // Explicitly remove property if value is null
+                            delete target[key];
+                        } else if (isObject(source[key])) {
                             if (!target[key]) Object.assign(target, { [key]: {} });
                             MergeIntoFirstObject(target[key], source[key]);
                         } else if (Array.isArray(source[key])) {
@@ -816,6 +819,7 @@ for (let ref in DataRefs_last_touched) {
             CreateOrUpdateSessionOrLobbyDom(lobbyList, $id, session, elementDom, "lobby");
         }
         function CreateOrUpdateSessionOrLobbyDom(parent, $id, data, elementDom, type) {
+            let forceRebuild = false;
             if (elementDom) {
                 let mapImage_ExistingDom = !!elementDom.querySelector(`[data-path="${type}.level.map.image"]`);
                 let mapImage_NewDom = !!data.level?.map?.image;
@@ -823,13 +827,16 @@ for (let ref in DataRefs_last_touched) {
                 let mapFile_ExistingDom = !!elementDom.querySelector(`[data-path="${type}.level.map.map_file"]`);
                 let mapFile_NewDom = !!data.level?.map?.map_file;
 
+                let Existing = mapImage_ExistingDom || mapFile_ExistingDom;
+                let New = mapImage_NewDom || mapFile_NewDom;
+
                 // if either of these values changed their nature, we will change the dom structure, so act like the structure is all new
-                if (mapImage_ExistingDom != mapImage_NewDom || mapFile_ExistingDom != mapFile_NewDom) {
-                    elementDom = null;
+                if (Existing != New) {
+                    forceRebuild = true;
                 }
             }
 
-            if (!elementDom) {
+            if (!elementDom || forceRebuild) {
                 let dom_string = `
 <div id="/${type}/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
         <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
@@ -912,8 +919,12 @@ for (let ref in DataRefs_last_touched) {
                 <div data-path="players" class="row"></div>
             </div>
         </div>`;
-                parent.insertAdjacentHTML('beforeend', dom_string);
-                elementDom = parent.lastElementChild;
+                if (forceRebuild) {
+                    elementDom.outerHTML = dom_string;
+                } else {
+                    parent.insertAdjacentHTML('beforeend', dom_string);
+                    elementDom = parent.lastElementChild;
+                }
             }
 
             // Session Type
