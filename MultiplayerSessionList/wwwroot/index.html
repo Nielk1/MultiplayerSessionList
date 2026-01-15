@@ -805,7 +805,7 @@ for (let ref in DataRefs_last_touched) {
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <strong class="text-muted">Name</strong>
-                                <span data-path="${type}.name" class="text-secondary"></span>
+                                <span data-path="${type}.name"></span>
                             </li>
                         </ul>
                     </div>
@@ -1177,13 +1177,21 @@ for (let ref in DataRefs_last_touched) {
                 }
                 if ((data.game?.mods?.minor?.length ?? 0) > 0) {
                     for (let modwrapper of data.game.mods.minor) {
-                        let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                                <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
-                                <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
-                            </div></div>`;
+                        if (false) {
+                            let newHTML = `<div class="col-12 col-sm-4 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                                    <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
+                                    <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                                </div></div>`;
 
-                        // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
-                        modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
+                            modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
+                        } else {
+                            let newHTML = `<div class="col-6 col-sm-4 col-lg-3 col-xl-4 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                                    <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
+                                    <div class="row m-0"><div class="col-12 p-1 text-center">${GenerateHtml_ModBox(modwrapper.mod, true)}</div></div>
+                                </div></div>`;
+
+                            modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
+                        }
                     }
                 }
                 if ((data.game?.mods?.option?.length ?? 0) > 0) {

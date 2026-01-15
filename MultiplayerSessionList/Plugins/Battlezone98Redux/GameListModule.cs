@@ -146,6 +146,8 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
                         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_TOKEN}", $"B{raw.id}");
                         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:lobby_id", raw.id);
 
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_SOURCES}:Rebellion", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:Rebellion"));
+
                         List<DataCache> PlayerTypes = new List<DataCache>();
                         if (raw.LobbyType == Lobby.ELobbyType.Game)
                         {
