@@ -157,7 +157,7 @@
             &copy; 2026 - MultiplayerSessionList
         </div>
     </footer>
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <!--<script src="/lib/jquery/dist/jquery.min.js"></script>-->
     <!--<script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>-->
     <script src="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -231,6 +231,26 @@ for (let ref in DataRefs_last_touched) {
             return 'event'; // default
         }
 
+        // Helper functions to replace jQuery .empty(), .addClass(), .removeClass(), .hasClass(), .data()
+        function emptyElement(el) {
+            while (el.firstChild) el.removeChild(el.firstChild);
+        }
+        function addClass(el, className) {
+            el.classList.add(className);
+        }
+        function removeClass(el, className) {
+            el.classList.remove(className);
+        }
+        function hasClass(el, className) {
+            return el.classList.contains(className);
+        }
+        function setData(el, key, value) {
+            el.dataset[key] = value;
+        }
+        function getData(el, key) {
+            return el.dataset[key];
+        }
+
         // local copy of list data
         var ListData = {};
 
@@ -244,32 +264,42 @@ for (let ref in DataRefs_last_touched) {
             var windowSearch = window.location.search;
             if (windowSearch.length > 0)
                 windowSearch = '?' + windowSearch.substring(1);
-            $.ajax({ url: '/api/2.0/games' + windowSearch })
-                .done(function (data) {
-                    $('#dropdownMenuContainer').empty();
+            fetch('/api/2.0/games' + windowSearch)
+                .then(response => response.json())
+                .then(data => {
+                    const dropdownMenuContainer = document.getElementById('dropdownMenuContainer');
+                    emptyElement(dropdownMenuContainer);
                     for (var i = 0; i < data.length; i++) {
-                        var dat = data[i];
-                        var sessionRow = $('<a class="dropdown-item" href="#"/>');
-                        sessionRow.text(dat.Name);
-                        sessionRow.data('value', dat.Key)
-                        $('#dropdownMenuContainer').append($('<li>').append(sessionRow));
+                        const dat = data[i];
+                        const sessionRow = document.createElement('a');
+                        sessionRow.className = 'dropdown-item';
+                        sessionRow.href = '#';
+                        sessionRow.textContent = dat.Name;
+                        setData(sessionRow, 'value', dat.Key);
+
+                        const li = document.createElement('li');
+                        li.appendChild(sessionRow);
+                        dropdownMenuContainer.appendChild(li);
                     }
                 });
         }
 
-        $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
-            e.preventDefault();
-            var item = $(e.target);
-            if (item.hasClass('dropdown-item')) {
-                if (item.hasClass('active')) {
-                    item.removeClass('active');
+        document.getElementById('dropdownMenuContainer').addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('dropdown-item')) {
+                e.preventDefault();
+                const item = e.target;
+                if (hasClass(item, 'active')) {
+                    removeClass(item, 'active');
                 } else {
-                    item.addClass('active')
+                    addClass(item, 'active');
                 }
-                if ($('#dropdownMenuContainer .dropdown-item.active').length > 0) {
-                    $('#btnRefresh').removeAttr("disabled");
+                const dropdownMenuContainer = document.getElementById('dropdownMenuContainer');
+                const activeItems = dropdownMenuContainer.querySelectorAll('.dropdown-item.active');
+                const btnRefresh = document.getElementById('btnRefresh');
+                if (activeItems.length > 0) {
+                    btnRefresh.removeAttribute("disabled");
                 } else {
-                    $('#btnRefresh').attr("disabled", "disabled");
+                    btnRefresh.setAttribute("disabled", "disabled");
                 }
             }
         });
@@ -453,25 +483,24 @@ for (let ref in DataRefs_last_touched) {
         }
 
         var GetGamesAjax = null;
-        $('#btnExtra').click(function (e) {
+        document.getElementById('btnExtra').addEventListener('click', function (e) {
             e.preventDefault();
-
-            if ($('#btnExtra').hasClass('active')) {
-                //document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "inherit";
-                document.getElementById('extra_data_style').sheet.cssRules[0].style.setProperty("display", "inherit");
+            const btnExtra = document.getElementById('btnExtra');
+            const extraDataStyle = document.getElementById('extra_data_style');
+            if (hasClass(btnExtra, 'active')) {
+                extraDataStyle.sheet.cssRules[0].style.setProperty("display", "inherit");
             } else {
-                //document.getElementById('extra_data_style').sheet.cssRules[0].style.display = "none";
-                document.getElementById('extra_data_style').sheet.cssRules[0].style.setProperty("display", "none", "important");
+                extraDataStyle.sheet.cssRules[0].style.setProperty("display", "none", "important");
             }
         });
-        $('#btnRefresh').click(function (e) {
+        document.getElementById('btnRefresh').addEventListener('click', function (e) {
             e.preventDefault();
 
-            $('#sourceList').empty();
-            $('#lobbyList').empty();
-            $('#sessionList').empty();
-            $('#codeRawJson').empty();
-            $('#codeRawJsonLines').empty();
+            emptyElement(document.getElementById('sourceList'));
+            emptyElement(document.getElementById('lobbyList'));
+            emptyElement(document.getElementById('sessionList'));
+            emptyElement(document.getElementById('codeRawJson'));
+            emptyElement(document.getElementById('codeRawJsonLines'));
 
             if (GetGamesAjax != null) {
                 const params = new URLSearchParams(window.location.search);
@@ -500,9 +529,13 @@ for (let ref in DataRefs_last_touched) {
             if (windowSearch.length > 0)
                 windowSearch = '&' + windowSearch.substring(1);
 
-            // what ugly shit this is
-            var keys = [].concat(...$('#dropdownMenuContainer .dropdown-item.active')).map(function (elem) { return 'game=' + $(elem).data('value') }).join('&');
-            var mode = getStreamMode();
+            // get all active dropdown items
+            const dropdownMenuContainer = document.getElementById('dropdownMenuContainer');
+            const activeItems = dropdownMenuContainer.querySelectorAll('.dropdown-item.active');
+            const keys = Array.from(activeItems)
+                .map(elem => 'game=' + getData(elem, 'value'))
+                .join('&');
+            const mode = getStreamMode();
 
             ListData = {};
 
@@ -1361,7 +1394,7 @@ for (let ref in DataRefs_last_touched) {
             }
 
             {
-                $('#codeRawJson').text(JSON.stringify(data, null, 2));
+                document.getElementById('codeRawJson').innerText = JSON.stringify(data, null, 2);
                 //hljs.highlightAll();
                 let codeElem = document.getElementById('codeRawJson');
                 let codeElem2 = document.getElementById('codeRawJsonLines');

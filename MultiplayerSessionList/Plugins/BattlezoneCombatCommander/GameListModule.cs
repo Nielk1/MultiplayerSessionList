@@ -112,6 +112,9 @@ public class GameListModule : IGameListModule
             // ignore dummy games
             if (raw.NATNegID == "XXXXXXX@XX") continue;
 
+            // impossible illegal game, fake game violating basic logic rules
+            if (raw.NATNegID == null) continue;
+
             // if the game's only player is the spam game account and it is locked, ignore it unless we're in admin mode
             if (!admin && raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))  continue;
 
