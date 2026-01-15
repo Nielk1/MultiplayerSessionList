@@ -34,6 +34,7 @@ namespace MultiplayerSessionList.Models
             Ref = $"#/{type.Replace("~", "~0").Replace("/", "~1")}/{id.Replace("~", "~0").Replace("/", "~1")}";
         }
     }
+    public record DatumKey(string Type, string ID);
     public class Datum
     {
         [JsonPropertyName("$type")]
@@ -41,6 +42,9 @@ namespace MultiplayerSessionList.Models
         
         [JsonPropertyName("$id")]
         public string ID { get; set; }
+
+        [JsonIgnore]
+        public DatumKey Key => new DatumKey(Type, ID);
 
         public dynamic? this[string key]
         {
@@ -77,6 +81,10 @@ namespace MultiplayerSessionList.Models
 
         public void AddObjectPath(string Path, dynamic? Value) => Data.AddObjectPath(Path, Value);
         public bool ContainsPath(string Path) => Data.ContainsPath(Path);
+        public DatumRef CreateDatumRef()
+        {
+            return new DatumRef(Type, ID);
+        }
     }
 
     public class DataCache : ConcurrentDictionary<string, dynamic?>
@@ -138,12 +146,12 @@ namespace MultiplayerSessionList.Models
 
     public static class Extensions
     {
-        public static async Task<List<PendingDatum>> GetPendingDataAsync(this SteamInterface steamInterface, ulong playerID)
+        public static async IAsyncEnumerable<Datum> GetPendingDataAsync(this SteamInterface steamInterface, ulong playerID)
         {
             SteamInterface.WrappedPlayerSummaryModel playerData = await steamInterface.Users(playerID);
             if (playerData == null)
                 // TODO consider finding a way to cache total failures like this, maybe with a counter before they get cached, or make the cache longer and longer
-                return new List<PendingDatum>();
+                yield break;
             Datum accountDataSteam = new Datum("identity/steam", playerID.ToString(), new DataCache()
             {
                 { "type", "steam" },
@@ -154,9 +162,9 @@ namespace MultiplayerSessionList.Models
             if (!string.IsNullOrEmpty(playerData.Model.ProfileUrl))    accountDataSteam["profile_url"] = playerData.Model.ProfileUrl;
             if (playerData.IsPirate) accountDataSteam["is_pirate"] = true; // asshole
 
-            return new List<PendingDatum>() { new PendingDatum(accountDataSteam, $"identity/steam/{playerID.ToString()}") };
+            yield return accountDataSteam;
         }
-        public static async Task<List<PendingDatum>> GetPendingDataAsync(this GogInterface gogInterface, ulong playerID)
+        public static async IAsyncEnumerable<Datum> GetPendingDataAsync(this GogInterface gogInterface, ulong playerID)
         {
             GogInterface.GogUserData playerData = await gogInterface.Users(playerID);
             Datum accountDataGog = new Datum("identity/gog", playerID.ToString(), new DataCache()
@@ -166,7 +174,7 @@ namespace MultiplayerSessionList.Models
                 { "username", playerData.username },
                 { "profile_url", $"https://www.gog.com/u/{playerData.username}" },
             });
-            return new List<PendingDatum> () { new PendingDatum(accountDataGog, $"identity/gog/{playerID.ToString()}") };
+            yield return accountDataGog;
         }
     }
 }

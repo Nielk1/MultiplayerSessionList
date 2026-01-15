@@ -2,6 +2,7 @@
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
+using MultiplayerSessionList.Plugins.RetroArchNetplay;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -232,37 +233,17 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                         if (raw.KillLimit.HasValue && raw.KillLimit > 0)
                             game.Level.AddObjectPath("Attributes:KillLimit", raw.KillLimit);
 
-                        if (!string.IsNullOrWhiteSpace(raw.NATType))
-                            switch (raw.NATType)
+                        if (raw != null && raw.NATType.HasValue)
+                        {
+                            if (Enum.IsDefined(raw.NATType.Value))
                             {
-                                case "0":
-                                    game.Address.Add("NAT_TYPE", $"NONE"); /// Works with anyone
-                                    break;
-                                case "1":
-                                    game.Address.Add("NAT_TYPE", $"FULL CONE"); /// Accepts any datagrams to a port that has been previously used. Will accept the first datagram from the remote peer.
-                                    break;
-                                case "2":
-                                    game.Address.Add("NAT_TYPE", $"ADDRESS RESTRICTED"); /// Accepts datagrams to a port as long as the datagram source IP address is a system we have already sent to. Will accept the first datagram if both systems send simultaneously. Otherwise, will accept the first datagram after we have sent one datagram.
-                                    break;
-                                case "3":
-                                    game.Address.Add("NAT_TYPE", $"PORT RESTRICTED"); /// Same as address-restricted cone NAT, but we had to send to both the correct remote IP address and correct remote port. The same source address and port to a different destination uses the same mapping.
-                                    break;
-                                case "4":
-                                    game.Address.Add("NAT_TYPE", $"SYMMETRIC"); /// A different port is chosen for every remote destination. The same source address and port to a different destination uses a different mapping. Since the port will be different, the first external punchthrough attempt will fail. For this to work it requires port-prediction (MAX_PREDICTIVE_PORT_RANGE>1) and that the router chooses ports sequentially.
-                                    break;
-                                case "5":
-                                    game.Address.Add("NAT_TYPE", $"UNKNOWN"); /// Hasn't been determined. NATTypeDetectionClient does not use this, but other plugins might
-                                    break;
-                                case "6":
-                                    game.Address.Add("NAT_TYPE", $"DETECTION IN PROGRESS"); /// In progress. NATTypeDetectionClient does not use this, but other plugins might
-                                    break;
-                                case "7":
-                                    game.Address.Add("NAT_TYPE", $"SUPPORTS UPNP"); /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
-                                    break;
-                                default:
-                                    game.Address.Add("NAT_TYPE", $"[" + raw.NATType + "]");
-                                    break;
+                                game.Address.Add("NAT_TYPE", raw.NATType.Value.ToString().Replace('_', ' '));
                             }
+                            else
+                            {
+                                game.Address.Add("NAT_TYPE", $"[" + raw.NATType + "]");
+                            }
+                        }
 
                         game.Attributes.Add(GAMELIST_TERMS_OLD.ATTRIBUTE_LISTSERVER, raw.proxySource ?? "IonDriver");
 
