@@ -98,212 +98,285 @@ namespace MultiplayerSessionList.Plugins.Battlezone98Redux
             SemaphoreSlim gamebalanceFullAlreadySentLock = new SemaphoreSlim(1, 1);
             HashSet<string> gamebalanceFullAlreadySent = new HashSet<string>();
 
-            Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID);
-
             if (gamelist != null)
             {
+                {
+                    List<DatumRef> lobbies = new List<DatumRef>();
+                    List<DatumRef> sessions = new List<DatumRef>();
+                    foreach (var raw in gamelist.Values)
+                    {
+                        switch (raw.LobbyType)
+                        {
+                            case Lobby.ELobbyType.Chat:
+                                lobbies.Add(new DatumRef(GAMELIST_TERMS.TYPE_LOBBY, $"{GameID}:Rebellion:B{raw.id}"));
+                                break;
+                            case Lobby.ELobbyType.Game:
+                                if (raw.isPrivate && !(raw.IsPassworded ?? false))
+                                    continue;
+                                sessions.Add(new DatumRef(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:Rebellion:B{raw.id}"));
+                                break;
+                        }
+                    }
+                    Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID, new DataCache() {
+                        { "lobbies", lobbies },
+                        { "sessions", sessions },
+                    });
+                    yield return root;
+                }
+
                 foreach (var raw in gamelist.Values)
                 {
-                    if (raw.LobbyType != Lobby.ELobbyType.Game)
-                        continue;
-
-                    if (raw.isPrivate && !(raw.IsPassworded ?? false))
-                        continue;
-
-                    Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:Rebellion:B{raw.id}");
-
-                    session[GAMELIST_TERMS.SESSION_NAME] = raw.Name;
-
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_TOKEN}", $"B{raw.id}");
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:lobby_id", raw.id);
-
-                    List<DataCache> PlayerTypes = new List<DataCache>();
+                    Datum? session = null;
+                    switch (raw.LobbyType)
                     {
-                        var playerType = new DataCache()
-                    {
-                        { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() { GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER } },
-                    };
-                        if (raw.PlayerLimit != null)
-                            playerType[GAMELIST_TERMS.PLAYERTYPE_MAX] = raw.PlayerLimit;
-                        PlayerTypes.Add(playerType);
+                        case Lobby.ELobbyType.Chat:
+                            session = new Datum(GAMELIST_TERMS.TYPE_LOBBY, $"{GameID}:Rebellion:B{raw.id}");
+                            break;
+                        case Lobby.ELobbyType.Game:
+                            if (raw.isPrivate && !(raw.IsPassworded ?? false))
+                                continue;
+                            session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:Rebellion:B{raw.id}");
+                            break;
                     }
-                    session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
 
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.userCount);
-
-                    string modID = (raw.WorkshopID ?? @"0");
-
-                    if (modID != "0")
+                    if (session != null)
                     {
-                        if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MOD}\t{modID}"))
+                        session[GAMELIST_TERMS.SESSION_NAME] = raw.Name;
+
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_TOKEN}", $"B{raw.id}");
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:lobby_id", raw.id);
+
+                        List<DataCache> PlayerTypes = new List<DataCache>();
+                        if (raw.LobbyType == Lobby.ELobbyType.Game)
                         {
-                            yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
-                        }
-
-                        DataCache modwrap = new DataCache();
-                        modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
-                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
-                    }
-
-                    if (modID == "0")
-                    {
-                        // we aren't concurrent yet so we're safe to just do this
-                        if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\tSTOCK"))
-                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK", new DataCache() { { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" } });
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
-                    }
-
-                    string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
-
-                    // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
-                    Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}");
-                    mapData[GAMELIST_TERMS.MAP_MAPFILE] = raw.MapFile.ToLowerInvariant();
-                    yield return mapData;
-                    DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MAP}\t{modID}:{mapID}"); // we already sent the a stub don't send another
-
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:crc32", raw.CRC32);
-
-                    if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:time_limit", raw.TimeLimit);
-                    if (raw.KillLimit.HasValue && raw.KillLimit > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:kill_limit", raw.KillLimit);
-                    if (raw.Lives.HasValue && raw.Lives.Value > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:lives", raw.Lives.Value);
-
-                    // ProducerClass removes build items of class CLASS_COMMTOWER
-                    if (raw.SatelliteEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:satellite", raw.SatelliteEnabled.Value);
-
-                    // ProducerClass removes build items of class CLASS_BARRACKS
-                    if (raw.BarracksEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:barracks", raw.BarracksEnabled.Value);
-
-                    // GameObjectClass removes weapons of signiture "SNIP"
-                    if (raw.SniperEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:sniper", raw.SniperEnabled.Value);
-
-                    // ArmoryClass removes mortar list entries of class CLASS_POWERUP_WEAPON with PrjID "apspln" and "spspln"
-                    // If not a DeathMatch (set by map script class internally) remove weapons with PrjID "gsplint"
-                    if (raw.SplinterEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:splinter", raw.SplinterEnabled.Value);
-
-                    // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
-                    if (!raw.isLocked && raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
-                    {
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_LOCKED}", true);
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_OTHER}:sync_too_late", true);
-                    }
-                    else
-                    {
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_LOCKED}", raw.isLocked);
-                    }
-                    if (raw.IsPassworded.HasValue)
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", raw.IsPassworded);
-
-                    string ServerState = raw.IsEnded ? SESSION_STATE.PostGame : raw.IsLaunched ? SESSION_STATE.InGame : SESSION_STATE.PreGame;
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_STATE}", ServerState);
-
-                    List<DatumRef> Players = new List<DatumRef>();
-                    foreach (var dr in raw.users.Values)
-                    {
-                        Datum player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}");
-
-                        player[GAMELIST_TERMS.PLAYER_NAME] = dr.name;
-                        player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER;
-                        player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:launched", dr.Launched);
-                        player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:is_auth", dr.isAuth);
-                        if (admin)
-                        {
-                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:wan_address", dr.wanAddress);
-                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:lan_addresses", dr.lanAddresses);
-                        }
-                        if (dr.CommunityPatch != null)
-                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:community_patch", dr.CommunityPatch);
-                        if (dr.CommunityPatchShim != null)
-                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:community_patch_shim", dr.CommunityPatchShim);
-
-                        if (dr.Team.HasValue)
-                        {
-                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:slot:{GAMELIST_TERMS.PLAYER_IDS_X_ID}", dr.Team);
-                            player.AddObjectPath(GAMELIST_TERMS.PLAYER_INDEX, dr.Team);
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(dr.id))
-                        {
-                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:bzr_net:{GAMELIST_TERMS.PLAYER_IDS_X_ID}", dr.id);
-                            if (dr.id == raw.owner)
-                                player[GAMELIST_TERMS.PLAYER_ISHOST] = true;
-                            switch (dr.id[0])
+                            var playerType = new DataCache()
                             {
-                                case 'S': // dr.authType == "steam"
-                                    {
-                                        ulong playerID = 0;
-                                        if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() { GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER } },
+                            };
+                            if (raw.PlayerLimit != null)
+                                playerType[GAMELIST_TERMS.PLAYERTYPE_MAX] = raw.PlayerLimit;
+                            PlayerTypes.Add(playerType);
+                        }
+                        if (raw.LobbyType == Lobby.ELobbyType.Chat)
+                        {
+                            var playerType = new DataCache()
+                            {
+                                { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() {
+                                    GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER,
+                                    GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_BOT,
+                                } },
+                            };
+                            if (raw.PlayerLimit != null)
+                                playerType[GAMELIST_TERMS.PLAYERTYPE_MAX] = raw.PlayerLimit;
+                            PlayerTypes.Add(playerType);
+                        }
+                        session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
+
+                        int countBots = 0;
+                        if (raw.LobbyType == Lobby.ELobbyType.Chat)
+                            foreach (var dr in raw.users.Values)
+                                if (dr.id[0] == 'B')
+                                    countBots++;
+
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.userCount - countBots);
+                        if (raw.LobbyType == Lobby.ELobbyType.Chat)
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_BOT}", countBots);
+
+                        if (raw.LobbyType == Lobby.ELobbyType.Game)
+                        {
+                            string modID = (raw.WorkshopID ?? @"0");
+
+                            if (modID != "0")
+                            {
+                                if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MOD}\t{modID}"))
+                                {
+                                    yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
+                                }
+
+                                DataCache modwrap = new DataCache();
+                                modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
+                                modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
+                            }
+
+                            if (modID == "0")
+                            {
+                                // we aren't concurrent yet so we're safe to just do this
+                                if (DontSendStub.Add($"{GAMELIST_TERMS.TYPE_GAMEBALANCE}\tSTOCK"))
+                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK", new DataCache() { { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" } });
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
+                            }
+
+                            string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
+
+                            // TODO this map stub datum doesn't need to be emitted if another prior session already emitted it
+                            Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}");
+                            mapData[GAMELIST_TERMS.MAP_MAPFILE] = raw.MapFile.ToLowerInvariant();
+                            yield return mapData;
+                            DontSendStub.Add($"{GAMELIST_TERMS.TYPE_MAP}\t{modID}:{mapID}"); // we already sent the a stub don't send another
+
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:crc32", raw.CRC32);
+
+                            if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:time_limit", raw.TimeLimit);
+                            if (raw.KillLimit.HasValue && raw.KillLimit > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:kill_limit", raw.KillLimit);
+                            if (raw.Lives.HasValue && raw.Lives.Value > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:lives", raw.Lives.Value);
+
+                            // ProducerClass removes build items of class CLASS_COMMTOWER
+                            if (raw.SatelliteEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:satellite", raw.SatelliteEnabled.Value);
+
+                            // ProducerClass removes build items of class CLASS_BARRACKS
+                            if (raw.BarracksEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:barracks", raw.BarracksEnabled.Value);
+
+                            // GameObjectClass removes weapons of signiture "SNIP"
+                            if (raw.SniperEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:sniper", raw.SniperEnabled.Value);
+
+                            // ArmoryClass removes mortar list entries of class CLASS_POWERUP_WEAPON with PrjID "apspln" and "spspln"
+                            // If not a DeathMatch (set by map script class internally) remove weapons with PrjID "gsplint"
+                            if (raw.SplinterEnabled.HasValue) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:splinter", raw.SplinterEnabled.Value);
+
+                            // unlocked in progress games with SyncJoin will trap the user due to a bug, just list as locked
+                            if (!raw.isLocked && raw.SyncJoin.HasValue && raw.SyncJoin.Value && (!raw.IsEnded && raw.IsLaunched))
+                            {
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_LOCKED}", true);
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_OTHER}:sync_too_late", true);
+                            }
+                            else
+                            {
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_LOCKED}", raw.isLocked);
+                            }
+
+                            if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
+                                DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw,
+                                    modsAlreadyReturnedLock, modsAlreadyReturnedFull,
+                                    gametypeFullAlreadySentLock, gametypeFullAlreadySent,
+                                    gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
+                                    heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
+                                    factionsAlreadyReturnedLock, factionsAlreadyReturnedFull, fact_task,
+                                    gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
+
+                            string ServerState = raw.IsEnded ? SESSION_STATE.PostGame : raw.IsLaunched ? SESSION_STATE.InGame : SESSION_STATE.PreGame;
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_STATE}", ServerState);
+                        }
+
+                        // I think only games can have passwords but lets just not filter this anyway
+                        if (raw.IsPassworded.HasValue)
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", raw.IsPassworded);
+
+                        List<DatumRef> Players = new List<DatumRef>();
+                        foreach (var dr in raw.users.Values)
+                        {
+                            Datum player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}");
+
+                            player[GAMELIST_TERMS.PLAYER_NAME] = dr.name;
+                            if (raw.LobbyType == Lobby.ELobbyType.Chat && dr.id[0] == 'B')
+                            {
+                                player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_BOT;
+                            }
+                            else
+                            {
+                                player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER;
+                            }
+                            if (raw.LobbyType == Lobby.ELobbyType.Game)
+                            {
+                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:launched", dr.Launched);
+                            }
+                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:is_auth", dr.isAuth);
+                            if (admin)
+                            {
+                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:wan_address", dr.wanAddress);
+                                if (dr.lanAddresses.Length > 0)
+                                    player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:lan_addresses", dr.lanAddresses);
+                            }
+                            if (dr.CommunityPatch != null)
+                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:community_patch", dr.CommunityPatch);
+                            if (dr.CommunityPatchShim != null)
+                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_OTHER}:community_patch_shim", dr.CommunityPatchShim);
+
+                            if (raw.LobbyType == Lobby.ELobbyType.Game)
+                            {
+                                if (dr.Team.HasValue)
+                                {
+                                    player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:slot:{GAMELIST_TERMS.PLAYER_IDS_X_ID}", dr.Team);
+                                    player.AddObjectPath(GAMELIST_TERMS.PLAYER_INDEX, dr.Team);
+                                }
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(dr.id))
+                            {
+                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:bzr_net:{GAMELIST_TERMS.PLAYER_IDS_X_ID}", dr.id);
+                                if (dr.id == raw.owner)
+                                    player[GAMELIST_TERMS.PLAYER_ISHOST] = true;
+                                switch (dr.id[0])
+                                {
+                                    case 'S': // dr.authType == "steam"
                                         {
-                                            yield return new Datum(GAMELIST_TERMS.TYPE_IDENTITYSTEAM, playerID.ToString(), new DataCache()
+                                            ulong playerID = 0;
+                                            if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                            {
+                                                yield return new Datum(GAMELIST_TERMS.TYPE_IDENTITYSTEAM, playerID.ToString(), new DataCache()
                                             {
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_TYPE, "steam" },
                                             });
-                                            DontSendStub.Add($"{GAMELIST_TERMS.TYPE_IDENTITYSTEAM}\t{playerID.ToString()}"); // we already sent the a stub don't send another
+                                                DontSendStub.Add($"{GAMELIST_TERMS.TYPE_IDENTITYSTEAM}\t{playerID.ToString()}"); // we already sent the a stub don't send another
 
-                                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:steam", new DataCache() {
+                                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:steam", new DataCache() {
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_ID, playerID.ToString() },
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_RAW, dr.id.Substring(1) },
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_IDENTITY, new DatumRef(GAMELIST_TERMS.TYPE_IDENTITYSTEAM, playerID.ToString()) },
                                             });
 
-                                            DelayedDatumTasks.Add(steamInterface.GetPendingDataAsync(playerID));
+                                                DelayedDatumTasks.Add(steamInterface.GetPendingDataAsync(playerID));
+                                            }
                                         }
-                                    }
-                                    break;
-                                case 'G':
-                                    {
-                                        ulong playerID = 0;
-                                        if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                        break;
+                                    case 'G':
                                         {
-                                            playerID = GogInterface.CleanGalaxyUserId(playerID);
+                                            ulong playerID = 0;
+                                            if (ulong.TryParse(dr.id.Substring(1), out playerID))
+                                            {
+                                                playerID = GogInterface.CleanGalaxyUserId(playerID);
 
-                                            yield return new Datum(GAMELIST_TERMS.TYPE_IDENTITYGOG, playerID.ToString(), new DataCache()
+                                                yield return new Datum(GAMELIST_TERMS.TYPE_IDENTITYGOG, playerID.ToString(), new DataCache()
                                             {
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_TYPE, "gog" },
                                             });
-                                            DontSendStub.Add($"{GAMELIST_TERMS.TYPE_IDENTITYGOG}\t{playerID.ToString()}"); // we already sent the a stub don't send another
+                                                DontSendStub.Add($"{GAMELIST_TERMS.TYPE_IDENTITYGOG}\t{playerID.ToString()}"); // we already sent the a stub don't send another
 
-                                            player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:gog", new DataCache() {
+                                                player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:gog", new DataCache() {
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_ID, playerID.ToString() },
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_RAW, dr.id.Substring(1) },
                                                 { GAMELIST_TERMS.PLAYER_IDS_X_IDENTITY, new DatumRef(GAMELIST_TERMS.TYPE_IDENTITYGOG, playerID.ToString()) },
                                             });
 
-                                            DelayedDatumTasks.Add(gogInterface.GetPendingDataAsync(playerID));
+                                                DelayedDatumTasks.Add(gogInterface.GetPendingDataAsync(playerID));
+                                            }
                                         }
-                                    }
-                                    break;
+                                        break;
+                                }
                             }
+
+                            yield return player;
+
+                            Players.Add(new DatumRef(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}"));
+                        }
+                        session[GAMELIST_TERMS.SESSION_PLAYERS] = Players;
+
+                        if (!string.IsNullOrWhiteSpace(raw.clientVersion))
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.clientVersion);
+                        else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.GameVersion);
+
+                        if (raw.LobbyType == Lobby.ELobbyType.Game)
+                        {
+                            if (raw.SyncJoin.HasValue)
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:sync_join", raw.SyncJoin.Value);
+                            if (raw.MetaDataVersion.HasValue)
+                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:meta_data_version", raw.MetaDataVersion);
                         }
 
-                        yield return player;
-
-                        Players.Add(new DatumRef(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}"));
+                        yield return session;
                     }
-                    session[GAMELIST_TERMS.SESSION_PLAYERS] = Players;
-
-                    if (!MapDataFetchTasks.ContainsKey((modID, mapID)))
-                        DelayedDatumTasks.Add(BuildDatumsForMapDataAsync(modID, mapID, raw,
-                            modsAlreadyReturnedLock, modsAlreadyReturnedFull,
-                            gametypeFullAlreadySentLock, gametypeFullAlreadySent,
-                            gamemodeFullAlreadySentLock, gamemodeFullAlreadySent,
-                            heroesAlreadyReturnedLock, heroesAlreadyReturnedFull,
-                            factionsAlreadyReturnedLock, factionsAlreadyReturnedFull, fact_task,
-                            gamebalanceFullAlreadySentLock, gamebalanceFullAlreadySent));
-                    //playerCacheLock, playerCache));
-
-                    if (!string.IsNullOrWhiteSpace(raw.clientVersion))
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.clientVersion);
-                    else if (!string.IsNullOrWhiteSpace(raw.GameVersion))
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.GameVersion);
-
-                    if (raw.SyncJoin.HasValue)
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:sync_join", raw.SyncJoin.Value);
-                    if (raw.MetaDataVersion.HasValue)
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:meta_data_version", raw.MetaDataVersion);
-
-                    yield return session;
                 }
             }
 

@@ -29,7 +29,7 @@
                 height: 100px;
             }
 
-            /* ^^^^^ old ^^^^^ */
+        /* ^^^^^ old ^^^^^ */
 
         .force-ellipsis {
             text-overflow: ellipsis;
@@ -46,6 +46,7 @@
         .border-dotted {
             border-style: dotted !important;
         }
+
         .border-dashed {
             border-style: dashed !important;
         }
@@ -79,12 +80,24 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
-                        Rendered DOM Elements
+                        Rendered DOM Elements (Lobbies)
                     </button>
                 </h2>
                 <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
                     <div class="accordion-body">
                         <div id="lobbyList" class="row"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1b" aria-expanded="false" aria-controls="collapse1b">
+                        Rendered DOM Elements (Sessions)
+                    </button>
+                </h2>
+                <div id="collapse1b" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                        <div id="sessionList" class="row"></div>
                     </div>
                 </div>
             </div>
@@ -137,6 +150,9 @@
     <script src="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
+    <!-- Utility Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.0.0/ansi_up.min.js"></script>
+
     <script>
         /*
 // Garbage Collector
@@ -150,6 +166,7 @@ for (let parent in DataRefs_children) {
     }
 }
 for (let type in ListData) {
+    if (type == "root") continue;
     for (let id in ListData[type]) {
         if (!DataRefs_parents[`${type}\t${id}`]) {
             if (Date.now() - DataRefs_last_touched[`${type}\t${id}`] > 5000) {
@@ -167,6 +184,11 @@ for (let ref in DataRefs_last_touched) {
     }
 }
         */
+
+        function ansiToHtml(text) {
+            const ansi_up = new AnsiUp();
+            return ansi_up.ansi_to_html(text);
+        }
 
         function encodeAttr(text) {
             const elem = document.createElement('p');
@@ -371,7 +393,7 @@ for (let ref in DataRefs_last_touched) {
 
             // add ourself to the memo
             local_memo.add(`${$type}\t${$id}`)
-            
+
             if (DataRefs_parents[`${$type}\t${$id}`]) {
                 for (let v of DataRefs_parents[`${$type}\t${$id}`]) {
                     let tmp = v.split('\t');
@@ -395,7 +417,7 @@ for (let ref in DataRefs_last_touched) {
                 while (incomingDataQueue.length > 0) {
                     let data = incomingDataQueue.shift();
                     if (data.$type == 'debug') {
-                        console.log(data.$data);
+                        console.log(data.$type, data.$id, data.$data);
                     } else {
                         ListData[data.$type] = ListData[data.$type] || {};
                         DataRefs_last_touched[`${data.$type}\t${data.$id}`] = Date.now();
@@ -431,6 +453,7 @@ for (let ref in DataRefs_last_touched) {
             e.preventDefault();
 
             $('#lobbyList').empty();
+            $('#sessionList').empty();
             $('#codeRawJson').empty();
             $('#codeRawJsonLines').empty();
 
@@ -517,7 +540,8 @@ for (let ref in DataRefs_last_touched) {
             }
         });
 
-        var parent = document.querySelector('#lobbyList');
+        var sessionList = document.querySelector('#sessionList');
+        var lobbyList = document.querySelector('#lobbyList');
 
         function GenerateHtml_ModBoxes(mod) {
             let modBoxes = '';
@@ -540,10 +564,10 @@ for (let ref in DataRefs_last_touched) {
             if (mod) {
                 htmlOut += `
 <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
-    ${GenerateHtml_ModBox(mod, true) }
+        ${GenerateHtml_ModBox(mod, true)}
 </div>
 <div class="col-12 col-sm-8 col-lg-9 col-xl-8 border-0 border-start border-start-xs-0 small">
-    <div class="row" data-path="mods" data-id-map="${encodeAttr(mapId)}" data-id-mod="${encodeAttr(mod.$id)}">${modBoxes}</div>
+        <div class="row" data-path="mods" data-id-map="${encodeAttr(mapId)}" data-id-mod="${encodeAttr(mod.$id)}">${modBoxes}</div>
 </div>`;
             } else {
                 htmlOut += `
@@ -555,16 +579,16 @@ for (let ref in DataRefs_last_touched) {
         function GenerateHtml_ModBox(mod, primary) {
             return `
 <div class="${primary ? '' : 'col-3 col-sm-2 col-lg-1 col-xl-2'} p-1">
-    <div class="ratio ratio-1x1">
-        <a class="ratio ratio-1x1" data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank">
-            <img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
-        </a>
-    </div>
-    ${primary ? `
-    <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
-        <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
-    </div>
-    ` : ''}
+        <div class="ratio ratio-1x1">
+            <a class="ratio ratio-1x1" data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank">
+                <img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+            </a>
+        </div>
+        ${primary ? `
+        <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
+            <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
+        </div>
+        ` : ''}
 </div>`;
         }
 
@@ -590,9 +614,9 @@ for (let ref in DataRefs_last_touched) {
 
         function GenerateHtml_MicroList(name, object, extra) {
             var htmlEntries = `
-<div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35;">
-    <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
-    <ul class="list-group list-group-flush">`;
+<div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35; clear: both;">
+        <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
+        <ul class="list-group list-group-flush">`;
             for (let prop in object) {
                 if (object[prop] === null) {
 
@@ -627,14 +651,14 @@ for (let ref in DataRefs_last_touched) {
 
             let playerHtmlEntries = '';
             playerHtmlEntries += `
-    <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
-        `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
-        +`<div class="col-3 m-2 mb-0 d-block float-end" style="max-width:100px;">
-            <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
-        </div>
-        <div class=" m-2 d-block">
-            <div class="mb-1">
-                <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
+        <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
+            `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
+                + `<div class="col-3 m-2 d-block float-end" style="max-width:100px;">
+                <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
+            </div>
+            <div class=" m-2 d-block">
+                <div class="mb-1">
+                    <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
 
             for (let id in player.ids) {
                 switch (id) {
@@ -668,138 +692,158 @@ for (let ref in DataRefs_last_touched) {
                 playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-user-circle-o" aria-hidden="true" title="Hero"></i> <span data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}">${escapeHtml(player.hero.name || player.hero.$id)}</span></div>`;
             }
             playerHtmlEntries += `
-                <div>
-                    ${player.type ? `<strong class="badge text-bg-secondary bg-opacity-75">${escapeHtml(player.type)}</strong>` : ''}
-                    ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
-                    ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
-                </div>`;
+                    <div>
+                        ${player.type ? `<strong class="badge text-bg-secondary bg-opacity-75">${escapeHtml(player.type)}</strong>` : ''}
+                        ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
+                        ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
+                    </div>`;
             if (player.stats)
                 playerHtmlEntries += GenerateHtml_MicroList("Stats", player.stats, true);
             if (player.other)
                 playerHtmlEntries += GenerateHtml_MicroList("Other", player.other, true);
             playerHtmlEntries += `
+                </div>
             </div>
-        </div>
-    </div>`;
+        </div>`;
             return playerHtmlEntries;
         }
 
         function CreateOrUpdateSessionDom($id, data) {
             var session = data.session[$id];
-            var sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
+            var elementDom = sessionList.querySelector(`#\\/session\\/${CSS.escape($id)}`);
+            CreateOrUpdateSessionOrLobbyDom(sessionList, $id, session, elementDom, "session");
+        }
+        function CreateOrUpdateLobbyDom($id, data) {
+            var session = data.lobby[$id];
+            var elementDom = lobbyList.querySelector(`#\\/lobby\\/${CSS.escape($id)}`);
+            CreateOrUpdateSessionOrLobbyDom(lobbyList, $id, session, elementDom, "lobby");
+        }
+        function CreateOrUpdateSessionOrLobbyDom(parent, $id, data, elementDom, type) {
+            if (elementDom) {
+                let mapImage_ExistingDom = !!elementDom.querySelector(`[data-path="${type}.level.map.image"]`);
+                let mapImage_NewDom = !!data.level?.map?.image;
 
-            if (sessionDom) {
-                let mapImage_ExistingDom = !!sessionDom.querySelector('[data-path="session.level.map.image"]');
-                let mapImage_NewDom = !!session.level?.map?.image;
-
-                let mapFile_ExistingDom = !!sessionDom.querySelector('[data-path="session.level.map.map_file"]');
-                let mapFile_NewDom = !!session.level?.map?.map_file;
+                let mapFile_ExistingDom = !!elementDom.querySelector(`[data-path="${type}.level.map.map_file"]`);
+                let mapFile_NewDom = !!data.level?.map?.map_file;
 
                 // if either of these values changed their nature, we will change the dom structure, so act like the structure is all new
                 if (mapImage_ExistingDom != mapImage_NewDom || mapFile_ExistingDom != mapFile_NewDom) {
-                    sessionDom = null;
+                    elementDom = null;
                 }
             }
 
-            if (!sessionDom) {
+            if (!elementDom) {
                 let dom_string = `
-<div id="/session/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
-    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
-        </div>
-        <ul class="list-group list-group-flush">
-            <li data-path="session.message" class="list-group-item force-ellipsis" style="white-space:pre;"></li>
-        </ul>
-        <div class="container-fluid pb-1">
-            <div class="row border-bottom">`;
-                if (!!session.level?.map?.image || !!session.level?.map?.map_file) {
+<div id="/${type}/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
+        <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li data-path="${type}.message" class="list-group-item force-ellipsis" style="white-space:pre;"></li>
+            </ul>
+            <div class="container-fluid pb-1">
+                <div class="row border-bottom">`;
+                if (!!data?.level?.map?.image || !!data?.level?.map?.map_file) {
                     dom_string += `
-                <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
-                    <div class="ratio ratio-1x1">
-                        <img data-path="session.level.map.image" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                    <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
+                        <div class="ratio ratio-1x1">
+                            <img data-path="${type}.level.map.image" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                        </div>
+                        <div class="shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate">
+                            <small data-path="${type}.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
+                        </div>
                     </div>
-                    <div class="shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate">
-                        <small data-path="session.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
-                    </div>
-                </div>
-                <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">`;
+                    <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">`;
                 } else {
                     dom_string += `<div class="col-12 p-0 border-0 border-start border-start-xs-0 small">`;
                 }
                 dom_string += `
-                    <ul class="list-group list-group-flush text-secondary">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Map</strong>
-                            <span data-path="session.level.map.name" title=""></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Type</strong>
-                            <span class="d-flex justify-content-between align-items-center">
-                                <img data-path="session.level.game_type.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
-                                <span data-path="session.level.game_type"></span>
-                            </span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Mode</strong>
-                            <span class="d-flex justify-content-between align-items-center">
-                                <img data-path="session.level.game_mode.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
-                                <span data-path="session.level.game_mode"></span>
-                            </span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Balance Paradigm</strong>
-                            <abbr data-path="session.level.game_balance"></abbr>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">State</strong>
-                            <span>
-                                <span data-path="session.status.is_locked"></span>
-                                <span data-path="session.status.has_password"></span>
-                                <span data-path="session.status.state"></span>
-                                <span data-path="session.time"></span>
-                            </span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Player Count</strong>
-                            <span data-path="session.player_count"></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Game Version</strong>
-                            <span data-path="session.game.version"></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Name</strong>
-                            <span data-path="session.name" class="text-secondary"></span>
-                        </li>
-                    </ul>
+                        <ul class="list-group list-group-flush text-secondary">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Type</strong>
+                                <span data-path="${type}.type" title=""></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Map</strong>
+                                <span data-path="${type}.level.map.name" title=""></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Type</strong>
+                                <span class="d-flex justify-content-between align-items-center">
+                                    <img data-path="${type}.level.game_type.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
+                                    <span data-path="${type}.level.game_type"></span>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Mode</strong>
+                                <span class="d-flex justify-content-between align-items-center">
+                                    <img data-path="${type}.level.game_mode.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
+                                    <span data-path="${type}.level.game_mode"></span>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Balance Paradigm</strong>
+                                <abbr data-path="${type}.level.game_balance"></abbr>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">State</strong>
+                                <span>
+                                    <span data-path="${type}.status.is_locked"></span>
+                                    <span data-path="${type}.status.has_password"></span>
+                                    <span data-path="${type}.status.state"></span>
+                                    <span data-path="${type}.time"></span>
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Player Count</strong>
+                                <span data-path="${type}.player_count"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Game Version</strong>
+                                <span data-path="${type}.game.version"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Name</strong>
+                                <span data-path="${type}.name" class="text-secondary"></span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
+                <div data-path="other-container" class="row border-bottom" style="display:none;"></div>
+                <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
+                <div data-path="players" class="row"></div>
             </div>
-            <div data-path="other-container" class="row border-bottom" style="display:none;"></div>
-            <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
-            <div data-path="players" class="row"></div>
-        </div>
-    </div>`;
+        </div>`;
                 parent.insertAdjacentHTML('beforeend', dom_string);
-                sessionDom = parent.lastElementChild;
+                elementDom = parent.lastElementChild;
+            }
+
+            // Session Type
+            let session_type_elem = elementDom.querySelector(`[data-path="${type}.type"]`);
+            session_type_elem.textContent = data.type || "";
+            if (!!session_type_elem.textContent) {
+                session_type_elem.parentElement.style.removeProperty("display");
+            } else {
+                session_type_elem.parentElement.style.setProperty("display", "none", "important");
             }
 
             // Map Image
-            let map_image_elem = sessionDom.querySelector('[data-path="session.level.map.image"]');
+            let map_image_elem = elementDom.querySelector(`[data-path="${type}.level.map.image"]`);
             if (map_image_elem)
-                map_image_elem.setAttribute("src", session.level?.map?.image ?? "");
+                map_image_elem.setAttribute("src", data.level?.map?.image ?? "");
 
             // Map Filename
-            let map_file_elem = sessionDom.querySelector('[data-path="session.level.map.map_file"]');
+            let map_file_elem = elementDom.querySelector(`[data-path="${type}.level.map.map_file"]`);
             if (map_file_elem) {
-                map_file_elem.textContent = session.level?.map?.map_file ?? " ";
-                map_file_elem.setAttribute("title", session.level?.map?.map_file);
+                map_file_elem.textContent = data.level?.map?.map_file ?? " ";
+                map_file_elem.setAttribute("title", data.level?.map?.map_file);
             }
 
             // Map Name
-            let map_name_elem = sessionDom.querySelector('[data-path="session.level.map.name"]');
-            map_name_elem.setAttribute('title', session.level?.map?.map_file);
-            map_name_elem.textContent = session.level?.map?.name ?? session.level?.map?.map_file ?? '';
+            let map_name_elem = elementDom.querySelector(`[data-path="${type}.level.map.name"]`);
+            map_name_elem.setAttribute('title', data.level?.map?.map_file);
+            map_name_elem.textContent = data.level?.map?.name ?? data.level?.map?.map_file ?? '';
             if (!!map_name_elem.textContent) {
                 map_name_elem.parentElement.style.removeProperty("display");
             } else {
@@ -807,8 +851,8 @@ for (let ref in DataRefs_last_touched) {
             }
 
             // Game Version
-            let game_version_elem = sessionDom.querySelector('[data-path="session.game.version"]');
-            game_version_elem.textContent = session.game?.version || "";
+            let game_version_elem = elementDom.querySelector(`[data-path="${type}.game.version"]`);
+            game_version_elem.textContent = data.game?.version || "";
             if (!!game_version_elem.textContent) {
                 game_version_elem.parentElement.style.removeProperty("display");
             } else {
@@ -816,8 +860,13 @@ for (let ref in DataRefs_last_touched) {
             }
 
             // Session Name
-            let session_name_elem = sessionDom.querySelector('[data-path="session.name"]');
-            session_name_elem.textContent = session.name || "";
+            let session_name_elem = elementDom.querySelector(`[data-path="${type}.name"]`);
+            let session_name_ansi = data["name.ansi24b"] ?? data["name.ansi16p"];
+            if (!!session_name_ansi) {
+                session_name_elem.innerHTML = ansiToHtml(session_name_ansi);
+            } else {
+                session_name_elem.textContent = data.name || "";
+            }
             if (!!session_name_elem.textContent) {
                 session_name_elem.parentElement.style.removeProperty("display");
             } else {
@@ -826,8 +875,8 @@ for (let ref in DataRefs_last_touched) {
 
 
             // Session Message
-            let session_message_elem = sessionDom.querySelector('[data-path="session.message"]');
-            session_message_elem.textContent = session.message || "";
+            let session_message_elem = elementDom.querySelector(`[data-path="${type}.message"]`);
+            session_message_elem.textContent = data.message || "";
             if (!!session_message_elem.textContent) {
                 session_message_elem.parentElement.style.removeProperty("display");
             } else {
@@ -835,16 +884,16 @@ for (let ref in DataRefs_last_touched) {
             }
 
             // Session Game Mode
-            let game_mode_element = sessionDom.querySelector(`[data-path="session.level.game_mode"]`);
+            let game_mode_element = elementDom.querySelector(`[data-path="${type}.level.game_mode"]`);
             game_mode_element.textContent =
-                session.level?.rules?.game_mode?.name ?? session.level?.rules?.game_mode?.$id ??
-                session.level?.map?.game_mode?.name ?? session.level?.map?.game_mode?.$id ??
-                session.level?.game_mode?.name ?? session.level?.game_mode?.$id;
-            let game_mode_icon_element = sessionDom.querySelector(`[data-path="session.level.game_mode.icon"]`);
+                data.level?.rules?.game_mode?.name ?? data.level?.rules?.game_mode?.$id ??
+                data.level?.map?.game_mode?.name ?? data.level?.map?.game_mode?.$id ??
+                data.level?.game_mode?.name ?? data.level?.game_mode?.$id;
+            let game_mode_icon_element = elementDom.querySelector(`[data-path="${type}.level.game_mode.icon"]`);
             let game_mode_icon =
-                session.level?.rules?.game_mode?.icon ??
-                session.level?.map?.game_mode?.icon ??
-                session.level?.game_mode?.icon;
+                data.level?.rules?.game_mode?.icon ??
+                data.level?.map?.game_mode?.icon ??
+                data.level?.game_mode?.icon;
             if (game_mode_icon) {
                 game_mode_icon_element.setAttribute("src", game_mode_icon);
                 game_mode_icon_element.style.display = null;
@@ -859,16 +908,16 @@ for (let ref in DataRefs_last_touched) {
             }
 
             // Session Game Type
-            let game_type_element = sessionDom.querySelector(`[data-path="session.level.game_type"]`);
+            let game_type_element = elementDom.querySelector(`[data-path="${type}.level.game_type"]`);
             game_type_element.textContent =
-                session.level?.rules?.game_type?.name ?? session.level?.rules?.game_type?.$id ??
-                session.level?.map?.game_type?.name ?? session.level?.map?.game_type?.$id ??
-                session.level?.game_type?.name ?? session.level?.game_type?.$id;
-            let game_type_icon_element = sessionDom.querySelector(`[data-path="session.level.game_type.icon"]`);
+                data.level?.rules?.game_type?.name ?? data.level?.rules?.game_type?.$id ??
+                data.level?.map?.game_type?.name ?? data.level?.map?.game_type?.$id ??
+                data.level?.game_type?.name ?? data.level?.game_type?.$id;
+            let game_type_icon_element = elementDom.querySelector(`[data-path="${type}.level.game_type.icon"]`);
             let game_type_icon =
-                session.level?.rules?.game_type?.icon ??
-                session.level?.map?.game_type?.icon ??
-                session.level?.game_type?.icon;
+                data.level?.rules?.game_type?.icon ??
+                data.level?.map?.game_type?.icon ??
+                data.level?.game_type?.icon;
             if (game_type_icon) {
                 game_type_icon_element.setAttribute("src", game_type_icon);
                 game_type_icon_element.style.display = null;
@@ -883,12 +932,12 @@ for (let ref in DataRefs_last_touched) {
             }
 
             // Session Game Balance
-            let game_balance_element = sessionDom.querySelector(`[data-path="session.level.game_balance"]`);
+            let game_balance_element = elementDom.querySelector(`[data-path="${type}.level.game_balance"]`);
             let game_balance_data =
-                session.level?.rules?.game_balance ??
-                session.level?.map?.game_balance ??
-                session.level?.game_balance ??
-                session.game?.game_balance;
+                data.level?.rules?.game_balance ??
+                data.level?.map?.game_balance ??
+                data.level?.game_balance ??
+                data.game?.game_balance;
 
             if (game_balance_data) {
                 game_balance_element.textContent = game_balance_data?.name ?? game_balance_data?.$id;
@@ -910,44 +959,47 @@ for (let ref in DataRefs_last_touched) {
 
 
             // Session Time
-            if (session.time) {
-                let timeElem = sessionDom.querySelector(`[data-path="session.time"]`);
+            if (data.time) {
+                let timeElem = elementDom.querySelector(`[data-path="${type}.time"]`);
 
                 // minute resolutions
-                if (session.time.resolution == 60) {
-                    timeElem.textContent = `(${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds / 60}${session.time.max ? '+' : ''} minutes)`;
+                if (data.time.resolution == 60) {
+                    timeElem.textContent = `(${data.time.context ? `${data.time.context} for ` : ''}${data.time.seconds / 60}${data.time.max ? '+' : ''} minutes)`;
                 } else {
-                    timeElem.textContent = `(${session.time.context ? `${session.time.context} for ` : ''}${session.time.seconds}${session.time.max ? '+' : ''} seconds)`;
+                    timeElem.textContent = `(${data.time.context ? `${data.time.context} for ` : ''}${data.time.seconds}${data.time.max ? '+' : ''} seconds)`;
                 }
             }
 
             // Session Status
-            if (session.status?.state) {
-                let timeElem = sessionDom.querySelector(`[data-path="session.status.state"]`);
-                timeElem.textContent = session.status.state;
+            let timeElem = elementDom.querySelector(`[data-path="${type}.status.state"]`);
+            let lockedElem = elementDom.querySelector(`[data-path="${type}.status.is_locked"]`);
+            let passwordElem = elementDom.querySelector(`[data-path="${type}.status.has_password"]`);
+            if (data.status?.state) {
+                timeElem.textContent = data.status.state;
+                lockedElem.textContent = data.status.is_locked ? "locked" : "";
+                passwordElem.textContent = data.status.has_password ? "passworded" : "";
 
-                let lockedElem = sessionDom.querySelector(`[data-path="session.status.is_locked"]`);
-                lockedElem.textContent = session.status.is_locked ? "locked" : "";
-
-                let passwordElem = sessionDom.querySelector(`[data-path="session.status.has_password"]`);
-                passwordElem.textContent = session.status.has_password ? "passworded" : "";
+                timeElem.parentElement.parentElement.style.removeProperty("display");
+            } else {
+                timeElem.parentElement.parentElement.style.setProperty("display", "none", "important");
             }
 
+
             // Player Count Text
-            if (session.player_types != null) {
+            if (data.player_types != null) {
                 let player_count_string = '';
-                for (var k = 0; k < session.player_types.length; k++) {
-                    for (var L = 0; L < session.player_types[k].types.length; L++) {
-                        var playerType = session.player_types[k].types[L];
+                for (var k = 0; k < data.player_types.length; k++) {
+                    for (var L = 0; L < data.player_types[k].types.length; L++) {
+                        var playerType = data.player_types[k].types[L];
                         if (L > 0)
                             player_count_string += ' ';
-                        player_count_string += (session.player_count[playerType] + 0) + ' ' + playerType;
+                        player_count_string += (data.player_count[playerType] + 0) + ' ' + playerType;
                     }
-                    if (session.player_types[k].max) {
-                        player_count_string += ` / ${session.player_types[k].max}`;
+                    if (data.player_types[k].max) {
+                        player_count_string += ` / ${data.player_types[k].max}`;
                     }
                 }
-                sessionDom.querySelector(`[data-path="session.player_count"]`).textContent = player_count_string;
+                elementDom.querySelector(`[data-path="${type}.player_count"]`).textContent = player_count_string;
             }
 
             // Players
@@ -958,42 +1010,42 @@ for (let ref in DataRefs_last_touched) {
                     return 0;
                 }
                 let Teams = new Set();
-                if (session.players)
-                    for (var i = 0; i < session.players.length; i++) {
-                        if (session.players[i].team) {
-                            Teams.add(session.players[i].team.id);
+                if (data.players)
+                    for (var i = 0; i < data.players.length; i++) {
+                        if (data.players[i].team) {
+                            Teams.add(data.players[i].team.id);
                         } else {
                             Teams.add(null);
                         }
                     }
-                if (session.teams) {
-                    for (var t in session.teams) {
+                if (data.teams) {
+                    for (var t in data.teams) {
                         Teams.add(t);
                     }
                 }
-                if (session.level?.map?.teams) {
-                    for (var t in session.level.map.teams) {
+                if (data.level?.map?.teams) {
+                    for (var t in data.level.map.teams) {
                         Teams.add(t);
                     }
                 }
                 Teams = Array.from(Teams).sort();
                 let team_balance = -1;
                 let max_players = -1;
-                let total_players = session.player_count?.player ?? -1;
-                if (session.player_types) {
-                    let team_count = Teams.filter(dr => dr != null && !(session.teams?.[dr]?.computer === true && !session.teams?.[dr]?.human)).length;
+                let total_players = data.player_count?.player ?? -1;
+                if (data.player_types) {
+                    let team_count = Teams.filter(dr => dr != null && !(data.teams?.[dr]?.computer === true && !data.teams?.[dr]?.human)).length;
                     if (team_count > 1) {
-                        let matchingTypes = session.player_types.filter(dr => dr.types.indexOf('player') >= 0);
+                        let matchingTypes = data.player_types.filter(dr => dr.types.indexOf('player') >= 0);
                         if (matchingTypes.length > 0 && matchingTypes[0].max) {
                             max_players = matchingTypes[0].max;
                             team_balance = Math.floor(max_players / team_count);
                         }
                     }
                 }
-                let playerListDom = sessionDom.querySelector('[data-path="players"]');
+                let playerListDom = elementDom.querySelector('[data-path="players"]');
                 playerListDom.innerHTML = '';
-                if (session.players) {
-                    let wrappedPlayers = session.players.map(p => {
+                if (data.players) {
+                    let wrappedPlayers = data.players.map(p => {
                         let retVal = { player: p, team: null, leader: false };
 
                         if (!retVal.team && p.team) {
@@ -1004,7 +1056,7 @@ for (let ref in DataRefs_last_touched) {
                         return retVal;
                     });
                     for (let team of Teams) {
-                        let teamName = session.teams?.[team]?.name || session.level?.map?.teams?.[team]?.name || `Team ${team}`;
+                        let teamName = data.teams?.[team]?.name || data.level?.map?.teams?.[team]?.name || `Team ${team}`;
                         let teamPlayers = wrappedPlayers
                             .filter(p => p.team == team)
                             .sort((a, b) => {
@@ -1016,17 +1068,17 @@ for (let ref in DataRefs_last_touched) {
                         let playerHtmlEntries = '';
 
                         var player_count = teamPlayers.length;
-                        if (session.teams?.[team])
-                            if (max_players > -1 && total_players > -1 && session.teams[team].max) {
-                                player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), session.teams[team].max), teamPlayers.length);
+                        if (data.teams?.[team])
+                            if (max_players > -1 && total_players > -1 && data.teams[team].max) {
+                                player_count = Math.max(Math.min(max_players - (total_players - teamPlayers.length), data.teams[team].max), teamPlayers.length);
                             } else {
-                                player_count = Math.max(session.teams[team].max ?? player_count, teamPlayers.length, team_balance);
+                                player_count = Math.max(data.teams[team].max ?? player_count, teamPlayers.length, team_balance);
                             }
                         for (var i = 0; i < player_count; i++) {
                             if (i < teamPlayers.length) {
                                 let player = teamPlayers[i];
 
-                                let is_over_limit = session.teams?.[team]?.max && i > session.teams[team].max;
+                                let is_over_limit = data.teams?.[team]?.max && i > data.teams[team].max;
                                 let is_leader = null;
 
                                 if (team) {
@@ -1042,41 +1094,41 @@ for (let ref in DataRefs_last_touched) {
 
                                 playerHtmlEntries += `
 <div class="col-12 p-0 pb-2">
-    <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
-        <span class="text-nowrap overflow-hidden align-middle">
-            <i class="fa fa-user" aria-hidden="true"></i> Open
-        </span>
-    </div>
+        <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
+            <span class="text-nowrap overflow-hidden align-middle">
+                <i class="fa fa-user" aria-hidden="true"></i> Open
+            </span>
+        </div>
 </div>`;
                             }
                         }
-                        if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
+                        if (!data.teams?.[team]?.human && data.teams?.[team]?.computer === true) {
                             playerHtmlEntries += `
 <div class="col-12 p-0 pb-2">
-    <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
-        <span class="text-nowrap overflow-hidden align-middle">
-            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
-        </span>
-    </div>
+        <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
+            <span class="text-nowrap overflow-hidden align-middle">
+                <i class="fa fa-desktop" aria-hidden="true"></i> Computer
+            </span>
+        </div>
 </div>`;
                         }
 
                         if (team) {
-                            if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
+                            if (!data.teams?.[team]?.human && data.teams?.[team]?.computer === true) {
                                 playerListDom.insertAdjacentHTML('beforeend', `
 <div class="col-12 col-md-6 p-0 p-2">
-    <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
-        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
-        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
-    </div>
+        <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
+            <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${data.level?.map?.$id ? encodeAttr(data.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
+            <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+        </div>
 </div>`);
                             } else {
                                 playerListDom.insertAdjacentHTML('beforeend', `
 <div class="col-12 col-md-6 p-0 p-2">
-    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
-        <div class="row m-2 mb-0">${playerHtmlEntries}</div>
-    </div>
+        <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+            <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${data.level?.map?.$id ? encodeAttr(data.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
+            <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+        </div>
 </div>`);
                             }
                         } else {
@@ -1086,60 +1138,60 @@ for (let ref in DataRefs_last_touched) {
                 }
             }
 
-            if (session.other || session.game?.other || session.level?.other || session.level?.rules) {
-                let modWrapperDom = sessionDom.querySelector('[data-path="other-container"]');
+            if (data.other || data.game?.other || data.level?.other || data.level?.rules) {
+                let modWrapperDom = elementDom.querySelector('[data-path="other-container"]');
                 modWrapperDom.style.display = 'flex';
                 modWrapperDom.innerHTML = '';
 
-                if (session.other)
-                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Other", session.other, true) + "</div>");
+                if (data.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Other", data.other, true) + "</div>");
 
-                if (session.game?.other)
-                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Game/Other", session.game.other, true) + "</div>");
+                if (data.game?.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Game/Other", data.game.other, true) + "</div>");
 
-                if (session.level?.other)
-                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Other", session.level.other, true) + "</div>");
+                if (data.level?.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Other", data.level.other, true) + "</div>");
 
-                if (session.level?.rules)
-                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Rules", session.level.rules, true) + "</div>");
+                if (data.level?.rules)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Rules", data.level.rules, true) + "</div>");
 
-                if (session.level?.map?.other)
-                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Map/Other", session.level.map.other, true) + "</div>");
+                if (data.level?.map?.other)
+                    modWrapperDom.insertAdjacentHTML('beforeend', '<div class="mb-2">' + GenerateHtml_MicroList("Level/Map/Other", data.level.map.other, true) + "</div>");
             }
 
             {
-                let modWrapperDom = sessionDom.querySelector('[data-path="mods-container"]');
+                let modWrapperDom = elementDom.querySelector('[data-path="mods-container"]');
                 modWrapperDom.style.display = 'flex';
                 modWrapperDom.innerHTML = '';
 
-                if ((session.game?.mods?.major?.length ?? 0) > 0) {
-                    for (let modwrapper of session.game.mods.major) {
+                if ((data.game?.mods?.major?.length ?? 0) > 0) {
+                    for (let modwrapper of data.game.mods.major) {
                         let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                            <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Major: ${modwrapper.role}</div>
-                            <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, session.level.map.$id)}</div>
-                        </div></div>`;
+                                <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Major: ${modwrapper.role}</div>
+                                <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                            </div></div>`;
 
                         // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
                         modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
                     }
                 }
-                if ((session.game?.mods?.minor?.length ?? 0) > 0) {
-                    for (let modwrapper of session.game.mods.minor) {
+                if ((data.game?.mods?.minor?.length ?? 0) > 0) {
+                    for (let modwrapper of data.game.mods.minor) {
                         let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                            <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
-                            <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, session.level.map.$id)}</div>
-                        </div></div>`;
+                                <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
+                                <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                            </div></div>`;
 
                         // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
                         modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
                     }
                 }
-                if ((session.game?.mods?.option?.length ?? 0) > 0) {
-                    for (let modwrapper of session.game.mods.option) {
+                if ((data.game?.mods?.option?.length ?? 0) > 0) {
+                    for (let modwrapper of data.game.mods.option) {
                         let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                            <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Option: ${modwrapper.role}</div>
-                            <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, session.level.map.$id)}</div>
-                        </div></div>`;
+                                <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Option: ${modwrapper.role}</div>
+                                <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                            </div></div>`;
 
                         // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
                         modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
@@ -1175,6 +1227,9 @@ for (let ref in DataRefs_last_touched) {
                                 console.log("Pending Datum Triggered", tmp[0], tmp[1])
                                 if (tmp[0] == 'session') {
                                     CreateOrUpdateSessionDom(tmp[1], data);
+                                }
+                                if (tmp[0] == 'lobby') {
+                                    CreateOrUpdateLobbyDom(tmp[1], data);
                                 }
                             }
                             debouncingSet = new Set();

@@ -1,6 +1,4 @@
 ﻿using MultiplayerSessionList.Services;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,7 +27,6 @@ namespace MultiplayerSessionList.Models
     }
     public class DatumRef
     {
-        [JsonProperty("$ref")]
         [JsonPropertyName("$ref")]
         public string Ref { get; set; }
         public DatumRef(string type, string id)
@@ -39,10 +36,9 @@ namespace MultiplayerSessionList.Models
     }
     public class Datum
     {
-        [JsonProperty("$type")]
         [JsonPropertyName("$type")]
         public string Type { get; set; }
-        [JsonProperty("$id")]
+        
         [JsonPropertyName("$id")]
         public string ID { get; set; }
 
@@ -60,7 +56,6 @@ namespace MultiplayerSessionList.Models
             }
         }
 
-        [JsonProperty("$data")]
         [JsonPropertyName("$data")]
         //public dynamic Data { get; set; }
         public DataCache Data { get; set; }

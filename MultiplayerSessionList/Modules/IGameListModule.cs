@@ -31,7 +31,9 @@ namespace MultiplayerSessionList.Modules
     {
         public const string TYPE_ROOT = "root";
 
-        public const string TYPE_DEFAULT = "default";
+        //public const string TYPE_DEFAULT = "default";
+
+        public const string TYPE_LOBBY = "lobby";
 
         public const string TYPE_SESSION = "session";
             public const string SESSION_TYPE = "type";

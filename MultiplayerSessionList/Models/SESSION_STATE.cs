@@ -15,8 +15,16 @@ namespace MultiplayerSessionList.Models
 
         public const string PreGame = "pre_game"; // Pre-Game Setup
         public const string Loading = "loading"; // Loading Game
+        public const string PreMatch = "pre_match"; // in-game but not yet in-play, either in a waiting room, map, or interactive staging area
         public const string InGame = "in_game"; // In-Game
         public const string PostGame = "post_game"; // Post-Game or GameOver
+
+        // Not used by anything yet
+        public const string Matchmaking = "matchmaking"; // Server is participating in matchmaking as a usable server, basically a form of automated "pre_game"
+        public const string Intermission = "intermission"; // break period between rounds of "in_game"
+        public const string Overtime = "overtime"; // "in_game" beyond normal playable time, like sudden_death for example
+        public const string Replay = "replay"; // might just be "post_game" but note if we ever actually use this
+        public const string Maintenance = "maintenance"; // server online but not available for play, such as updates or admin tasks
 
         // unused options so far
         public const string Paused = "paused";

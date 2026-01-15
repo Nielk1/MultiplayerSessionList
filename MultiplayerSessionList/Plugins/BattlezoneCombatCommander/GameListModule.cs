@@ -115,6 +115,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
             if (gamelist != null)
             {
+                List<DatumRef> sessions = new List<DatumRef>();
                 foreach (var raw in gamelist.GET)
                 {
                     // ignore dummy games
@@ -127,6 +128,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     UInt64 natNegId = Base64.DecodeRaknetGuid(raw.NATNegID);
                     Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
+                    sessions.Add(new DatumRef(session.Type, session.ID));
 
                     session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_LISTEN;
 
@@ -135,16 +137,6 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                     session[GAMELIST_TERMS.SESSION_NAME] = raw.SessionName;
                     if (!string.IsNullOrWhiteSpace(raw.MOTD))
                         session[GAMELIST_TERMS.SESSION_MESSAGE] = raw.MOTD;
-
-                    List<DataCache> PlayerTypes = new List<DataCache>();
-                    PlayerTypes.Add(new DataCache()
-                    {
-                        { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() { GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER } },
-                        { GAMELIST_TERMS.PLAYERTYPE_MAX, raw.MaxPlayers },
-                    });
-                    session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
-
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.CurPlayers);
 
                     string modID = (raw.Mods?.FirstOrDefault() ?? @"0");
                     string mapID = raw.MapFile.ToLowerInvariant();
@@ -449,6 +441,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         }
                     }
 
+                    bool specialDedicatedServer = false;
                     if (raw?.pl != null)
                     {
                         List<DataCache> Players = new List<DataCache>();
@@ -496,6 +489,12 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                             if (!string.IsNullOrWhiteSpace(dr.PlayerID))
                             {
                                 player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:bzr_net:{GAMELIST_TERMS.PLAYER_IDS_X_ID}", dr.PlayerID);
+                                if (pl_i == 0 && dr.PlayerID == @"S76561199232890248")
+                                {
+                                    // this is the first player (host) and it's the dedicated server host bot
+                                    player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_BOT;
+                                    specialDedicatedServer = true;
+                                }
                                 switch (dr.PlayerID[0])
                                 {
                                     case 'S':
@@ -550,6 +549,36 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
                         session[GAMELIST_TERMS.SESSION_PLAYERS] = Players;
                     }
 
+                    // TODO spectators
+                    if (specialDedicatedServer)
+                    {
+                        // dedicated server
+                        List<DataCache> PlayerTypes = new List<DataCache>();
+                        PlayerTypes.Add(new DataCache()
+                        {
+                            { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() { GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER } },
+                            { GAMELIST_TERMS.PLAYERTYPE_MAX, raw.MaxPlayers - 1 },
+                        });
+                        session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
+
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.CurPlayers - 1);
+
+                        session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED;
+                    }
+                    else
+                    {
+                        // normal player data
+                        List<DataCache> PlayerTypes = new List<DataCache>();
+                        PlayerTypes.Add(new DataCache()
+                        {
+                            { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() { GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER } },
+                            { GAMELIST_TERMS.PLAYERTYPE_MAX, raw.MaxPlayers },
+                        });
+                        session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
+
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.CurPlayers);
+                    }
+
                     if (raw != null && raw.GameTimeMinutes.HasValue)
                     {
                         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", raw.GameTimeMinutes * 60);
@@ -589,6 +618,11 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
                     yield return session;
                 }
+
+                Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID, new DataCache() {
+                    { "sessions", sessions },
+                });
+                yield return root;
             }
 
             while (DelayedDatumTasks.Any())
