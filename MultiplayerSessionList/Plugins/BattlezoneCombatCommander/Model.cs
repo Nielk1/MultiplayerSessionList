@@ -88,7 +88,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [JsonPropertyName("g")] public string NATNegID { get; set; } = null!; // Raknet GUID, Base64 encoded with custom alphabet
         public string? n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
         [JsonPropertyName("m")] public string? MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
-        public string? k { get; set; } // tinyint      | Password Flag.
+        public byte? k { get; set; } // tinyint      | Password Flag.
         public string? d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
         [JsonPropertyName("t")] public NatType? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
         public string? v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
@@ -124,7 +124,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
         [JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }
         [JsonIgnore] public bool Locked { get { return l == "1"; } }
-        [JsonIgnore] public bool Passworded { get { return k == "1"; } }
+        [JsonIgnore] public bool Passworded { get { return k != 0; } }
         [JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 
         [JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
