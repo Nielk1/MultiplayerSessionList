@@ -32,35 +32,6 @@
             --section-mode-extra-left: calc(var(--section-icons-width) + var(--section-mode-width) + ((var(--section-icons-count) - 1) * 4px))
         }
 
-        /* This class will be more useful once we have a way to know if items are done or not */
-        .loading::before {
-            animation-duration: 2s;
-            animation-fill-mode: forwards;
-            animation-iteration-count: infinite;
-            animation-name: placeHolderShimmer;
-            animation-timing-function: linear;
-            background-color: #f6f7f8;
-            background: linear-gradient(to right, #00000000 8%, #bbbbbb 18%, #00000000 33%);
-            background-size: 800px 104px;
-            content: "";
-            content: "";
-            width: 100vw;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-        }
-
-        @keyframes placeHolderShimmer {
-            0% {
-                background-position: -800px 0;
-            }
-
-            100% {
-                background-position: 800px 0;
-            }
-        }
-
         @media screen and (max-width: 768px) {
             :root {
                 --section-mode-width: 25px;
@@ -266,16 +237,17 @@
             font-style: normal;
         }*/
         body {
+        /*.sidebar3 > * {*/
             font-family: "Orbitron", sans-serif;
             font-optical-sizing: auto;
             /*font-weight: <weight>;*/
             font-style: normal;
             /*font-variant: small-caps;*/
         }
-
         [data-bs-theme=dark] {
             --bs-body-bg: #000;
         }
+
         /*tbody, td, tfoot, th, thead, tr {
             border-style: none;
         }*/
@@ -283,7 +255,10 @@
             padding: .2rem .2rem;
         }*/
         /*.gamelist.table>:not(caption)>*>* {*/
-        .gamelist>:not(caption)>*>* {
+        /*.gamelist>:not(caption)>*>* {
+            color: #00ff00;
+        }*/
+        #sessionList>:not(caption)>* {
             color: #00ff00;
         }
 
@@ -465,7 +440,7 @@
                 border: solid yellow 1px;
             }*/
 
-        #lobbyList:not(.show_extra) .extra_row {
+        #sessionList:not(.show_extra) .extra_row {
             display: none !important;
         }
         .session_name_box {
@@ -520,13 +495,24 @@
 
         @media screen and (max-width: 992px) {
             /* if we're too thin and extra is open, hide the map name in the first row */
-            #lobbyList.show_extra .session_name_cell {
+            #sessionList.show_extra .session_name_cell {
                 display: none !important;
             }
             /* if we're too thin and extra is open, show the map name in the info section */
-            #lobbyList.show_extra .session_name_box {
+            #sessionList.show_extra .session_name_box {
                 display: block;
             }
+        }
+
+        #sessionListLoading {
+            transition: opacity 0.3s;
+            will-change: opacity;
+            opacity: 1;
+        }
+        /*#sessionListHeader:not(.loading) #sessionListLoading {*/
+        #btnRefresh:not(.loading) #sessionListLoading {
+            opacity: 0;
+            transition-delay: 0.5s; /* Delayed fade-out */
         }
     </style>
 
@@ -538,8 +524,8 @@
 
     <div class="container-fluid pt-2 border-bottom mb-2" style="top: 0; position: sticky; z-index: 99999; background-color: var(--bs-body-bg);">
         <p class="d-inline-flex gap-1 float-end">
-            <button id="btnExtra" type="button" data-bs-toggle="button" aria-pressed="false" class="btn btn-outline-primary">Extra</button>
-            <button id="btnRefresh" type="button" class="btn btn-outline-primary">Refresh</button>
+            <button id="btnExtra" type="button" data-bs-toggle="button" aria-pressed="false" class="btn btn-outline-primary">Thin</button>
+            <button id="btnRefresh" type="button" class="btn btn-outline-primary">Refresh <i id="sessionListLoading" class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
         </p>
         <div class="text-center">
             <h1 class="display-5">Game List Test</h1>
@@ -548,7 +534,7 @@
 
     <div class="container-fluid">
         <div class="gamelist">
-            <div id="lobbyList"></div>
+            <div id="sessionList" class="show_extra"></div>
         </div>
     </div>
 
@@ -557,12 +543,19 @@
             &copy; 2025 - MultiplayerSessionList
         </div>
     </footer>
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <!--<script src="/lib/jquery/dist/jquery.min.js"></script>-->
     <!--<script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>-->
     <script src="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-    <script>
+    <script type="module">
+        import { RefreshSessionList } from '/js/gamelist.js';
+
+        function ansiToHtml(text) {
+            const ansi_up = new AnsiUp();
+            return ansi_up.ansi_to_html(text);
+        }
+
         function encodeAttr(text) {
             const elem = document.createElement('p');
             elem.setAttribute('title', text);
@@ -584,223 +577,74 @@
                 .replace(/'/g, "&#039;");
         }
 
-        // local copy of list data
-        var ListData = {};
-
-        // parent data relations so we can walk up to the session when data updates come in
-        var DataRefs = {};
-
-        //$(document).ready(function () {
-        {
-            var windowSearch = window.location.search;
-            if (windowSearch.length > 0)
-                windowSearch = '?' + windowSearch.substring(1);
-            $.ajax({ url: '/api/2.0/games' + windowSearch })
-                .done(function (data) {
-                    $('#dropdownMenuContainer').empty();
-                    for (var i = 0; i < data.length; i++) {
-                        var dat = data[i];
-                        var sessionRow = $('<a class="dropdown-item" href="#"/>');
-                        sessionRow.text(dat.Name);
-                        sessionRow.data('value', dat.Key)
-                        $('#dropdownMenuContainer').append($('<li>').append(sessionRow));
-                    }
-                });
+        // Utility to get mode from query string
+        function getStreamMode() {
+            const params = new URLSearchParams(window.location.search);
+            const mode = params.get('mode');
+            if (mode === 'chunked') return 'chunked';
+            return 'event'; // default
         }
 
-        $('#dropdownMenuContainer').click('.dropdown-item', function (e) {
-            e.preventDefault();
-            var item = $(e.target);
-            if (item.hasClass('dropdown-item')) {
-                if (item.hasClass('active')) {
-                    item.removeClass('active');
-                } else {
-                    item.addClass('active')
-                }
-            }
-        });
+        // Helper functions to replace jQuery .empty(), .addClass(), .removeClass(), .hasClass(), .data()
+        function emptyElement(el) {
+            while (el.firstChild) el.removeChild(el.firstChild);
+        }
+        function addClass(el, className) {
+            el.classList.add(className);
+        }
+        function removeClass(el, className) {
+            el.classList.remove(className);
+        }
+        function hasClass(el, className) {
+            return el.classList.contains(className);
+        }
+        function setData(el, key, value) {
+            el.dataset[key] = value;
+        }
+        function getData(el, key) {
+            return el.dataset[key];
+        }
 
         function isObject(item) {
             return (item && typeof item === 'object' && !Array.isArray(item));
         }
 
-        // this function merges all the sources into the destination object, and returns the destination object
-        // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
-        function MergeIntoFirstObject(target, ...sources) {
-            const source = sources.shift();
-            if (source === undefined) return MergeIntoFirstObject(target, ...sources); // next source
-            if (isObject(target) && isObject(source)) {
-                for (const key in source) {
-                    if (isObject(source[key])) {
-                        if (!target[key]) Object.assign(target, { [key]: {} });
-                        MergeIntoFirstObject(target[key], source[key]);
-                    } else if (Array.isArray(source[key])) {
-                        // assign the array, but then iterate it to look for those references
-                        Object.assign(target, { [key]: source[key] });
-                        for (var i = 0; i < source[key].length; i++) {
-                            if (isObject(source[key][i])) {
-                                MergeIntoFirstObject(target[key][i], source[key][i]);
-                            }
-                        }
-                    } else {
-                        Object.assign(target, { [key]: source[key] });
-                    }
-                }
-            }
-
-            // no sources left to merge, clean up references
-            if (sources.length == 0)
-                return target;
-
-            return MergeIntoFirstObject(target, ...sources); // next source
-        }
-
-        function MergeReferences(target, parent_type, parent_id) {
-            if (!isObject(target))
-                return target;
-
-            for (const key in target) {
-                // Detect Object or Array
-                if (isObject(target[key])) {
-                    if (target[key].$ref) {
-                        // we're a ref object, so forget the destination entirely and just use the source's reference
-                        var split = target[key].$ref.split('/');
-                        let frag_type = split[1].replace('~1', '/').replace('~0', '~');
-                        let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                        target[key] = ListData[frag_type][frag_id];
-                        if (!DataRefs[`${frag_type}\t${frag_id}`])
-                            DataRefs[`${frag_type}\t${frag_id}`] = new Set();
-                        DataRefs[`${frag_type}\t${frag_id}`].add(`${target.$type || parent_type}\t${target.$id || parent_id}`);
-                    } else {
-                        MergeReferences(target[key], target.$type || parent_type, target.$id || parent_id);
-                    }
-                } else if (Array.isArray(target[key])) {
-                    for (var i = 0; i < target[key].length; i++) {
-                        if (isObject(target[key][i])) {
-                            if (target[key][i].$ref) {
-                                // we're a ref object, so forget the destination entirely and just use the source's reference
-                                var split = target[key][i].$ref.split('/');
-                                let frag_type = split[1].replace('~1', '/').replace('~0', '~');
-                                let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                                target[key][i] = ListData[frag_type][frag_id];
-                                if (!DataRefs[`${frag_type}\t${frag_id}`])
-                                    DataRefs[`${frag_type}\t${frag_id}`] = new Set();
-                                DataRefs[`${frag_type}\t${frag_id}`].add(`${target.$type || parent_type}\t${target.$id || parent_id}`);
-                            } else {
-                                MergeReferences(target[key][i], target.$type || parent_type, target.$id || parent_id);
-                            }
-                        }
-                    }
-                }
-            }
-            return target;
-        }
-
-        function ExpandDataRefs($type, $id, memo) {
-            let local_memo = memo || new Set();
-
-            // if we already have this one end this recursion path
-            if (local_memo.has(`${$type}\t${$id}`))
-                return local_memo;
-
-            // add ourself to the memo
-            local_memo.add(`${$type}\t${$id}`)
-            
-            if (DataRefs[`${$type}\t${$id}`]) {
-                for (let v of DataRefs[`${$type}\t${$id}`]) {
-                    let tmp = v.split('\t');
-                    ExpandDataRefs(tmp[0], tmp[1], local_memo);
-                }
-            }
-
-            // return the memo as it's all our unique keys
-            return local_memo;
-        }
-
         var GetGamesAjax = null;
-        $('#btnExtra').click(function (e) {
+        document.getElementById('btnExtra').addEventListener('click', function (e) {
             e.preventDefault();
-            //const myStyleSheetRule = document.getElementById("extra_data_style").sheet.cssRules[0];
-            if ($('#btnExtra').hasClass('active')) {
-                //myStyleSheetRule.style.setProperty("display", null);
-                $('#lobbyList').addClass('show_extra');
+            const btnExtra = document.getElementById('btnExtra');
+            const sessionList = document.getElementById('sessionList');
+            // bootstrap is controlling the active class before we run
+            if (btnExtra.classList.contains('active')) {
+                sessionList.classList.remove('show_extra');
+                //btnExtra.classList.remove('active');
             } else {
-                //myStyleSheetRule.style.setProperty("display", "none", "important");
-                $('#lobbyList').removeClass('show_extra');
+                sessionList.classList.add('show_extra');
+                //btnExtra.classList.add('active');
             }
         });
-        $('#btnRefresh').click(function (e) {
+        document.getElementById('btnRefresh').addEventListener('click', function (e) {
             e.preventDefault();
 
-            $('#lobbyList').empty();
+            //emptyElement(document.getElementById('sourceList'));
+            //emptyElement(document.getElementById('lobbyList'));
+            emptyElement(document.getElementById('sessionList'));
+            //emptyElement(document.getElementById('codeRawJson'));
+            //emptyElement(document.getElementById('codeRawJsonLines'));
 
-            if (GetGamesAjax != null) {
-                GetGamesAjax.abort();
-            }
-
-            // forget any pending datums from a prior refresh
-            debouncingDatums = false;
-            debouncingSet = new Set();
-            if (debouncingTimeout >= 0) {
-                clearTimeout(debouncingTimeout);
-                console.log("ABORT PENDING POOLING");
-            }
-            debouncingTimeout = -1;
-
-            DataRefs = {};
-
-            var windowSearch = window.location.search;
-            if (windowSearch.length > 0)
-                windowSearch = '&' + windowSearch.substring(1);
-
-            // what ugly shit this is
-            var keys = [].concat(...$('#dropdownMenuContainer .dropdown-item.active')).map(function (elem) { return 'game=' + $(elem).data('value') }).join('&');
-
-            GetGamesAjax = new XMLHttpRequest();
-            GetGamesAjax.open("GET", 'api/2.0/sessions?game=bigboat:battlezone_98_redux' + windowSearch);
-            var last_index = 0;
-            GetGamesAjax.onprogress = function () {
-                var UpdatedThisPass = new Set();
-
-                var end = 0;
-                while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
-                    var s = GetGamesAjax.responseText.substring(last_index, end + 1);
-
-                    var data = JSON.parse(s);
-                    if (data.$type == 'debug') {
-                        console.log(data.$data);
-                    } else {
-                        ListData[data.$type] = ListData[data.$type] || {};
-                        if (data.$type == 'default') {
-                            // defaults are wonky, no need to copy their ID and Type back into them as it would just break things reading from them
-                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, data.$data));
-                        } else {
-                            // for everything that isn't a default or a debug copy the $type and $id into it so we have an easier time
-                            ListData[data.$type][data.$id] = MergeReferences(MergeIntoFirstObject(ListData[data.$type][data.$id] || {}, { $id: data.$id, $type: data.$type }, (ListData['default'] || {})[data.$type], data.$data));
-                        }
-                        switch (data.$type) {
-                            // tokens we don't care about, even if they updated the composite data (we aren't ever rendering them)
-                            //case 'source':
-                            //    break;
-                            default:
-                                UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
-                                break;
-                        }
-                    }
-
-                    last_index = end + 1;
-                }
-                if (UpdatedThisPass.size > 0)
-                    UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
-            };
-            GetGamesAjax.onload = function () {
-
-            }
-            ListData = {};
-            GetGamesAjax.send();
+            btnRefresh.classList.add('loading');
+            let GetGamesAjax = RefreshSessionList({
+                CreateOrUpdateSessionDom: CreateOrUpdateSessionDom,
+                doneFn: () => {
+                    //sessionList.classList.remove('loading');
+                    btnRefresh.classList.remove('loading');
+                },
+            }, ['bigboat:battlezone_98_redux']);
         });
 
-        var parent = document.querySelector('#lobbyList');
+        //var sourceList = document.querySelector('#sourceList');
+        //var lobbyList = document.querySelector('#lobbyList');
+        var sessionList = document.querySelector('#sessionList');
 
         function GenerateHtml_IdentitySteam(identity) {
             let platform_name = identity.nickname || identity.$id;
@@ -846,11 +690,11 @@
             let playerHtmlEntries = '';
             //<div class="chamfer d-flex" style="background:black;flex:100% 0 0;">
             playerHtmlEntries += `
-    <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}">
+        <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}">
         <div class="player_info_box chamfer d-flex flex-row flex-nowrap ${teamed ? '' : 'mb-1'}" style="padding:2px;">
             <div class="chamfer d-flex" style="background:black;flex:100% 0 0;min-width:0;">
                 <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
-                    <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
+                    <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/images/no_steam_pfp.jpg'" class="img-fluid chamfer">
                 </div>
                 <div class="d-flex flex-column" style="flex: 0 1 100%;min-width:0;">
                     <div class="text-truncate">${escapeHtml(player.name)}</div>`;
@@ -909,7 +753,7 @@
                     if (faction) {
                         playerHtmlEntries += `
                         <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
-                            <img data-path="faction_name" data-type="faction" data-id="${encodeAttr(faction.$id)}" title="${encodeAttr(faction.name || faction.$id)}" src="${encodeAttr(faction.block) }" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
+                            <img data-path="faction_name" data-type="faction" data-id="${encodeAttr(faction.$id)}" title="${encodeAttr(faction.name || faction.$id)}" src="${encodeAttr(faction.block) }" width="150" height="150" onerror="this.src = '/images/no_steam_pfp.jpg'" class="img-fluid chamfer">
                         </div>`;
                     }  else {
                         playerHtmlEntries += `<div class="d-flex m-1 d-block chamfer" style="flex: 0 0 50px;width:50px;background:green;"></div>`;
@@ -917,7 +761,7 @@
                 } else {
                     playerHtmlEntries += `
                     <div class="d-flex m-1" style="flex: 0 0 50px;width:50px;">
-                        <img data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}" title="${encodeAttr(player.hero.name || player.hero.$id)}" src="/img/no_steam_pfp.jpg" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid chamfer">
+                        <img data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}" title="${encodeAttr(player.hero.name || player.hero.$id)}" src="/images/no_steam_pfp.jpg" width="150" height="150" onerror="this.src = '/images/no_steam_pfp.jpg'" class="img-fluid chamfer">
                     </div>`;
                 }
             } else {
@@ -926,18 +770,21 @@
 
             playerHtmlEntries += `
         </div>
-    </div>
-</div>`;
+        </div>
+        </div>`;
             return playerHtmlEntries;
         }
 
         function CreateOrUpdateSessionDom($id, data) {
+            //const sessionList = document.getElementById('sessionList');
+            //sessionList.classList.remove('loading');
+
             var session = data.session[$id];
-            var sessionDom = parent.querySelector(`#\\/session\\/${CSS.escape($id)}`);
-            var sessionDom2 = parent.querySelector(`#\\/session\\/${CSS.escape($id)}\\/row2`);
+            var sessionDom = sessionList.querySelector(`#\\/session\\/${CSS.escape($id)}`);
+            var sessionDom2 = sessionList.querySelector(`#\\/session\\/${CSS.escape($id)}\\/row2`);
 
             if (!sessionDom) {
-                parent.insertAdjacentHTML('beforeend', `<div class="mb-1 d-flex flex-row flex-nowrap" id="/session/${encodeAttr($id)}">
+                sessionList.insertAdjacentHTML('beforeend', `<div class="mb-1 d-flex flex-row flex-nowrap" id="/session/${encodeAttr($id)}">
                     <div class="me-1 status_flags d-flex flex-row justify-content-between">
                         <div>
                             <div data-path="session.status.is_locked_off" class="icon"></div>
@@ -983,7 +830,7 @@
                         <div class="map_image chamfer bg-secondary mb-1">
                             <div style="background: black; left: 1px; top: 1px; height: calc(100% - 2px); width: calc(100% - 2px); position: relative;" class="chamfer">
                                 <div class="ratio ratio-1x1" style="--bs-aspect-ratio: calc(100% + 2px);top: -1px;">
-                                    <img class="chamfer" data-path="session.level.map.image" width="186" length="186" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:calc(100% - 12px);height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                                    <img class="chamfer" data-path="session.level.map.image" width="186" length="186" src onerror="this.src='/images/no_steam_pfp.jpg'" class="img-thumbnail" style="width:calc(100% - 12px);height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
                                 </div>
                             </div>
                         </div>
@@ -998,9 +845,9 @@
                 </div>`);
                 //<div data-path="players" class="row g-0" style="margin-right: -.25rem !important;"></div>
                 //<div class="icon" style="border-right:solid black 2px; box-sizing: content-box;" data-path="session.level.game_type"></div>
-                sessionDom2 = parent.lastElementChild;
+                sessionDom2 = sessionList.lastElementChild;
                 sessionDom = sessionDom2.previousElementSibling;
-                //sessionDom = parent.lastElementChild;
+                //sessionDom = sessionList.lastElementChild;
             }
 
             // Map Image
@@ -1120,18 +967,21 @@
                     break;
             }
 
-            let game_mods = [];
+            let main_mod = null;
             if ((session.game?.mods?.major?.length ?? 0) > 0) {
-                for (let modwrap of session.game.mods.major) {
-                    game_mods.push(modwrap.mod);
+                for(let mod_wrapper of session.game.mods.major) {
+                    if (mod_wrapper.role == "main") {
+                        main_mod = mod_wrapper.mod;
+                        break;
+                    }
                 }
             }
-            if (game_mods.length > 0) {
+            if (main_mod) {
                 sessionDom.querySelector('[data-path="session.game.mod.off"]').style.display = "none";
                 let modIconDom = sessionDom.querySelector('[data-path="session.game.mod"]');
                 modIconDom.style.display = "block";
-                modIconDom.setAttribute('title', game_mods[0].name);
-                modIconDom.setAttribute('href', game_mods[0].url);
+                modIconDom.setAttribute('title', main_mod.name);
+                modIconDom.setAttribute('href', main_mod.url);
             }
             else
             {
@@ -1210,6 +1060,8 @@
             // +---------------+
             // |    Version    |
             // +---------------+
+            // |               |
+            // +---------------+
             // |    Balance    |
             // +---------------+
             // |      Mod      |
@@ -1223,7 +1075,7 @@
             // |  Snip | Splnt |
             // +-------+-------+
             let sessionRulesElem = sessionDom2.querySelector(`[data-path="session.level.rules"]`);
-            if (session.level.rules) {
+            {
                 let htmlEntries = '';
 
                 // Game Version
@@ -1232,6 +1084,9 @@
                     if (game_version != null)
                         htmlEntries += `<div class="rule_game_version chamfer d-flex flex-row mb-1" style="white-space:pre;" title="Game Version ${encodeAttr(game_version)}"><div class="icon"><i class="fa-solid fa-gamepad"></i></div><div class="flex-grow-1 text-center">${escapeHtml(game_version)}</div></div>`;
                 }
+
+                // un-populated for patch feature
+                htmlEntries += `<div class="rule_balance chamfer d-flex flex-row mb-1 disabled" style="white-space:pre;"></div>`;
 
                 // Session Game Balance
                 {
@@ -1254,10 +1109,11 @@
                 }
 
                 // game mod(s)
+                if (main_mod)
                 {
-                    for (let mod of game_mods) {
-                        htmlEntries += `<a href="${encodeAttr(mod.url)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none rule_game_mod chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(mod?.abbr ?? mod?.name ?? mod?.$id)}"><div class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="flex-grow-1 text-center text-truncate"><span class="text-truncate" data-path="session.name">${escapeHtml(mod?.abbr ?? mod?.name ?? mod?.$id)}</span></div></a>`;
-                    }
+                    htmlEntries += `<a href="${encodeAttr(main_mod.url)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none rule_game_mod chamfer d-flex flex-row mb-1" style="white-space:pre;" title="${encodeAttr(main_mod?.abbr ?? main_mod?.name ?? main_mod?.$id)}"><div class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="flex-grow-1 text-center text-truncate"><span class="text-truncate" data-path="session.name">${escapeHtml(main_mod?.abbr ?? main_mod?.name ?? main_mod?.$id)}</span></div></a>`;
+                } else {
+                    htmlEntries += `<div class="rule_game_mod chamfer d-flex flex-row mb-1 disabled" style="white-space:pre;"></div>`;
                 }
 
                 // lives and kill_limit
@@ -1344,9 +1200,6 @@
                 }
 
                 sessionRulesElem.innerHTML = htmlEntries;
-
-            } else {
-                sessionRulesElem.innerHTML = '';
             }
 
 
@@ -1495,44 +1348,44 @@
                         }
                     }
                     if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
-//                        playerHtmlEntries += `
-//<div class="col-6 col-md-4">
-//    <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
-//        <span class="text-nowrap overflow-hidden align-middle">
-//            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
-//        </span>
-//    </div>
-//</div>`;
+        //                        playerHtmlEntries += `
+        //<div class="col-6 col-md-4">
+        //    <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
+        //        <span class="text-nowrap overflow-hidden align-middle">
+        //            <i class="fa fa-desktop" aria-hidden="true"></i> Computer
+        //        </span>
+        //    </div>
+        //</div>`;
                     }
 
                     if (team) {
                         if (!session.teams?.[team]?.human && session.teams?.[team]?.computer === true) {
-//                            playerListDom.insertAdjacentHTML('beforeend', `
-//<div class="col-6 col-md-4">
-//    <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
-//        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
-//        <div class="row g-0">${playerHtmlEntries}</div>
-//    </div>
-//</div>`);
+        //                            playerListDom.insertAdjacentHTML('beforeend', `
+        //<div class="col-6 col-md-4">
+        //    <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
+        //        <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
+        //        <div class="row g-0">${playerHtmlEntries}</div>
+        //    </div>
+        //</div>`);
                         } else {
                             // team is not null and has no computer members
                             //let slots_left = player_count - total_players;
                             playerListDom.insertAdjacentHTML('beforeend', `
-${(Teams.length > 1 && teamCounter > 0) ? '<hr class="mb-2 mt-2 col-12 team-hr" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
-<div class="team-col">
-    <div class="player_info_box chamfer team_box">
+        ${(Teams.length > 1 && teamCounter > 0) ? '<hr class="mb-2 mt-2 col-12 team-hr" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
+        <div class="team-col">
+        <div class="player_info_box chamfer team_box">
         <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${session.level?.map?.$id ? encodeAttr(session.level.map.$id) : ''}" class="small card-header d-flex justify-content-center chamfer" style="background:black;margin: 0 2px 2px 2px;top: 2px;position: relative;">${escapeHtml(teamName)}</div>
         <div class="d-flex flex-row flex-wrap justify-content-around row g-0" style="padding-top: 2px;">${playerHtmlEntries}</div>
-    </div>
-</div>`);
+        </div>
+        </div>`);
                         }
                     } else {
                         // team is null
                         playerListDom.insertAdjacentHTML('beforeend', `
-${(Teams.length > 1 && team == null) ? '<hr class="mb-2 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
-<div class="col-12">
-    <div class="d-flex flex-row flex-wrap justify-content-around row g-1">${playerHtmlEntries}</div>
-</div>`);
+        ${(Teams.length > 1 && team == null) ? '<hr class="mb-2 mt-2 col-12" style="border-color: #00ff00!important;opacity: 100%;right: -4px;position: relative;">' : ''}
+        <div class="col-12">
+        <div class="d-flex flex-row flex-wrap justify-content-around row g-1">${playerHtmlEntries}</div>
+        </div>`);
                     }
 
                     teamCounter++;
@@ -1549,45 +1402,6 @@ ${(Teams.length > 1 && team == null) ? '<hr class="mb-2 mt-2 col-12" style="bord
                         b = a.startTime;
                     } else {
                         a.startTime = b;
-                    }
-                }
-            }
-        }
-
-        let debouncingDatums = false;
-        let debouncingSet = new Set();
-        let debouncingTimeout = -1;
-        function UpdateSessionListWithDataFragments(data, modified) {
-            for (const mod of modified) {
-                var $parts = mod.split('\t', 2);
-                var $type = $parts[0];
-                var $id = $parts[1];
-
-                // set of all affected items by the incoming datum
-                let affected_set = ExpandDataRefs($type, $id);
-
-                if (affected_set) {
-                    for (let v of affected_set) {
-                        //console.log(v);
-                        let tmp = v.split('\t');
-                        debouncingSet.add(`${tmp[0]}\t${tmp[1]}`)
-                    }
-                    if (!debouncingDatums) {
-                        debouncingDatums = true;
-                        debouncingTimeout = setTimeout(() => {
-                            console.log("START PENDING POOLING");
-                            for (const affected of debouncingSet) {
-                                let tmp = affected.split('\t');
-                                console.log("Pending Datum Triggered", tmp[0], tmp[1])
-                                if (tmp[0] == 'session') {
-                                    CreateOrUpdateSessionDom(tmp[1], data);
-                                }
-                            }
-                            debouncingSet = new Set();
-                            debouncingDatums = false;
-                            debouncingTimeout = -1;
-                            console.log("END PENDING POOLING");
-                        }, 250);
                     }
                 }
             }

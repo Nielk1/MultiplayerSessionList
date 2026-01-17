@@ -92,7 +92,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public string? d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
         [JsonPropertyName("t")] public NatType? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
         public string? v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
-        public string? l { get; set; } // locked
+        [JsonConverter(typeof(FaultTolerantIntConverter))] public int? l { get; set; } // locked, this was a string in error in my raknet server's fake marker game
         [JsonPropertyName("h")] public string? MOTD { get; set; } // server message (not base64 yet)
 
         public string? mm { get; set; } // mod list ex: "1300825258;1300820029"
@@ -123,7 +123,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public BZCCPlayerData[]? pl { get; set; }
 
         [JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }
-        [JsonIgnore] public bool Locked { get { return l == "1"; } }
+        [JsonIgnore] public bool Locked { get { return l == 1; } }
         [JsonIgnore] public bool Passworded { get { return k != 0; } }
         [JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 

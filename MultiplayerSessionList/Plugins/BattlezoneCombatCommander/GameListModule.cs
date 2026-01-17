@@ -3,11 +3,12 @@ using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,7 +58,7 @@ public class GameListModule : IGameListModule
         mock = mock || !gamelist.GET.Where(raw => raw.NATNegID != "XXXXXXX@XX").Any();
 #endif
         if (mock)
-            gamelist = JsonConvert.DeserializeObject<BZCCRaknetData>(
+            gamelist = JsonSerializer.Deserialize<BZCCRaknetData>(
                 System.IO.File.ReadAllText(@"mock\bigboat\battlezone_combat_commander.json"));
 
         if (gamelist == null)

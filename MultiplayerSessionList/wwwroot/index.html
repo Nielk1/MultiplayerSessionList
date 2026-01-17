@@ -165,37 +165,8 @@
     <!-- Utility Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.0.0/ansi_up.min.js"></script>
 
-    <script>
-        /*
-// Garbage Collector
-for (let parent in DataRefs_children) {
-    let existing_children = DataRefs_children[parent];
-    for (let child in existing_children) {
-        let existingSet = DataRefs_parents[child];
-        if (existingSet) {
-            existingSet.delete(parent_key);
-        }
-    }
-}
-for (let type in ListData) {
-    if (type == "root") continue;
-    for (let id in ListData[type]) {
-        if (!DataRefs_parents[`${type}\t${id}`]) {
-            if (Date.now() - DataRefs_last_touched[`${type}\t${id}`] > 5000) {
-                console.log([type, id]); // items have no cached parent associations and are old enough to not be fresh
-            }
-        }
-    }
-}
-for (let ref in DataRefs_last_touched) {
-    let parts = ref.split('\t');
-    let type = parts[0];
-    let id = parts[1];
-    if (ListData[type]?.[id] == null) {
-        console.log(parts); // item to delete from time cache as the data is gone somehows
-    }
-}
-        */
+    <script type="module">
+        import { RefreshSessionList } from '/js/gamelist.js';
 
         function ansiToHtml(text) {
             const ansi_up = new AnsiUp();
@@ -251,13 +222,9 @@ for (let ref in DataRefs_last_touched) {
             return el.dataset[key];
         }
 
-        // local copy of list data
-        var ListData = {};
-
-        // parent data relations so we can walk up to the session when data updates come in
-        var DataRefs_parents = {};
-        var DataRefs_children = {};
-        var DataRefs_last_touched = {};
+        function isObject(item) {
+            return (item && typeof item === 'object' && !Array.isArray(item));
+        }
 
         //$(document).ready(function () {
         {
@@ -304,185 +271,6 @@ for (let ref in DataRefs_last_touched) {
             }
         });
 
-        function isObject(item) {
-            return (item && typeof item === 'object' && !Array.isArray(item));
-        }
-
-        // this function merges all the sources into the destination object, and returns the destination object
-        // this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
-        function MergeIntoFirstObject(target, ...sources) {
-            let source = sources.shift();
-            if (source === undefined) return MergeIntoFirstObject(target, ...sources); // next source
-            while (source !== undefined) {
-                if (isObject(target) && isObject(source)) {
-                    for (const key in source) {
-                        if (source[key] === null) {
-                            // Explicitly remove property if value is null
-                            delete target[key];
-                        } else if (isObject(source[key])) {
-                            if (!target[key]) Object.assign(target, { [key]: {} });
-                            MergeIntoFirstObject(target[key], source[key]);
-                        } else if (Array.isArray(source[key])) {
-                            // assign the array, but then iterate it to look for those references
-                            Object.assign(target, { [key]: source[key] });
-                            for (var i = 0; i < source[key].length; i++) {
-                                if (isObject(source[key][i])) {
-                                    MergeIntoFirstObject(target[key][i], source[key][i]);
-                                }
-                            }
-                        } else {
-                            Object.assign(target, { [key]: source[key] });
-                        }
-                    }
-                }
-
-                // no sources left to merge, clean up references
-                if (sources.length == 0)
-                    return target;
-
-                //return MergeIntoFirstObject(target, ...sources); // next source
-                source = sources.shift();
-            }
-        }
-
-        function MergeReferences(target, parent_type, parent_id) {
-            if (!isObject(target))
-                return target;
-
-            // clear old ref tracking
-            let parent_key = `${target.$type || parent_type}\t${target.$id || parent_id}`;
-            let existing_children = DataRefs_children[parent_key];
-            if (existing_children) {
-                // take the existing known children
-                // unlink those children from the immediate parent, since we're about to re-parse it we might just relink them
-
-                for (let child in existing_children) {
-                    let existingSet = DataRefs_parents[child];
-                    if (existingSet) {
-                        existingSet.delete(parent_key);
-                    }
-                }
-
-                existing_children.clear();
-            }
-
-            for (const key in target) {
-                // Detect Object or Array
-                if (isObject(target[key])) {
-                    if (target[key].$ref) {
-                        // we're a ref object, so forget the destination entirely and just use the source's reference
-                        var split = target[key].$ref.split('/');
-                        let frag_type = split[1].replace('~1', '/').replace('~0', '~');
-                        let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                        if (ListData[frag_type] === undefined)
-                            ListData[frag_type] = {};
-                        let val = ListData[frag_type][frag_id];
-                        if (val == null) {
-                            val = {};
-                            ListData[frag_type][frag_id] = val;
-                        }
-                        target[key] = val;
-
-                        let child_key = `${frag_type}\t${frag_id}`;
-                        if (!DataRefs_parents[child_key])
-                            DataRefs_parents[child_key] = new Set();
-                        DataRefs_parents[child_key].add(parent_key);
-
-                        if (!DataRefs_children[parent_key])
-                            DataRefs_children[parent_key] = new Set();
-                        DataRefs_children[parent_key].add(child_key);
-                    } else {
-                        MergeReferences(target[key], target.$type || parent_type, target.$id || parent_id);
-                    }
-                } else if (Array.isArray(target[key])) {
-                    for (var i = 0; i < target[key].length; i++) {
-                        if (isObject(target[key][i])) {
-                            if (target[key][i].$ref) {
-                                // we're a ref object, so forget the destination entirely and just use the source's reference
-                                var split = target[key][i].$ref.split('/');
-                                let frag_type = split[1].replace('~1', '/').replace('~0', '~');
-                                let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                                if (ListData[frag_type] === undefined)
-                                    ListData[frag_type] = {};
-                                let val = ListData[frag_type][frag_id];
-                                if (val == null) {
-                                    val = {};
-                                    ListData[frag_type][frag_id] = val;
-                                }
-                                target[key][i] = val;
-
-                                let child_key = `${frag_type}\t${frag_id}`;
-                                if (!DataRefs_parents[child_key])
-                                    DataRefs_parents[child_key] = new Set();
-                                DataRefs_parents[child_key].add(parent_key);
-
-                                if (!DataRefs_children[parent_key])
-                                    DataRefs_children[parent_key] = new Set();
-                                DataRefs_children[parent_key].add(child_key);
-                            } else {
-                                MergeReferences(target[key][i], target.$type || parent_type, target.$id || parent_id);
-                            }
-                        }
-                    }
-                }
-            }
-            return target;
-        }
-
-        function ExpandDataRefs($type, $id, memo) {
-            let local_memo = memo || new Set();
-
-            // if we already have this one end this recursion path
-            if (local_memo.has(`${$type}\t${$id}`))
-                return local_memo;
-
-            // add ourself to the memo
-            local_memo.add(`${$type}\t${$id}`)
-
-            if (DataRefs_parents[`${$type}\t${$id}`]) {
-                for (let v of DataRefs_parents[`${$type}\t${$id}`]) {
-                    let tmp = v.split('\t');
-                    ExpandDataRefs(tmp[0], tmp[1], local_memo);
-                }
-            }
-
-            // return the memo as it's all our unique keys
-            return local_memo;
-        }
-
-        // Shared queue and debouncer
-        let incomingDataQueue = [];
-        let incomingDataDebounceTimeout = null;
-        const INCOMING_DATA_DEBOUNCE_MS = 100;
-
-        function processIncomingDataDebounced() {
-            if (incomingDataDebounceTimeout !== null) return;
-            incomingDataDebounceTimeout = setTimeout(() => {
-                let UpdatedThisPass = new Set();
-                while (incomingDataQueue.length > 0) {
-                    let data = incomingDataQueue.shift();
-                    if (data.$type == 'debug') {
-                        console.log(data.$type, data.$id, data.$data);
-                    } else {
-                        ListData[data.$type] = ListData[data.$type] || {};
-                        DataRefs_last_touched[`${data.$type}\t${data.$id}`] = Date.now();
-                        ListData[data.$type][data.$id] = MergeReferences(
-                            MergeIntoFirstObject(
-                                ListData[data.$type][data.$id] || {},
-                                { $id: data.$id, $type: data.$type },
-                                data.$data
-                            )
-                        );
-                        UpdatedThisPass.add(`${data.$type}\t${data.$id}`);
-                    }
-                }
-                if (UpdatedThisPass.size > 0)
-                    UpdateSessionListWithDataFragments(ListData, UpdatedThisPass);
-                incomingDataDebounceTimeout = null;
-            }, INCOMING_DATA_DEBOUNCE_MS);
-        }
-
-        var GetGamesAjax = null;
         document.getElementById('btnExtra').addEventListener('click', function (e) {
             e.preventDefault();
             const btnExtra = document.getElementById('btnExtra');
@@ -502,91 +290,33 @@ for (let ref in DataRefs_last_touched) {
             emptyElement(document.getElementById('codeRawJson'));
             emptyElement(document.getElementById('codeRawJsonLines'));
 
-            if (GetGamesAjax != null) {
-                const params = new URLSearchParams(window.location.search);
-                const mode = params.get('mode');
-                if (mode === 'chunked') {
-                    GetGamesAjax.abort();
-                } else {
-                    GetGamesAjax.close();
-                }
-            }
-
-            // forget any pending datums from a prior refresh
-            debouncingDatums = false;
-            debouncingSet = new Set();
-            if (debouncingTimeout >= 0) {
-                clearTimeout(debouncingTimeout);
-                console.log("ABORT PENDING POOLING");
-            }
-            debouncingTimeout = -1;
-
-            DataRefs_parents = {};
-            DataRefs_children = {};
-            DataRefs_last_touched = {};
-
-            var windowSearch = window.location.search;
-            if (windowSearch.length > 0)
-                windowSearch = '&' + windowSearch.substring(1);
-
             // get all active dropdown items
             const dropdownMenuContainer = document.getElementById('dropdownMenuContainer');
             const activeItems = dropdownMenuContainer.querySelectorAll('.dropdown-item.active');
-            const keys = Array.from(activeItems)
-                .map(elem => 'game=' + getData(elem, 'value'))
-                .join('&');
-            const mode = getStreamMode();
+            const games = Array.from(activeItems).map(elem => getData(elem, 'value'));
 
-            ListData = {};
-
-            // Clear the shared queue and debounce timer
-            incomingDataQueue = [];
-            if (incomingDataDebounceTimeout !== null) {
-                clearTimeout(incomingDataDebounceTimeout);
-                incomingDataDebounceTimeout = null;
-            }
-
-            if (mode === 'event') {
-                // Use EventSource for SSE
-                var url = 'api/2.0/sessions?' + keys + windowSearch;
-                if (url.indexOf('mode=') === -1) {
-                    url += (url.indexOf('?') === -1 ? '?' : '&') + 'mode=event';
-                }
-                var eventSource = new EventSource(url);
-                eventSource.onmessage = function (event) {
-                    var s = event.data + "\n";
-                    document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
-                    var data = JSON.parse(event.data);
-                    incomingDataQueue.push(data);
-                    processIncomingDataDebounced();
-                };
-                eventSource.onerror = function () {
-                    eventSource.close();
-                };
-                GetGamesAjax = eventSource;
-            } else {
-                // Use XMLHttpRequest for chunked NDJson
-                var url = 'api/2.0/sessions?' + keys + windowSearch;
-                if (url.indexOf('mode=') === -1) {
-                    url += (url.indexOf('?') === -1 ? '?' : '&') + 'mode=chunked';
-                }
-                GetGamesAjax = new XMLHttpRequest();
-                GetGamesAjax.open("GET", url);
-                var last_index = 0;
-                GetGamesAjax.onprogress = function () {
-                    var end = 0;
-                    while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
-                        var s = GetGamesAjax.responseText.substring(last_index, end + 1);
-                        document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
-                        var data = JSON.parse(s);
-                        incomingDataQueue.push(data);
-                        last_index = end + 1;
-                    }
-                    processIncomingDataDebounced();
-                };
-                GetGamesAjax.onload = function () { }
-                GetGamesAjax.send();
-            }
+            //btnRefresh.classList.add('loading');
+            let GetGamesAjax = RefreshSessionList({
+                CreateOrUpdateSourceDom: CreateOrUpdateSourceDom,
+                CreateOrUpdateSessionDom: CreateOrUpdateSessionDom,
+                CreateOrUpdateLobbyDom: CreateOrUpdateLobbyDom,
+                UpdateSessionListWithDataFragments: function (data, modified) {
+                    document.getElementById('codeRawJson').innerText = JSON.stringify(data, null, 2);
+                    //hljs.highlightAll();
+                    let codeElem = document.getElementById('codeRawJson');
+                    let codeElem2 = document.getElementById('codeRawJsonLines');
+                    delete codeElem.dataset.highlighted
+                    delete codeElem2.dataset.highlighted
+                    hljs.configure({ ignoreUnescapedHTML: true }); // hljs misunderstands the multiple text-node children of the codeRawJsonLines element and thinks its HTML
+                    hljs.highlightElement(codeElem);
+                    hljs.highlightElement(codeElem2);
+                },
+                GotDatumRaw: function (s) { document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s)); },
+                doneFn: () => {
+                    //sessionList.classList.remove('loading');
+                    //btnRefresh.classList.remove('loading');
+                },
+            }, games);
         });
 
         var sourceList = document.querySelector('#sourceList');
@@ -614,10 +344,10 @@ for (let ref in DataRefs_last_touched) {
             if (mod) {
                 htmlOut += `
 <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
-        ${GenerateHtml_ModBox(mod, true)}
+            ${GenerateHtml_ModBox(mod, true)}
 </div>
 <div class="col-12 col-sm-8 col-lg-9 col-xl-8 border-0 border-start border-start-xs-0 small">
-        <div class="row" data-path="mods" data-id-map="${encodeAttr(mapId)}" data-id-mod="${encodeAttr(mod.$id)}">${modBoxes}</div>
+            <div class="row" data-path="mods" data-id-map="${encodeAttr(mapId)}" data-id-mod="${encodeAttr(mod.$id)}">${modBoxes}</div>
 </div>`;
             } else {
                 htmlOut += `
@@ -629,16 +359,16 @@ for (let ref in DataRefs_last_touched) {
         function GenerateHtml_ModBox(mod, primary) {
             return `
 <div class="${primary ? '' : 'col-3 col-sm-2 col-lg-1 col-xl-2'} p-1">
-        <div class="ratio ratio-1x1">
-            <a class="ratio ratio-1x1" data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank">
-                <img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
-            </a>
-        </div>
-        ${primary ? `
-        <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
-            <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
-        </div>
-        ` : ''}
+            <div class="ratio ratio-1x1">
+                <a class="ratio ratio-1x1" data-path="mod_box_link" ${mod.url ? `href="${encodeAttr(mod.url)}"` : ''} data-type="mod" data-id="${encodeAttr(mod.$id)}" target="_blank">
+                    <img data-path="mod_box_image" data-type="mod" data-id="${encodeAttr(mod.$id)}" width="250" length="250" src="${encodeAttr(mod.image || '')}" title="${encodeAttr(mod.name || mod.$id)}" onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail ${primary ? 'border-primary' : ''}" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                </a>
+            </div>
+            ${primary ? `
+            <div class="shadow-lg p-1 m-auto mb-1 mt-2 ${primary ? 'bg-primary bg-opacity-10 border border-primary text-primary' : 'bg-body-tertiary'} rounded text-truncate text-center">
+                <small data-path="mod_box_name" data-type="mod" data-id="${encodeAttr(mod.$id)}" class="card-subtitle text-decoration-none" style="white-space:pre;">${mod.name || mod.$id}</small>
+            </div>
+            ` : ''}
 </div>`;
         }
 
@@ -664,9 +394,9 @@ for (let ref in DataRefs_last_touched) {
 
         function GenerateHtml_MicroList(name, object, extra) {
             var htmlEntries = `
-                    <div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35; clear: both;">
-        <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
-        <ul class="list-group list-group-flush">`;
+                        <div class="card border-secondary mt-2 small ${extra ? "extra_item" : ""}" style="--bs-border-opacity: .35; clear: both;">
+            <div data-path="team_name" data-id-team="1"class="p-1 card-header d-flex justify-content-center">${name}</div>
+            <ul class="list-group list-group-flush">`;
             for (let prop in object) {
                 if (object[prop] === null) {
 
@@ -701,14 +431,14 @@ for (let ref in DataRefs_last_touched) {
 
             let playerHtmlEntries = '';
             playerHtmlEntries += `
-        <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
-            `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
+            <div data-path="player" data-type="player" data-id="${encodeAttr(player.$id ?? "")}" data-extra-leader="${is_leader ? true : false}" data-extra-overlimit="${is_over_limit ? true : false}" class="d-block border ${is_over_limit ? 'border-dashed' : ''} rounded h-100">
+                `//<div class="col-3 m-2 d-block float-start h-100" style="max-width:100px;">
                 + `<div class="col-3 m-2 d-block float-end" style="max-width:100px;">
-                <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
-            </div>
-            <div class=" m-2 d-block">
-                <div class="mb-1">
-                    <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
+                    <img data-path="avatar" data-source="${encodeAttr(player_avatar_source)}" data-id="${encodeAttr(player_avatar_id)}" src="${encodeAttr(plaform_avatar)}" width="150" height="150" onerror="this.src = '/img/no_steam_pfp.jpg'" class="img-fluid img-thumbnail rounded">
+                </div>
+                <div class=" m-2 d-block">
+                    <div class="mb-1">
+                        <div class="force-ellipsis">${escapeHtml(player.name)}</div>`;
 
             for (let id in player.ids) {
                 switch (id) {
@@ -742,19 +472,19 @@ for (let ref in DataRefs_last_touched) {
                 playerHtmlEntries += `<div class="force-ellipsis"><i class="fa fa-user-circle-o" aria-hidden="true" title="Hero"></i> <span data-path="hero_name" data-type="hero" data-id="${encodeAttr(player.hero.$id)}">${escapeHtml(player.hero.name || player.hero.$id)}</span></div>`;
             }
             playerHtmlEntries += `
-                    <div>
-                        ${player.type ? `<strong class="badge text-bg-secondary bg-opacity-75">${escapeHtml(player.type)}</strong>` : ''}
-                        ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
-                        ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
-                    </div>`;
+                        <div>
+                            ${player.type ? `<strong class="badge text-bg-secondary bg-opacity-75">${escapeHtml(player.type)}</strong>` : ''}
+                            ${is_leader ? '<strong class="badge text-bg-light bg-opacity-75">Leader</strong>' : ''}
+                            ${player.is_host ? '<strong class="badge text-bg-warning bg-opacity-75">Host</strong>' : ''}
+                        </div>`;
             if (player.stats)
                 playerHtmlEntries += GenerateHtml_MicroList("Stats", player.stats, true);
             if (player.other)
                 playerHtmlEntries += GenerateHtml_MicroList("Other", player.other, true);
             playerHtmlEntries += `
+                    </div>
                 </div>
-            </div>
-        </div>`;
+            </div>`;
             return playerHtmlEntries;
         }
 
@@ -764,34 +494,34 @@ for (let ref in DataRefs_last_touched) {
 
             if (!elementDom) {
                 let dom_string = `
-            <div id="/source/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
-                <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
+                <div id="/source/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
+                    <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
+                        </div>
+                        <ul class="list-group list-group-flush text-secondary">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Status</strong>
+                                <span data-path="source.status" title=""></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Success</strong>
+                                <span data-path="source.success" title=""></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">TimeStamp</strong>
+                                <span data-path="source.timestamp" title=""></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong class="text-muted">Name</strong>
+                                <span data-path="source.name" title=""></span>
+                            </li>
+                        </ul>
+                        <div class="container-fluid pb-1">
+                            <div data-path="data-container" class="row" style="display:none;"></div>
+                        </div>
                     </div>
-                    <ul class="list-group list-group-flush text-secondary">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Status</strong>
-                            <span data-path="source.status" title=""></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Success</strong>
-                            <span data-path="source.success" title=""></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">TimeStamp</strong>
-                            <span data-path="source.timestamp" title=""></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <strong class="text-muted">Name</strong>
-                            <span data-path="source.name" title=""></span>
-                        </li>
-                    </ul>
-                    <div class="container-fluid pb-1">
-                        <div data-path="data-container" class="row" style="display:none;"></div>
-                    </div>
-                </div>
-            </div>`;
+                </div>`;
                 sourceList.insertAdjacentHTML('beforeend', dom_string);
                 elementDom = sourceList.lastElementChild;
             }
@@ -872,86 +602,86 @@ for (let ref in DataRefs_last_touched) {
             if (!elementDom || forceRebuild) {
                 let dom_string = `
 <div id="/${type}/${encodeAttr($id)}" class="col-12 col-xl-6 mb-4">
-        <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
-            </div>
-            <ul class="list-group list-group-flush">
-                <li data-path="${type}.message" class="list-group-item force-ellipsis" style="white-space:pre;"></li>
-            </ul>
-            <div class="container-fluid pb-1">
-                <div class="row border-bottom">`;
+            <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="force-ellipsis" style="white-space:pre;">${escapeHtml($id)}</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li data-path="${type}.message" class="list-group-item force-ellipsis" style="white-space:pre;"></li>
+                </ul>
+                <div class="container-fluid pb-1">
+                    <div class="row border-bottom">`;
                 if (!!data?.level?.map?.image || !!data?.level?.map?.map_file) {
                     dom_string += `
-                    <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
-                        <div class="ratio ratio-1x1">
-                            <img data-path="${type}.level.map.image" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                        <div class="col-12 col-sm-4 col-lg-3 col-xl-4 p-1 text-center">
+                            <div class="ratio ratio-1x1">
+                                <img data-path="${type}.level.map.image" width="250" length="250" src onerror="this.src='/img/no_steam_pfp.jpg'" class="img-thumbnail" style="width:100%;height:auto;margin:auto;bottom:0;top:0;left:0;right:0;">
+                            </div>
+                            <div class="shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate">
+                                <small data-path="${type}.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
+                            </div>
                         </div>
-                        <div class="shadow-lg p-1 m-auto mb-1 mt-2 bg-body-tertiary rounded text-truncate">
-                            <small data-path="${type}.level.map.map_file" class="card-subtitle text-body-secondary" style="white-space:pre;"></small>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">`;
+                        <div class="col-12 col-sm-8 col-lg-9 col-xl-8 p-0 border-0 border-start border-start-xs-0 small">`;
                 } else {
                     dom_string += `<div class="col-12 p-0 border-0 border-start border-start-xs-0 small">`;
                 }
                 dom_string += `
-                        <ul class="list-group list-group-flush text-secondary">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Type</strong>
-                                <span data-path="${type}.type" title=""></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Map</strong>
-                                <span data-path="${type}.level.map.name" title=""></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Type</strong>
-                                <span class="d-flex justify-content-between align-items-center">
-                                    <img data-path="${type}.level.game_type.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
-                                    <span data-path="${type}.level.game_type"></span>
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Mode</strong>
-                                <span class="d-flex justify-content-between align-items-center">
-                                    <img data-path="${type}.level.game_mode.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
-                                    <span data-path="${type}.level.game_mode"></span>
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Balance Paradigm</strong>
-                                <abbr data-path="${type}.level.game_balance"></abbr>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">State</strong>
-                                <span>
-                                    <span data-path="${type}.status.is_locked"></span>
-                                    <span data-path="${type}.status.has_password"></span>
-                                    <span data-path="${type}.status.state"></span>
-                                    <span data-path="${type}.time"></span>
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Player Count</strong>
-                                <span data-path="${type}.player_count"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Game Version</strong>
-                                <span data-path="${type}.game.version"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong class="text-muted">Name</strong>
-                                <span data-path="${type}.name"></span>
-                            </li>
-                        </ul>
+                            <ul class="list-group list-group-flush text-secondary">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Type</strong>
+                                    <span data-path="${type}.type" title=""></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Map</strong>
+                                    <span data-path="${type}.level.map.name" title=""></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Type</strong>
+                                    <span class="d-flex justify-content-between align-items-center">
+                                        <img data-path="${type}.level.game_type.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
+                                        <span data-path="${type}.level.game_type"></span>
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Mode</strong>
+                                    <span class="d-flex justify-content-between align-items-center">
+                                        <img data-path="${type}.level.game_mode.icon" class="me-1" src="/img/no_steam_pfp.jpg" width="20" height="20" onerror="this.src = '/img/no_steam_pfp.jpg'">
+                                        <span data-path="${type}.level.game_mode"></span>
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Balance Paradigm</strong>
+                                    <abbr data-path="${type}.level.game_balance"></abbr>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">State</strong>
+                                    <span>
+                                        <span data-path="${type}.status.is_locked"></span>
+                                        <span data-path="${type}.status.has_password"></span>
+                                        <span data-path="${type}.status.state"></span>
+                                        <span data-path="${type}.time"></span>
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Player Count</strong>
+                                    <span data-path="${type}.player_count"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Game Version</strong>
+                                    <span data-path="${type}.game.version"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong class="text-muted">Name</strong>
+                                    <span data-path="${type}.name"></span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
+                    <div data-path="other-container" class="row border-bottom" style="display:none;"></div>
+                    <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
+                    <div data-path="players" class="row"></div>
                 </div>
-                <div data-path="other-container" class="row border-bottom" style="display:none;"></div>
-                <div data-path="mods-container" class="row border-bottom" style="display:none;"></div>
-                <div data-path="players" class="row"></div>
-            </div>
-        </div>`;
+            </div>`;
                 if (forceRebuild) {
                     elementDom.outerHTML = dom_string;
                 } else {
@@ -1235,22 +965,22 @@ for (let ref in DataRefs_last_touched) {
 
                                 playerHtmlEntries += `
 <div class="col-12 p-0 pb-2">
-        <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
-            <span class="text-nowrap overflow-hidden align-middle">
-                <i class="fa fa-user" aria-hidden="true"></i> Open
-            </span>
-        </div>
+            <div class="d-block p-2 rounded border ${is_beyond_balance ? 'border-dashed opacity-50' : ''} text-secondary ps-3 text-bg-secondary bg-opacity-10 d-flex align-items-center h-100">
+                <span class="text-nowrap overflow-hidden align-middle">
+                    <i class="fa fa-user" aria-hidden="true"></i> Open
+                </span>
+            </div>
 </div>`;
                             }
                         }
                         if (!data.teams?.[team]?.human && data.teams?.[team]?.computer === true) {
                             playerHtmlEntries += `
 <div class="col-12 p-0 pb-2">
-        <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
-            <span class="text-nowrap overflow-hidden align-middle">
-                <i class="fa fa-desktop" aria-hidden="true"></i> Computer
-            </span>
-        </div>
+            <div class="d-block p-2 rounded border border-danger text-danger ps-3 text-bg-danger bg-opacity-10 d-flex align-items-center h-100">
+                <span class="text-nowrap overflow-hidden align-middle">
+                    <i class="fa fa-desktop" aria-hidden="true"></i> Computer
+                </span>
+            </div>
 </div>`;
                         }
 
@@ -1258,18 +988,18 @@ for (let ref in DataRefs_last_touched) {
                             if (!data.teams?.[team]?.human && data.teams?.[team]?.computer === true) {
                                 playerListDom.insertAdjacentHTML('beforeend', `
 <div class="col-12 col-md-6 p-0 p-2">
-        <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
-            <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${data.level?.map?.$id ? encodeAttr(data.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
-            <div class="row m-2 mb-0">${playerHtmlEntries}</div>
-        </div>
+            <div class="card h-100 border-danger" style="--bs-border-opacity: .35;">
+                <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${data.level?.map?.$id ? encodeAttr(data.level.map.$id) : ''}" class="small card-header d-flex justify-content-center text-bg-danger">${escapeHtml(teamName)}</div>
+                <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+            </div>
 </div>`);
                             } else {
                                 playerListDom.insertAdjacentHTML('beforeend', `
 <div class="col-12 col-md-6 p-0 p-2">
-        <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-            <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${data.level?.map?.$id ? encodeAttr(data.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
-            <div class="row m-2 mb-0">${playerHtmlEntries}</div>
-        </div>
+            <div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
+                <div data-path="team_name" data-id-team="${encodeAttr(team)}" data-id-map="${data.level?.map?.$id ? encodeAttr(data.level.map.$id) : ''}" class="small card-header d-flex justify-content-center">${escapeHtml(teamName)}</div>
+                <div class="row m-2 mb-0">${playerHtmlEntries}</div>
+            </div>
 </div>`);
                             }
                         } else {
@@ -1308,9 +1038,9 @@ for (let ref in DataRefs_last_touched) {
                 if ((data.game?.mods?.major?.length ?? 0) > 0) {
                     for (let modwrapper of data.game.mods.major) {
                         let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                                <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Major: ${modwrapper.role}</div>
-                                <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
-                            </div></div>`;
+                                    <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Major: ${modwrapper.role}</div>
+                                    <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                                </div></div>`;
 
                         // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
                         modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
@@ -1320,16 +1050,16 @@ for (let ref in DataRefs_last_touched) {
                     for (let modwrapper of data.game.mods.minor) {
                         if (false) {
                             let newHTML = `<div class="col-12 col-sm-4 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                                    <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
-                                    <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
-                                </div></div>`;
+                                        <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
+                                        <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                                    </div></div>`;
 
                             modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
                         } else {
                             let newHTML = `<div class="col-6 col-sm-4 col-lg-3 col-xl-4 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                                    <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
-                                    <div class="row m-0"><div class="col-12 p-1 text-center">${GenerateHtml_ModBox(modwrapper.mod, true)}</div></div>
-                                </div></div>`;
+                                        <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Minor: ${modwrapper.role}</div>
+                                        <div class="row m-0"><div class="col-12 p-1 text-center">${GenerateHtml_ModBox(modwrapper.mod, true)}</div></div>
+                                    </div></div>`;
 
                             modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
                         }
@@ -1338,71 +1068,14 @@ for (let ref in DataRefs_last_touched) {
                 if ((data.game?.mods?.option?.length ?? 0) > 0) {
                     for (let modwrapper of data.game.mods.option) {
                         let newHTML = `<div class="col-12 p-0 p-2"><div class="card h-100 border-secondary" style="--bs-border-opacity: .35;">
-                                <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Option: ${modwrapper.role}</div>
-                                <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
-                            </div></div>`;
+                                    <div data-path="mod-container" data-id="${encodeAttr(modwrapper.mod.$id)}" class="small card-header d-flex justify-content-center">Option: ${modwrapper.role}</div>
+                                    <div class="row m-0">${GenerateHtml_ModsRow(modwrapper.mod, data.level.map.$id)}</div>
+                                </div></div>`;
 
                         // TODO remove the mod ID from these or move the logic back in here so we can do in-place updating instead of full dom rewrite
                         modWrapperDom.insertAdjacentHTML('beforeend', newHTML);
                     }
                 }
-            }
-        }
-
-        let debouncingDatums = false;
-        let debouncingSet = new Set();
-        let debouncingTimeout = -1;
-        function UpdateSessionListWithDataFragments(data, modified) {
-            for (const mod of modified) {
-                var $parts = mod.split('\t', 2);
-                var $type = $parts[0];
-                var $id = $parts[1];
-
-                // set of all affected items by the incoming datum
-                let affected_set = ExpandDataRefs($type, $id);
-
-                if (affected_set) {
-                    for (let v of affected_set) {
-                        //console.log(v);
-                        let tmp = v.split('\t');
-                        debouncingSet.add(`${tmp[0]}\t${tmp[1]}`)
-                    }
-                    if (!debouncingDatums) {
-                        debouncingDatums = true;
-                        debouncingTimeout = setTimeout(() => {
-                            console.log("START PENDING POOLING");
-                            for (const affected of debouncingSet) {
-                                let tmp = affected.split('\t');
-                                console.log("Pending Datum Triggered", tmp[0], tmp[1])
-                                if (tmp[0] == 'source') {
-                                    CreateOrUpdateSourceDom(tmp[1], data);
-                                }
-                                if (tmp[0] == 'session') {
-                                    CreateOrUpdateSessionDom(tmp[1], data);
-                                }
-                                if (tmp[0] == 'lobby') {
-                                    CreateOrUpdateLobbyDom(tmp[1], data);
-                                }
-                            }
-                            debouncingSet = new Set();
-                            debouncingDatums = false;
-                            debouncingTimeout = -1;
-                            console.log("END PENDING POOLING");
-                        }, 250);
-                    }
-                }
-            }
-
-            {
-                document.getElementById('codeRawJson').innerText = JSON.stringify(data, null, 2);
-                //hljs.highlightAll();
-                let codeElem = document.getElementById('codeRawJson');
-                let codeElem2 = document.getElementById('codeRawJsonLines');
-                delete codeElem.dataset.highlighted
-                delete codeElem2.dataset.highlighted
-                hljs.configure({ ignoreUnescapedHTML: true }); // hljs misunderstands the multiple text-node children of the codeRawJsonLines element and thinks its HTML
-                hljs.highlightElement(codeElem);
-                hljs.highlightElement(codeElem2);
             }
         }
     </script>

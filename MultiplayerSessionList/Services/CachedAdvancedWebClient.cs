@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
@@ -16,12 +17,20 @@ namespace MultiplayerSessionList.Services
     {
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IMemoryCache memCache;
+        private readonly JsonSerializerOptions options;
         // private readonly ILogger<CachedAdvancedWebClient>? _logger; // Optionally inject a logger
 
         public CachedAdvancedWebClient(IMemoryCache memCache, IHttpClientFactory clientFactory)
         {
             this.httpClientFactory = clientFactory;
             this.memCache = memCache;
+
+            options = new JsonSerializerOptions
+            {
+                //PropertyNameCaseInsensitive = true
+            };
+            options.Converters.Add(new FaultTolerantIntConverter());
+            options.Converters.Add(new FaultTolerantStringConverter());
         }
 
         public Task<CachedData<T>?> GetObject<T>(string url) =>
@@ -61,7 +70,7 @@ namespace MultiplayerSessionList.Services
                 if (typeof(T) == typeof(string))
                     data = (T)(object)contentString;
                 else
-                    data = JsonSerializer.Deserialize<T>(contentString);
+                    data = JsonSerializer.Deserialize<T>(contentString, options);
                 
                 var cacheData = new CachedData<T>(data, readTime.Add(newTime), response.Content.Headers.LastModified?.UtcDateTime ?? readTime);
                 memCache.Set(cacheKey, cacheData, cacheTime);
