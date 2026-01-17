@@ -34,7 +34,7 @@ namespace MultiplayerSessionList.Controllers
 
         [EnableCors("Sessions")]
         [Route("api/1.0/sessions")]
-        public async Task<IActionResult> Sessions(string game, string admin_password)
+        public async Task<IActionResult> Sessions(string game, string? admin_password)
         {
             if (!_gameListModuleManager.GameListPluginsOld.ContainsKey(game))
                 return NotFound();
@@ -54,7 +54,7 @@ namespace MultiplayerSessionList.Controllers
         [Route("api/2.0/sessions")]
         public async Task Sessions2(
             [FromQuery] string[] game,
-            string admin_password,
+            string? admin_password,
             int? simulate_delay,
             bool? mock,
             string? mode, // "chunked", "event", "websock" (handle "websock" later)
@@ -125,7 +125,7 @@ namespace MultiplayerSessionList.Controllers
 
         [EnableCors("Games")]
         [Route("api/1.0/games")]
-        public IActionResult Games(string admin_password)
+        public IActionResult Games(string? admin_password)
         {
             string? AdminDataPassword = _configuration?["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;
@@ -140,7 +140,7 @@ namespace MultiplayerSessionList.Controllers
 
         [EnableCors("Games")]
         [Route("api/2.0/games")]
-        public IActionResult Games2(string admin_password)
+        public IActionResult Games2(string? admin_password)
         {
             string? AdminDataPassword = _configuration?["AdminDataPassword"];
             bool Admin = AdminDataPassword == admin_password;

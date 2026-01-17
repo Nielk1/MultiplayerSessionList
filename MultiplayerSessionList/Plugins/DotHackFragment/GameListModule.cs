@@ -65,21 +65,14 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
         };
         const string ansiReset = "\u001b[0m";
 
-        private string queryUrl_lobbies;
-        private string queryUrl_areaservers;
+        private readonly string queryUrl = null!;
         private CachedAdvancedWebClient cachedAdvancedWebClient;
 
         public GameListModule(IConfiguration configuration, CachedAdvancedWebClient cachedAdvancedWebClient)
         {
-            string? queryUrl_lobbies = configuration[$"{GameID}:lobbies"];
-            if (string.IsNullOrWhiteSpace(queryUrl_lobbies))
-                throw new InvalidOperationException($"Critical configuration value for '{GameID}:lobbies' is missing or empty.");
-            this.queryUrl_lobbies = queryUrl_lobbies;
-
-            string? queryUrl_areaservers = configuration[$"{GameID}:areaservers"];
-            if (string.IsNullOrWhiteSpace(queryUrl_areaservers))
-                throw new InvalidOperationException($"Critical configuration value for '{GameID}:areaservers' is missing or empty.");
-            this.queryUrl_areaservers = queryUrl_areaservers;
+            queryUrl = configuration[GameID]?.TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(queryUrl))
+                throw new InvalidOperationException($"Critical configuration value for '{GameID}' is missing or empty.");
 
             //IConfigurationSection myArraySection = configuration.GetSection("MyArray");
             //var itemArray = myArraySection.AsEnumerable();
@@ -106,7 +99,7 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
 
         private async IAsyncEnumerable<Datum> ApplyLobbiesAsync(bool admin)
         {
-            CachedData<string>? res = await cachedAdvancedWebClient.GetObject<string>(queryUrl_lobbies, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+            CachedData<string>? res = await cachedAdvancedWebClient.GetObject<string>($"{queryUrl}/lobbies", TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
             if (res?.Data == null)
                 yield break;
             //if (admin)
@@ -147,7 +140,7 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
 
         private async IAsyncEnumerable<Datum> ApplyAreaServerListAsync(bool admin)
         {
-            CachedData<string>? res = await cachedAdvancedWebClient.GetObject<string>(queryUrl_areaservers, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+            CachedData<string>? res = await cachedAdvancedWebClient.GetObject<string>($"{queryUrl}/areaservers", TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
             if (res?.Data == null)
                 yield break;
             if (admin)
