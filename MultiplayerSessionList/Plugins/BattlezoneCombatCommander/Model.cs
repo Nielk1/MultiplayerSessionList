@@ -40,15 +40,15 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
     public class BZCCPlayerData
     {
         public string? n { get; set; } // name (base 64)
+        
+        [Newtonsoft.Json.JsonProperty("i")][JsonPropertyName("i")] public string? PlayerID { get; set; } // id (player ID)
+        [Newtonsoft.Json.JsonProperty("k")][JsonPropertyName("k")] public int? Kills { get; set; } // kills
+        [Newtonsoft.Json.JsonProperty("d")][JsonPropertyName("d")] public int? Deaths { get; set; } // deaths
+        [Newtonsoft.Json.JsonProperty("s")][JsonPropertyName("s")] public int? Score { get; set; } // score
+        [Newtonsoft.Json.JsonProperty("t")][JsonPropertyName("t")] public int? Team { get; set; } // team
 
-        [JsonPropertyName("i")] public string? PlayerID { get; set; } // id (player ID)
-        [JsonPropertyName("k")] public int? Kills { get; set; } // kills
-        [JsonPropertyName("d")] public int? Deaths { get; set; } // deaths
-        [JsonPropertyName("s")] public int? Score { get; set; } // score
-        [JsonPropertyName("t")] public int? Team { get; set; } // team
-
-        //[JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n)); } }
-        [JsonIgnore] public string? Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n)); } }
+        //[Newtonsoft.Json.JsonIgnore][JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n)); } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string? Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n)); } }
     }
     enum GameMode : int
     {
@@ -85,29 +85,29 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         //public string __addr { get; set; }
         public string? proxySource { get; set; }
 
-        [JsonPropertyName("g")] public string NATNegID { get; set; } = null!; // Raknet GUID, Base64 encoded with custom alphabet
+        [Newtonsoft.Json.JsonProperty("g")][JsonPropertyName("g")] public string NATNegID { get; set; } = null!; // Raknet GUID, Base64 encoded with custom alphabet
         public string? n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
-        [JsonPropertyName("m")] public string? MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
+        [Newtonsoft.Json.JsonProperty("m")][JsonPropertyName("m")] public string? MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
         public byte? k { get; set; } // tinyint      | Password Flag.
         public string? d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
-        [JsonPropertyName("t")] public NatType? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
+        [Newtonsoft.Json.JsonProperty("t")][JsonPropertyName("t")] public NatType? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
         public string? v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
         [JsonConverter(typeof(FaultTolerantIntConverter))] public int? l { get; set; } // locked, this was a string in error in my raknet server's fake marker game
-        [JsonPropertyName("h")] public string? MOTD { get; set; } // server message (not base64 yet)
+        [Newtonsoft.Json.JsonProperty("h")][JsonPropertyName("h")] public string? MOTD { get; set; } // server message (not base64 yet)
 
         public string? mm { get; set; } // mod list ex: "1300825258;1300820029"
-        [JsonPropertyName("gt")] public int? GameType { get; set; } // game type
-        [JsonPropertyName("gtd")] public int? GameSubType { get; set; } // sub game type
-        [JsonPropertyName("pm")] public int? MaxPlayers { get; set; } // max players
+        [Newtonsoft.Json.JsonProperty("gt")][JsonPropertyName("gt")] public int? GameType { get; set; } // game type
+        [Newtonsoft.Json.JsonProperty("gtd")][JsonPropertyName("gtd")] public int? GameSubType { get; set; } // sub game type
+        [Newtonsoft.Json.JsonProperty("pm")][JsonPropertyName("pm")] public int? MaxPlayers { get; set; } // max players
 
-        [JsonPropertyName("tps")] public int? TPS { get; set; } // tps
-        [JsonPropertyName("si")] public int? ServerInfoMode { get; set; } // gamestate
-        [JsonPropertyName("ti")] public int? TimeLimit { get; set; } // time limit
-        [JsonPropertyName("ki")] public int? KillLimit { get; set; } // kill limit
+        [Newtonsoft.Json.JsonProperty("tps")][JsonPropertyName("tps")] public int? TPS { get; set; } // tps
+        [Newtonsoft.Json.JsonProperty("si")][JsonPropertyName("si")] public int? ServerInfoMode { get; set; } // gamestate
+        [Newtonsoft.Json.JsonProperty("ti")][JsonPropertyName("ti")] public int? TimeLimit { get; set; } // time limit
+        [Newtonsoft.Json.JsonProperty("ki")][JsonPropertyName("ki")] public int? KillLimit { get; set; } // kill limit
 
-        [JsonPropertyName("gtm")] public int? GameTimeMinutes { get; set; } // game time min (max 255)
-        [JsonPropertyName("pg")] public int? MaxPingSeen { get; set; } // seen max ping
-        [JsonPropertyName("pgm")] public int? MaxPing { get; set; } // max ping
+        [Newtonsoft.Json.JsonProperty("gtm")][JsonPropertyName("gtm")] public int? GameTimeMinutes { get; set; } // game time min (max 255)
+        [Newtonsoft.Json.JsonProperty("pg")][JsonPropertyName("pg")] public int? MaxPingSeen { get; set; } // seen max ping
+        [Newtonsoft.Json.JsonProperty("pgm")][JsonPropertyName("pgm")] public int? MaxPing { get; set; } // max ping
 
 
         //#define RAKNET_MASTERSERVER_GAMEID_KEY "gid"
@@ -122,12 +122,12 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
         public BZCCPlayerData[]? pl { get; set; }
 
-        [JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }
-        [JsonIgnore] public bool Locked { get { return l == 1; } }
-        [JsonIgnore] public bool Passworded { get { return k != 0; } }
-        [JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public bool Locked { get { return l == 1; } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public bool Passworded { get { return k != 0; } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 
-        [JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
 
         public bool IsOnRebellion()
         {
