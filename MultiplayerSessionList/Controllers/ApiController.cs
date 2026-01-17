@@ -58,6 +58,7 @@ namespace MultiplayerSessionList.Controllers
             int? simulate_delay,
             bool? mock,
             string? mode, // "chunked", "event", "websock" (handle "websock" later)
+            string? nonce,
             CancellationToken cancellationToken)
         {
             string[] games = game.Distinct().Where(g => _gameListModuleManager.HasPlugin(g)).ToArray();
@@ -97,12 +98,17 @@ namespace MultiplayerSessionList.Controllers
                 Response.ContentType = "text/event-stream";
                 if (pluginStreams != null)
                 {
+                    if (!string.IsNullOrWhiteSpace(nonce))
+                        await Response.WriteAsync($"data: {{\"$type\":\"mark\",\"mark\":\"start\",\"nonce\":{JsonSerializer.Serialize(nonce)}}}\n\n", cancellationToken);
                     await foreach (var datum in pluginStreams.SelectManyAsync(cancellationToken: cancellationToken).DelayAsync(simulate_delay ?? 0))
                     {
                         var json = JsonSerializer.Serialize(datum);
                         await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
                         await Response.Body.FlushAsync(cancellationToken);
                     }
+                    if (!string.IsNullOrWhiteSpace(nonce))
+                        await Response.WriteAsync($"data: {{\"$type\":\"mark\",\"mark\":\"end\",\"nonce\":{JsonSerializer.Serialize(nonce)}}}\n\n", cancellationToken);
+                    await Response.Body.FlushAsync(cancellationToken);
                 }
             }
             else // Default: chunked NDJson
