@@ -263,7 +263,7 @@ function UpdateSessionListWithDataFragments(functions, data, modified) {
             startDebouncePulse(functions, data);
         }
     }
-    functions.updated(data, modified);
+    functions.updated?.(data, modified);
     // Optionally, call stopDebouncePulse() when you want to flush and stop (e.g., on navigation)
 }
 
