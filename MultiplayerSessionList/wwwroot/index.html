@@ -298,17 +298,18 @@
             //btnRefresh.classList.add('loading');
             let GetGamesAjax = RefreshSessionList({
                 updated: function (data, modified) {
-                    document.getElementById('codeRawJson').innerText = JSON.stringify(data, null, 2);
-                    //hljs.highlightAll();
                     let codeElem = document.getElementById('codeRawJson');
-                    let codeElem2 = document.getElementById('codeRawJsonLines');
+                    codeElem.textContent = JSON.stringify(data, null, 2);
                     delete codeElem.dataset.highlighted
+                    hljs.highlightElement(codeElem);
+                },
+                raw: function (s) {
+                    let codeElem2 = document.getElementById('codeRawJsonLines');
+                    codeElem2.appendChild(document.createTextNode(s));
                     delete codeElem2.dataset.highlighted
                     hljs.configure({ ignoreUnescapedHTML: true }); // hljs misunderstands the multiple text-node children of the codeRawJsonLines element and thinks its HTML
-                    hljs.highlightElement(codeElem);
                     hljs.highlightElement(codeElem2);
                 },
-                raw: function (s) { document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s)); },
                 process: UpdateDatumDom,
                 done: () => {
                     //sessionList.classList.remove('loading');
