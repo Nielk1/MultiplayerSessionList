@@ -242,7 +242,7 @@ function startDebouncePulse(functions, data) {
         debouncingMap.clear();
 
         console.log("START PENDING POOLING");
-        functions.process(currentMap, data);
+        functions.process?.(currentMap, data);
         console.log("END PENDING POOLING");
     }, DEBOUNCE_PULSE_MS);
 }
