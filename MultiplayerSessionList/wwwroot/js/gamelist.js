@@ -263,6 +263,7 @@ function UpdateSessionListWithDataFragments(functions, data, modified) {
             startDebouncePulse(functions, data);
         }
     }
+    functions.updated(data, modified);
     // Optionally, call stopDebouncePulse() when you want to flush and stop (e.g., on navigation)
 }
 
@@ -293,12 +294,10 @@ function randomString(length = 16) {
 var GetGamesAjax = null;
 export function RefreshSessionList(functions, games) {
     if (GetGamesAjax != null) {
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode');
-        if (mode === 'chunked') {
-            GetGamesAjax.abort();
-        } else {
+        if (GetGamesAjax instanceof EventSource) {
             GetGamesAjax.close();
+        } else if (GetGamesAjax instanceof XMLHttpRequest) {
+            GetGamesAjax.abort();
         }
     }
 
@@ -384,7 +383,7 @@ export function RefreshSessionList(functions, games) {
             var end = 0;
             while ((end = GetGamesAjax.responseText.indexOf('\n', last_index)) > -1) {
                 var s = GetGamesAjax.responseText.substring(last_index, end + 1);
-                functions.GotDatumRaw?.(s);
+                functions.raw?.(s);
                 //document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
                 var data = JSON.parse(s);
                 incomingDataQueue.push(data);

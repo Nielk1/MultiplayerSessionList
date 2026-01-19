@@ -659,23 +659,23 @@
 
                     console.log(affectedType, affectedId);
 
-                    if (affectedType === 'source') {
-                        CreateOrUpdateSourceDom?.(affectedId, data);
-                    }
+                    //if (affectedType === 'source') {
+                    //    CreateOrUpdateSourceDom(affectedId, data);
+                    //}
                     if (affectedType === 'session') {
                         if (type == 'source') {
                             // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
                         } else {
-                            CreateOrUpdateSessionDom?.(affectedId, data);
+                            CreateOrUpdateSessionDom(affectedId, data);
                         }
                     }
-                    if (affectedType === 'lobby') {
-                        if (type == 'source') {
-                            // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
-                        } else {
-                            CreateOrUpdateLobbyDom?.(affectedId, data);
-                        }
-                    }
+                    //if (affectedType === 'lobby') {
+                    //    if (type == 'source') {
+                    //        // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
+                    //    } else {
+                    //        CreateOrUpdateLobbyDom(affectedId, data);
+                    //    }
+                    //}
                 }
             }
         }
