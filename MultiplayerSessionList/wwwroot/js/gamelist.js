@@ -227,51 +227,62 @@ function processIncomingDataDebounced(functions, nonce) {
     }, INCOMING_DATA_DEBOUNCE_MS);
 }
 
-let debouncingDatums = false;
 let debouncingSet = new Set();
-let debouncingTimeout = -1;
+let debouncingInterval = null;
+const DEBOUNCE_PULSE_MS = 250;
+
+function startDebouncePulse(functions, data) {
+    if (debouncingInterval !== null) return; // Already running
+
+    debouncingInterval = setInterval(() => {
+        if (debouncingSet.size === 0) return; // Nothing to process
+
+        // Copy and clear the set for this pulse
+        const currentSet = Array.from(debouncingSet);
+        debouncingSet = new Set();
+
+        console.log("START PENDING POOLING");
+        for (const affected of currentSet) {
+            let tmp = affected.split('\t');
+            console.log("Pending Datum Triggered", tmp[0], tmp[1]);
+            if (tmp[0] == 'source') {
+                functions.CreateOrUpdateSourceDom?.(tmp[1], data);
+            }
+            if (tmp[0] == 'session') {
+                functions.CreateOrUpdateSessionDom?.(tmp[1], data);
+            }
+            if (tmp[0] == 'lobby') {
+                functions.CreateOrUpdateLobbyDom?.(tmp[1], data);
+            }
+        }
+        console.log("END PENDING POOLING");
+    }, DEBOUNCE_PULSE_MS);
+}
+
+function stopDebouncePulse() {
+    if (debouncingInterval !== null) {
+        clearInterval(debouncingInterval);
+        debouncingInterval = null;
+    }
+}
+
 function UpdateSessionListWithDataFragments(functions, data, modified) {
     for (const mod of modified) {
         var $parts = mod.split('\t', 2);
         var $type = $parts[0];
         var $id = $parts[1];
 
-        // set of all affected items by the incoming datum
         let affected_set = ExpandDataRefs($type, $id);
 
         if (affected_set) {
             for (let v of affected_set) {
-                //console.log(v);
                 let tmp = v.split('\t');
-                debouncingSet.add(`${tmp[0]}\t${tmp[1]}`)
+                debouncingSet.add(`${tmp[0]}\t${tmp[1]}`);
             }
-            if (!debouncingDatums) {
-                debouncingDatums = true;
-                debouncingTimeout = setTimeout(() => {
-                    console.log("START PENDING POOLING");
-                    for (const affected of debouncingSet) {
-                        let tmp = affected.split('\t');
-                        console.log("Pending Datum Triggered", tmp[0], tmp[1])
-                        if (tmp[0] == 'source') {
-                            functions.CreateOrUpdateSourceDom?.(tmp[1], data);
-                        }
-                        if (tmp[0] == 'session') {
-                            functions.CreateOrUpdateSessionDom?.(tmp[1], data);
-                        }
-                        if (tmp[0] == 'lobby') {
-                            functions.CreateOrUpdateLobbyDom?.(tmp[1], data);
-                        }
-                    }
-                    debouncingSet = new Set();
-                    debouncingDatums = false;
-                    debouncingTimeout = -1;
-                    console.log("END PENDING POOLING");
-                }, 250);
-            }
+            startDebouncePulse(functions, data);
         }
     }
-
-    functions.UpdateSessionListWithDataFragments?.(data, modified);
+    // Optionally, call stopDebouncePulse() when you want to flush and stop (e.g., on navigation)
 }
 
 //export function debounceDatums() {
