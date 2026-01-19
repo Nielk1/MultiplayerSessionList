@@ -312,6 +312,7 @@
                     hljs.highlightElement(codeElem2);
                 },
                 GotDatumRaw: function (s) { document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s)); },
+                processDatums: UpdateDatumDom,
                 doneFn: () => {
                     //sessionList.classList.remove('loading');
                     //btnRefresh.classList.remove('loading');
@@ -322,6 +323,27 @@
         var sourceList = document.querySelector('#sourceList');
         var lobbyList = document.querySelector('#lobbyList');
         var sessionList = document.querySelector('#sessionList');
+
+        function UpdateDatumDom(updates, data) {
+            for (const [datumKey, affectedSet] of updates.entries()) {
+                let [type, id] = datumKey.split('\t');
+                console.log(type, id, affectedSet)
+                for (const affected of affectedSet) {
+                    let [affectedType, affectedId] = datumKey.split('\t');
+                    console.log(affectedType, affectedId);
+                    // Callbacks now receive the datum ID and the set of affected keys
+                    if (affectedType === 'source') {
+                        CreateOrUpdateSourceDom?.(affectedId, data);
+                    }
+                    if (affectedType === 'session') {
+                        CreateOrUpdateSessionDom?.(affectedId, data);
+                    }
+                    if (affectedType === 'lobby') {
+                        CreateOrUpdateLobbyDom?.(affectedId, data);
+                    }
+                }
+            }
+        }
 
         function GenerateHtml_ModBoxes(mod) {
             let modBoxes = '';

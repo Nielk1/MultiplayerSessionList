@@ -227,7 +227,7 @@ function processIncomingDataDebounced(functions, nonce) {
     }, INCOMING_DATA_DEBOUNCE_MS);
 }
 
-let debouncingSet = new Set();
+let debouncingMap = new Map(); // Map: datumKey -> Set of affected keys
 let debouncingInterval = null;
 const DEBOUNCE_PULSE_MS = 250;
 
@@ -235,26 +235,14 @@ function startDebouncePulse(functions, data) {
     if (debouncingInterval !== null) return; // Already running
 
     debouncingInterval = setInterval(() => {
-        if (debouncingSet.size === 0) return; // Nothing to process
+        if (debouncingMap.size === 0) return; // Nothing to process
 
-        // Copy and clear the set for this pulse
-        const currentSet = Array.from(debouncingSet);
-        debouncingSet = new Set();
+        // Copy and clear the map for this pulse
+        const currentMap = new Map(debouncingMap);
+        debouncingMap.clear();
 
         console.log("START PENDING POOLING");
-        for (const affected of currentSet) {
-            let tmp = affected.split('\t');
-            console.log("Pending Datum Triggered", tmp[0], tmp[1]);
-            if (tmp[0] == 'source') {
-                functions.CreateOrUpdateSourceDom?.(tmp[1], data);
-            }
-            if (tmp[0] == 'session') {
-                functions.CreateOrUpdateSessionDom?.(tmp[1], data);
-            }
-            if (tmp[0] == 'lobby') {
-                functions.CreateOrUpdateLobbyDom?.(tmp[1], data);
-            }
-        }
+        functions.processDatums(currentMap, data);
         console.log("END PENDING POOLING");
     }, DEBOUNCE_PULSE_MS);
 }
@@ -268,17 +256,10 @@ function stopDebouncePulse() {
 
 function UpdateSessionListWithDataFragments(functions, data, modified) {
     for (const mod of modified) {
-        var $parts = mod.split('\t', 2);
-        var $type = $parts[0];
-        var $id = $parts[1];
-
-        let affected_set = ExpandDataRefs($type, $id);
-
-        if (affected_set) {
-            for (let v of affected_set) {
-                let tmp = v.split('\t');
-                debouncingSet.add(`${tmp[0]}\t${tmp[1]}`);
-            }
+        // For each modified datum, get its full parent chain (including itself)
+        let affectedSet = ExpandDataRefs(...mod.split('\t'));
+        if (affectedSet) {
+            debouncingMap.set(mod, new Set(affectedSet));
             startDebouncePulse(functions, data);
         }
     }
@@ -329,13 +310,15 @@ export function RefreshSessionList(functions, games) {
         return;
 
     // forget any pending datums from a prior refresh
-    debouncingDatums = false;
-    debouncingSet = new Set();
-    if (debouncingTimeout >= 0) {
-        clearTimeout(debouncingTimeout);
-        console.log("ABORT PENDING POOLING");
-    }
-    debouncingTimeout = -1;
+    //debouncingDatums = false;
+    //debouncingSet = new Set();
+    //debouncingMap = new Map();
+    //if (debouncingTimeout >= 0) {
+    //    clearTimeout(debouncingTimeout);
+    //    console.log("ABORT PENDING POOLING");
+    //}
+    //debouncingTimeout = -1;
+    stopDebouncePulse();
 
     DataRefs_parents = {};
     DataRefs_children = {};
@@ -363,11 +346,12 @@ export function RefreshSessionList(functions, games) {
     ListData = {};
 
     // Clear the shared queue and debounce timer
-    incomingDataQueue = [];
-    if (incomingDataDebounceTimeout !== null) {
-        clearTimeout(incomingDataDebounceTimeout);
-        incomingDataDebounceTimeout = null;
-    }
+    //incomingDataQueue = [];
+    //if (incomingDataDebounceTimeout !== null) {
+    //    clearTimeout(incomingDataDebounceTimeout);
+    //    incomingDataDebounceTimeout = null;
+    //}
+    stopDebouncePulse();
 
     if (mode === 'event') {
         // Use EventSource for SSE

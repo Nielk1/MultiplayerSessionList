@@ -635,6 +635,7 @@
             btnRefresh.classList.add('loading');
             let GetGamesAjax = RefreshSessionList({
                 CreateOrUpdateSessionDom: CreateOrUpdateSessionDom,
+                processDatums: UpdateDatumDom,
                 doneFn: () => {
                     //sessionList.classList.remove('loading');
                     btnRefresh.classList.remove('loading');
@@ -645,6 +646,23 @@
         //var sourceList = document.querySelector('#sourceList');
         //var lobbyList = document.querySelector('#lobbyList');
         var sessionList = document.querySelector('#sessionList');
+
+        function UpdateDatumDom(updates) {
+            for (const [datumKey, affectedSet] of currentMap.entries()) {
+                let [type, id] = datumKey.split('\t');
+                console.log(type, id, affectedSet)
+                // Callbacks now receive the datum ID and the set of affected keys
+                if (type === 'source') {
+                    CreateOrUpdateSourceDom?.(id, data, affectedSet);
+                }
+                if (type === 'session') {
+                    CreateOrUpdateSessionDom?.(id, data, affectedSet);
+                }
+                if (type === 'lobby') {
+                    CreateOrUpdateLobbyDom?.(id, data, affectedSet);
+                }
+            }
+        }
 
         function GenerateHtml_IdentitySteam(identity) {
             let platform_name = identity.nickname || identity.$id;
