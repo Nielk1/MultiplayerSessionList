@@ -206,7 +206,7 @@ function processIncomingDataDebounced(functions, nonce) {
                 console.log(data.$type, data.$id, data.$data);
             } else if (data.$type == 'mark') {
                 if (data.mark == "end" && data.nonce == nonce) {
-                    functions.doneFn?.();
+                    functions.done?.();
                 }
             } else {
                 ListData[data.$type] = ListData[data.$type] || {};
@@ -242,7 +242,7 @@ function startDebouncePulse(functions, data) {
         debouncingMap.clear();
 
         console.log("START PENDING POOLING");
-        functions.processDatums(currentMap, data);
+        functions.process(currentMap, data);
         console.log("END PENDING POOLING");
     }, DEBOUNCE_PULSE_MS);
 }
@@ -363,7 +363,7 @@ export function RefreshSessionList(functions, games) {
         var eventSource = new EventSource(url);
         eventSource.onmessage = function (event) {
             var s = event.data + "\n";
-            functions.GotDatumRaw?.(s);
+            functions.raw?.(s);
             //document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s));
             var data = JSON.parse(event.data);
             incomingDataQueue.push(data);
@@ -371,7 +371,7 @@ export function RefreshSessionList(functions, games) {
         };
         eventSource.onerror = function () {
             eventSource.close();
-            functions.doneFn?.();
+            functions.done?.();
         };
         GetGamesAjax = eventSource;
     } else {
@@ -392,7 +392,7 @@ export function RefreshSessionList(functions, games) {
             }
             processIncomingDataDebounced(functions);
         };
-        GetGamesAjax.onload = function () { functions.doneFn?.(); }
+        GetGamesAjax.onload = function () { functions.done?.(); }
         GetGamesAjax.send();
     }
     ListData = {};

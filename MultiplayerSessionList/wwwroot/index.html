@@ -297,9 +297,6 @@
 
             //btnRefresh.classList.add('loading');
             let GetGamesAjax = RefreshSessionList({
-                CreateOrUpdateSourceDom: CreateOrUpdateSourceDom,
-                CreateOrUpdateSessionDom: CreateOrUpdateSessionDom,
-                CreateOrUpdateLobbyDom: CreateOrUpdateLobbyDom,
                 UpdateSessionListWithDataFragments: function (data, modified) {
                     document.getElementById('codeRawJson').innerText = JSON.stringify(data, null, 2);
                     //hljs.highlightAll();
@@ -311,9 +308,9 @@
                     hljs.highlightElement(codeElem);
                     hljs.highlightElement(codeElem2);
                 },
-                GotDatumRaw: function (s) { document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s)); },
-                processDatums: UpdateDatumDom,
-                doneFn: () => {
+                raw: function (s) { document.getElementById('codeRawJsonLines').appendChild(document.createTextNode(s)); },
+                process: UpdateDatumDom,
+                done: () => {
                     //sessionList.classList.remove('loading');
                     //btnRefresh.classList.remove('loading');
                 },
@@ -325,21 +322,38 @@
         var sessionList = document.querySelector('#sessionList');
 
         function UpdateDatumDom(updates, data) {
+            const seen = new Set(); // prevent refiring updates we already did in this batch
             for (const [datumKey, affectedSet] of updates.entries()) {
+                // type - Datum type that caused this update
+                // id - Datum id that caused this update
                 let [type, id] = datumKey.split('\t');
-                console.log(type, id, affectedSet)
+
                 for (const affected of affectedSet) {
+                    // affectedType - Datum type that is influenced by this update
+                    // affectedId - Datum id that is influenced by this update
                     let [affectedType, affectedId] = datumKey.split('\t');
+                    const key = `${affectedType}\t${affectedId}`;
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+
                     console.log(affectedType, affectedId);
-                    // Callbacks now receive the datum ID and the set of affected keys
+
                     if (affectedType === 'source') {
                         CreateOrUpdateSourceDom?.(affectedId, data);
                     }
                     if (affectedType === 'session') {
-                        CreateOrUpdateSessionDom?.(affectedId, data);
+                        if (type == 'source') {
+                            // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
+                        } else {
+                            CreateOrUpdateSessionDom?.(affectedId, data);
+                        }
                     }
                     if (affectedType === 'lobby') {
-                        CreateOrUpdateLobbyDom?.(affectedId, data);
+                        if (type == 'source') {
+                            // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
+                        } else {
+                            CreateOrUpdateLobbyDom?.(affectedId, data);
+                        }
                     }
                 }
             }
