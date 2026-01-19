@@ -333,7 +333,7 @@ public class GameListModule : IGameListModule
                             }
 
                             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
-                            if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"DM")))
+                            if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMETYPE, $"DM")))
                                 yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Deathmatch" } });
 
                             switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
