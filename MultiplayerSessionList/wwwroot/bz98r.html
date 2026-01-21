@@ -652,31 +652,43 @@
                 for (const affected of affectedSet) {
                     // affectedType - Datum type that is influenced by this update
                     // affectedId - Datum id that is influenced by this update
-                    let [affectedType, affectedId] = datumKey.split('\t');
+                    let [affectedType, affectedId] = affected.split('\t');
                     const key = `${affectedType}\t${affectedId}`;
                     if (seen.has(key)) continue;
-                    seen.add(key);
-
-                    console.log(affectedType, affectedId);
 
                     //if (affectedType === 'source') {
-                    //    CreateOrUpdateSourceDom(affectedId, data);
+                    //    seen.add(key);
                     //}
                     if (affectedType === 'session') {
-                        if (type == 'source') {
-                            // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
+                        if (type == 'source') { // TODO we can't see type at this point, need to refactor
+                        // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
                         } else {
-                            CreateOrUpdateSessionDom(affectedId, data);
+                            seen.add(key);
                         }
                     }
                     //if (affectedType === 'lobby') {
                     //    if (type == 'source') {
                     //        // source nodes aren't refleccted in Session dom so ignore them even if they triggered an update
                     //    } else {
-                    //        CreateOrUpdateLobbyDom(affectedId, data);
+                    //        seen.add(key);
                     //    }
                     //}
+
+                    console.log(`\t${affectedType}\t${affectedId}`);
                 }
+            }
+            for (const key of seen) {
+                let [affectedType, affectedId] = key.split('\t');
+
+                //if (affectedType === 'source') {
+                //    CreateOrUpdateSourceDom(affectedId, data);
+                //}
+                if (affectedType === 'session') {
+                    CreateOrUpdateSessionDom(affectedId, data);
+                }
+                //if (affectedType === 'lobby') {
+                //    CreateOrUpdateLobbyDom(affectedId, data);
+                //}
             }
         }
 
