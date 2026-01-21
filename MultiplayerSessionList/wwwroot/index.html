@@ -271,6 +271,33 @@
             }
         });
 
+        function makeRefString(type, id) {
+            function escapeRef(str) {
+                return str.replace(/~/g, '~0').replace(/\//g, '~1');
+            }
+            return `#/${escapeRef(type)}/${escapeRef(id)}`;
+        }
+
+        function ReferenceNester(key, value, path) {
+            if (path.length > 2) {
+                if (isObject(value)) {
+                    if (!!value.$type && !!value.$id) {
+                        return { $ref: makeRefString(value.$type, value.$id) };
+                    }
+                }
+            }
+            return value;
+        }
+        function replacerWithPath(replacer) {
+            let m = new Map();
+
+            return function (field, value) {
+                let path = m.get(this) + (Array.isArray(this) ? `[${field}]` : '\t' + field);
+                if (value === Object(value)) m.set(value, path);
+                return replacer.call(this, field, value, path.replace(/undefined\t\t?/, '').split('\t'))
+            }
+        }
+
         document.getElementById('btnExtra').addEventListener('click', function (e) {
             e.preventDefault();
             const btnExtra = document.getElementById('btnExtra');
@@ -299,7 +326,8 @@
             let GetGamesAjax = RefreshSessionList({
                 updated: function (data, modified) {
                     let codeElem = document.getElementById('codeRawJson');
-                    codeElem.textContent = JSON.stringify(data, null, 2);
+                    //codeElem.textContent = JSON.stringify(data, ReferenceNester, 2);
+                    codeElem.textContent = JSON.stringify(data, replacerWithPath(ReferenceNester), 2).replace(/\{[ \r\n]*"\$ref"[ \r\n]*:[ \r\n]*("[^"]*")[ \r\n]*\}/g, '{ "$ref": $1 }');
                     delete codeElem.dataset.highlighted
                     hljs.highlightElement(codeElem);
                 },
