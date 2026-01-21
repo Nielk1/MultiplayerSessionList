@@ -119,7 +119,7 @@ function MergeReferences(target, parent_type, parent_id) {
                     ListData[frag_type] = {};
                 let val = ListData[frag_type][frag_id];
                 if (val == null) {
-                    val = {};
+                    val = { $type: frag_type, $id: frag_id };
                     ListData[frag_type][frag_id] = val;
                 }
                 target[key] = val;
@@ -147,7 +147,7 @@ function MergeReferences(target, parent_type, parent_id) {
                             ListData[frag_type] = {};
                         let val = ListData[frag_type][frag_id];
                         if (val == null) {
-                            val = {};
+                            val = { $type: frag_type, $id: frag_id };
                             ListData[frag_type][frag_id] = val;
                         }
                         target[key][i] = val;
