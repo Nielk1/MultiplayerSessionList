@@ -107,6 +107,13 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
             Lobby[]? lobbyList = JsonSerializer.Deserialize<Lobby[]>(res.Data);
             if (lobbyList != null)
             {
+                Datum sourceDatum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:dothackers:lobby", new DataCache() {
+                    { GAMELIST_TERMS.SOURCE_NAME, "DotHackers Lobbies" },
+                });
+                if (res.LastModified != null)
+                    sourceDatum["timestamp"] = res.LastModified;
+                yield return sourceDatum;
+
                 {
                     List<DatumRef> lobbies = new List<DatumRef>();
                     foreach (var server in lobbyList)
@@ -115,6 +122,7 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
                     }
                     Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID, new DataCache() {
                         { "lobbies", lobbies },
+                        { "sources", new List<DatumRef>() { new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:dothackers:lobby") } },
                     });
                     yield return root;
                 }
@@ -148,15 +156,22 @@ namespace MultiplayerSessionList.Plugins.DotHackFragment
             AreaServer[]? areaServerList = JsonSerializer.Deserialize<AreaServer[]>(res.Data);
             if (areaServerList != null)
             {
-                List<DatumRef> sessions = new List<DatumRef>();
-                if (sessions != null)
+                Datum sourceDatum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:dothackers:area", new DataCache() {
+                    { GAMELIST_TERMS.SOURCE_NAME, "DotHackers Area Servers" },
+                });
+                if (res.LastModified != null)
+                    sourceDatum["timestamp"] = res.LastModified;
+                yield return sourceDatum;
+
                 {
+                    List<DatumRef> sessions = new List<DatumRef>();
                     foreach (var server in areaServerList)
                     {
                         sessions.Add(new DatumRef(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:dothackers:area:{server.Name}"));
                     }
                     Datum root = new Datum(GAMELIST_TERMS.TYPE_ROOT, GameID, new DataCache() {
                         { "sessions", sessions },
+                        { "sources", new List<DatumRef>() { new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:dothackers:area") } },
                     });
                     yield return root;
                 }
