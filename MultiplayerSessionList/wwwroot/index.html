@@ -57,6 +57,12 @@
             border-radius: 5px;
             padding: 0.15em;
         }
+
+        .selected-anchor {
+            /*background: #ffe066;
+            border-radius: 4px;
+            transition: background 0.2s;*/
+        }
     </style>
 
     <style id="extra_data_style">
@@ -436,7 +442,8 @@
                         const loc_id = `JSON_REFJUMP__${escapeIdForAnchor(`/${escapeIdForAnchor(found_type)}/${escapeIdForAnchor(found_id)}`)}`;
                         //console.log(' ' + loc_id);
                         anchor.setAttribute('id', loc_id);
-                        anchor.setAttribute('style', "float:right;");
+                        anchor.setAttribute('class', "");
+                        anchor.setAttribute('style', "float:right;text-decoration:none;user-select:none;");
                         anchor.textContent = '<OBJECT';
                         id_node.parentNode.insertBefore(anchor, id_node);
 
@@ -465,6 +472,27 @@
                 //}
             }
         }
+
+        window.addEventListener('hashchange', function () {
+            const header = document.querySelector('.container-fluid.pt-2.border-bottom.mb-2');
+            const offset = header ? header.offsetHeight : 0;
+            const id = location.hash.replace(/^#/, '');
+            const anchor = document.getElementById(id);
+            if (anchor) {
+                // Scroll so anchor is just below the sticky header
+                const rect = anchor.getBoundingClientRect();
+                const scrollTop = window.pageYOffset + rect.top - offset - 8; // 8px for margin
+                window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+
+                document.querySelectorAll('a.selected-anchor').forEach(function (el) {
+                    el.classList.remove('selected-anchor');
+                    el.classList.remove('json-ref-box');
+                });
+
+                anchor.classList.add('selected-anchor');
+                anchor.classList.add('json-ref-box');
+            }
+        });
 
         document.getElementById('btnExtra').addEventListener('click', function (e) {
             e.preventDefault();
