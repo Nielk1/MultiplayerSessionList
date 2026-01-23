@@ -179,7 +179,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.0.0/ansi_up.min.js"></script>
 
     <script type="module">
-        import { getSessions } from '/js/gamelist.js';
+        import { getSessions, getGames } from '/js/gamelist.js';
 
         function ansiToHtml(text) {
             const ansi_up = new AnsiUp();
@@ -241,12 +241,9 @@
 
         //$(document).ready(function () {
         {
-            var windowSearch = window.location.search;
-            if (windowSearch.length > 0)
-                windowSearch = '?' + windowSearch.substring(1);
-            fetch('/api/2.0/games' + windowSearch)
-                .then(response => response.json())
-                .then(data => {
+            getGames({
+                base: new URL('/api/2.0', window.location.origin),
+                process: function (data) {
                     const dropdownMenuContainer = document.getElementById('dropdownMenuContainer');
                     emptyElement(dropdownMenuContainer);
                     for (var i = 0; i < data.length; i++) {
@@ -261,12 +258,16 @@
                         li.appendChild(sessionRow);
                         dropdownMenuContainer.appendChild(li);
                     }
-                });
+                },
+                done: () => {
+                }
+            });
         }
 
         document.getElementById('dropdownMenuContainer').addEventListener('click', function (e) {
             if (e.target && e.target.classList.contains('dropdown-item')) {
                 e.preventDefault();
+                e.stopPropagation(); // prevent dropdown closing if we clicked an item
                 const item = e.target;
                 if (hasClass(item, 'active')) {
                     removeClass(item, 'active');
@@ -521,6 +522,7 @@
             //btnRefresh.classList.add('loading');
             let sessionAjax = getSessions({
                 base: new URL('/api/2.0', window.location.origin),
+                mode: getStreamMode(),
                 updated: function (data, modified) {
                     let codeElem = document.getElementById('codeRawJson');
                     //codeElem.textContent = JSON.stringify(data, ReferenceNester, 2);

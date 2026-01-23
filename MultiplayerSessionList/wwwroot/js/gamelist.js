@@ -9,9 +9,9 @@ for (let parent in dataRefsChildren) {
         }
     }
 }
-for (let type in listData) {
+for (let type in dataCache) {
     if (type == "root") continue;
-    for (let id in listData[type]) {
+    for (let id in dataCache[type]) {
         if (!dataRefsParents[`${type}\t${id}`]) {
             if (Date.now() - dataRefsLastTouched[`${type}\t${id}`] > 5000) {
                 console.log([type, id]); // items have no cached parent associations and are old enough to not be fresh
@@ -23,37 +23,34 @@ for (let ref in dataRefsLastTouched) {
     let parts = ref.split('\t');
     let type = parts[0];
     let id = parts[1];
-    if (listData[type]?.[id] == null) {
+    if (dataCache[type]?.[id] == null) {
         console.log(parts); // item to delete from time cache as the data is gone somehows
     }
 }
 */
 
 // local copy of list data
-var listData = {};
+var dataCache = {};
 
 // parent data relations so we can walk up to the session when data updates come in
-export let dataRefsParents = {};
-export let dataRefsChildren = {};
-export let dataRefsLastTouched = {};
+let dataRefsParents = {};
+let dataRefsChildren = {};
+let dataRefsLastTouched = {};
 
-// Utility to get mode from query string
-function getStreamMode() {
-    const params = new URLSearchParams(window.location.search);
-    const mode = params.get('mode');
-    if (mode === 'chunked') return 'chunked';
-    return 'event'; // default
-}
-
-/*export*/ function isObject(item) {
+function isObject(item) {
     return (item && typeof item === 'object' && !Array.isArray(item));
 }
 
-// this function merges all the sources into the destination object, and returns the destination object
-// this preserves the destination object's reference, and modifies it in place, but it is also returned so you can use it with a coalesce of a default object
-function mergeIntoFirstObject(target, ...sources) {
+/**
+ * Deeply merges thje source objects into the target object.
+ * Mutates and returns the target.
+ * @param {Object} target
+ * @param {...Object} sources
+ * @returns {Object}
+ */
+function mergeObjects(target, ...sources) {
     let source = sources.shift();
-    if (source === undefined) return mergeIntoFirstObject(target, ...sources); // next source
+    if (source === undefined) return mergeObjects(target, ...sources); // next source
     while (source !== undefined) {
         if (isObject(target) && isObject(source)) {
             for (const key in source) {
@@ -62,13 +59,13 @@ function mergeIntoFirstObject(target, ...sources) {
                     delete target[key];
                 } else if (isObject(source[key])) {
                     if (!target[key]) Object.assign(target, { [key]: {} });
-                    mergeIntoFirstObject(target[key], source[key]);
+                    mergeObjects(target[key], source[key]);
                 } else if (Array.isArray(source[key])) {
                     // assign the array, but then iterate it to look for those references
                     Object.assign(target, { [key]: source[key] });
                     for (var i = 0; i < source[key].length; i++) {
                         if (isObject(source[key][i])) {
-                            mergeIntoFirstObject(target[key][i], source[key][i]);
+                            mergeObjects(target[key][i], source[key][i]);
                         }
                     }
                 } else {
@@ -81,17 +78,26 @@ function mergeIntoFirstObject(target, ...sources) {
         if (sources.length == 0)
             return target;
 
-        //return mergeIntoFirstObject(target, ...sources); // next source
+        //return mergeObjects(target, ...sources); // next source
         source = sources.shift();
     }
+
+    return target;
 }
 
-function MergeReferences(target, parent_type, parent_id) {
-    if (!isObject(target))
-        return target;
+/**
+ * Merge the object into the datatCache.
+ * @param {any} object
+ * @param {string} parent_type Fallback object $type if no $type key in object
+ * @param {string} parent_id Fallback object $id if no $id key in object
+ * @returns {any} Return passed in object if it's an object
+ */
+function mergeReferencesIntoCache(object, parent_type, parent_id) {
+    if (!isObject(object))
+        return object;
 
     // clear old ref tracking
-    let parent_key = `${target.$type || parent_type}\t${target.$id || parent_id}`;
+    let parent_key = `${object.$type || parent_type}\t${object.$id || parent_id}`;
     let existing_children = dataRefsChildren[parent_key];
     if (existing_children) {
         // take the existing known children
@@ -107,22 +113,22 @@ function MergeReferences(target, parent_type, parent_id) {
         existing_children.clear();
     }
 
-    for (const key in target) {
+    for (const key in object) {
         // Detect Object or Array
-        if (isObject(target[key])) {
-            if (target[key].$ref) {
+        if (isObject(object[key])) {
+            if (object[key].$ref) {
                 // we're a ref object, so forget the destination entirely and just use the source's reference
-                var split = target[key].$ref.split('/');
+                var split = object[key].$ref.split('/');
                 let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                 let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                if (listData[frag_type] === undefined)
-                    listData[frag_type] = {};
-                let val = listData[frag_type][frag_id];
+                if (dataCache[frag_type] === undefined)
+                    dataCache[frag_type] = {};
+                let val = dataCache[frag_type][frag_id];
                 if (val == null) {
                     val = { $type: frag_type, $id: frag_id };
-                    listData[frag_type][frag_id] = val;
+                    dataCache[frag_type][frag_id] = val;
                 }
-                target[key] = val;
+                object[key] = val;
 
                 let child_key = `${frag_type}\t${frag_id}`;
                 if (!dataRefsParents[child_key])
@@ -133,24 +139,24 @@ function MergeReferences(target, parent_type, parent_id) {
                     dataRefsChildren[parent_key] = new Set();
                 dataRefsChildren[parent_key].add(child_key);
             } else {
-                MergeReferences(target[key], target.$type || parent_type, target.$id || parent_id);
+                mergeReferencesIntoCache(object[key], object.$type || parent_type, object.$id || parent_id);
             }
-        } else if (Array.isArray(target[key])) {
-            for (var i = 0; i < target[key].length; i++) {
-                if (isObject(target[key][i])) {
-                    if (target[key][i].$ref) {
+        } else if (Array.isArray(object[key])) {
+            for (var i = 0; i < object[key].length; i++) {
+                if (isObject(object[key][i])) {
+                    if (object[key][i].$ref) {
                         // we're a ref object, so forget the destination entirely and just use the source's reference
-                        var split = target[key][i].$ref.split('/');
+                        var split = object[key][i].$ref.split('/');
                         let frag_type = split[1].replace('~1', '/').replace('~0', '~');
                         let frag_id = split[2].replace('~1', '/').replace('~0', '~');
-                        if (listData[frag_type] === undefined)
-                            listData[frag_type] = {};
-                        let val = listData[frag_type][frag_id];
+                        if (dataCache[frag_type] === undefined)
+                            dataCache[frag_type] = {};
+                        let val = dataCache[frag_type][frag_id];
                         if (val == null) {
                             val = { $type: frag_type, $id: frag_id };
-                            listData[frag_type][frag_id] = val;
+                            dataCache[frag_type][frag_id] = val;
                         }
-                        target[key][i] = val;
+                        object[key][i] = val;
 
                         let child_key = `${frag_type}\t${frag_id}`;
                         if (!dataRefsParents[child_key])
@@ -161,15 +167,22 @@ function MergeReferences(target, parent_type, parent_id) {
                             dataRefsChildren[parent_key] = new Set();
                         dataRefsChildren[parent_key].add(child_key);
                     } else {
-                        MergeReferences(target[key][i], target.$type || parent_type, target.$id || parent_id);
+                        mergeReferencesIntoCache(object[key][i], object.$type || parent_type, object.$id || parent_id);
                     }
                 }
             }
         }
     }
-    return target;
+    return object;
 }
 
+/**
+ * Convert reference marker objects into actual references to those objects stored in dataCache.
+ * @param {any} $type
+ * @param {any} $id
+ * @param {Set} memo
+ * @returns {Set} memo
+ */
 function expandDataRefs($type, $id, memo) {
     let local_memo = memo || new Set();
 
@@ -209,11 +222,11 @@ function processIncomingDataDebounced(settings, nonce) {
                     settings.done?.();
                 }
             } else {
-                listData[data.$type] = listData[data.$type] || {};
+                dataCache[data.$type] = dataCache[data.$type] || {};
                 dataRefsLastTouched[`${data.$type}\t${data.$id}`] = Date.now();
-                listData[data.$type][data.$id] = MergeReferences(
-                    mergeIntoFirstObject(
-                        listData[data.$type][data.$id] || {},
+                dataCache[data.$type][data.$id] = mergeReferencesIntoCache(
+                    mergeObjects(
+                        dataCache[data.$type][data.$id] || {},
                         { $id: data.$id, $type: data.$type },
                         data.$data
                     )
@@ -222,7 +235,7 @@ function processIncomingDataDebounced(settings, nonce) {
             }
         }
         if (updatedThisPass.size > 0)
-            updateSessionListWithDataFragments(settings, listData, updatedThisPass);
+            updateSessionListWithDataFragments(settings, dataCache, updatedThisPass);
         incomingDataDebounceTimeout = null;
     }, INCOMING_DATA_DEBOUNCE_MS);
 }
@@ -276,6 +289,35 @@ function randomString(length = 16) {
     return result;
 }
 
+export function getGames(settings) {
+    // Validate settings
+    if (!settings)
+        throw new Error("settings parameter is required");
+
+    if (!isObject(settings))
+        throw new Error("settings parameter must be an object");
+
+    if (typeof settings.base !== 'object' || !(settings.base instanceof URL))
+        throw new Error("settings.base parameter must be a URL object");
+
+    // Build the base URL
+    const url = new URL(settings.base);
+    url.pathname += '/games';
+
+    // Add any other query params from the current window location
+    const windowParams = new URLSearchParams(window.location.search);
+    for (const [key, value] of windowParams.entries()) {
+        url.searchParams.append(key, value);
+    }
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            settings.process?.(data);
+            settings.done?.();
+        });
+}
+
 var sessionAjax = null;
 export function getSessions(settings, games) {
     if (sessionAjax != null) {
@@ -314,7 +356,7 @@ export function getSessions(settings, games) {
     for (const game of games) {
         url.searchParams.append('game', game);
     }
-    const mode = getStreamMode();
+    const mode = settings.mode ?? 'event';
 
     // Add any other query params from the current window location
     const windowParams = new URLSearchParams(window.location.search);
@@ -322,7 +364,7 @@ export function getSessions(settings, games) {
         url.searchParams.append(key, value);
     }
 
-    listData = {};
+    dataCache = {};
 
     if (mode === 'event') {
         // Use EventSource for SSE
@@ -364,7 +406,7 @@ export function getSessions(settings, games) {
         sessionAjax.onload = function () { settings.done?.(); }
         sessionAjax.send();
     }
-    listData = {};
+    dataCache = {};
 
     return sessionAjax;
 }

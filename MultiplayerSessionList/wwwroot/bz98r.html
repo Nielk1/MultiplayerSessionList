@@ -635,6 +635,7 @@
             btnRefresh.classList.add('loading');
             let sessionAjax = getSessions({
                 base: new URL('/api/2.0', window.location.origin),
+                mode: getStreamMode(),
                 process: UpdateDatumDom,
                 done: () => {
                     //sessionList.classList.remove('loading');
