@@ -549,7 +549,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <script type="module">
-        import { RefreshSessionList } from '/js/gamelist.js';
+        import { getSessions } from '/js/gamelist.js';
 
         function ansiToHtml(text) {
             const ansi_up = new AnsiUp();
@@ -609,7 +609,7 @@
             return (item && typeof item === 'object' && !Array.isArray(item));
         }
 
-        var GetGamesAjax = null;
+        var sessionAjax = null;
         document.getElementById('btnExtra').addEventListener('click', function (e) {
             e.preventDefault();
             const btnExtra = document.getElementById('btnExtra');
@@ -633,7 +633,8 @@
             //emptyElement(document.getElementById('codeRawJsonLines'));
 
             btnRefresh.classList.add('loading');
-            let GetGamesAjax = RefreshSessionList({
+            let sessionAjax = getSessions({
+                base: new URL('/api/2.0', window.location.origin),
                 process: UpdateDatumDom,
                 done: () => {
                     //sessionList.classList.remove('loading');
