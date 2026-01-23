@@ -328,7 +328,7 @@ export function getSessions(settings, games) {
         }
     }
 
-    // if settings is not an object with at least one function in it return early
+    // Validate settings
     if (!settings)
         throw new Error("settings parameter is required");
 
@@ -344,27 +344,27 @@ export function getSessions(settings, games) {
     dataRefsChildren = {};
     dataRefsLastTouched = {};
 
-    var windowSearch = window.location.search;
-    if (windowSearch.length > 0)
-        windowSearch = '&' + windowSearch.substring(1);
-
     // Build the base URL
-    settings.base.pathname += '/sessions';
-    const url = settings.base;
+    const url = new URL(settings.base);
+    url.pathname += '/sessions';
 
     // Add games to request
     for (const game of games) {
         url.searchParams.append('game', game);
     }
-    const mode = settings.mode ?? 'event';
 
     // Add any other query params from the current window location
     const windowParams = new URLSearchParams(window.location.search);
     for (const [key, value] of windowParams.entries()) {
+        // If a mod is present in settings, skip the mode param
+        if (settings.mod && key === 'mode') continue;
         url.searchParams.append(key, value);
     }
 
     dataCache = {};
+
+    // Determine mode (default to 'event' if not specified)
+    const mode = settings.mode ?? 'event';
 
     if (mode === 'event') {
         // Use EventSource for SSE
