@@ -219,6 +219,16 @@ function processIncomingDataDebounced(settings, nonce) {
                 console.log(data.$type, data.$id, data.$data);
             } else if (data.$type == 'mark') {
                 if (data.mark == "end" && data.nonce == nonce) {
+                    // flush pending updates
+                    if (updatedThisPass.size > 0)
+                        updateSessionListWithDataFragments(settings, dataCache, updatedThisPass); // prepare debouncing map
+                    incomingDataDebounceTimeout = null;
+
+                    //trigger right away
+                    stopDebouncePulse();
+                    sendBatch(settings, dataCache);
+                    updatedThisPass.clear();
+
                     settings.done?.();
                 }
             } else {
@@ -244,20 +254,22 @@ let debouncingMap = new Map(); // Map: datumKey -> Set of affected keys
 let debouncingInterval = null;
 const DEBOUNCE_PULSE_MS = 250;
 
+function sendBatch(settings, data) {
+    if (debouncingMap.size === 0) return; // Nothing to process
+
+    // Copy and clear the map for this pulse
+    const currentMap = new Map(debouncingMap);
+    debouncingMap.clear();
+
+    console.log("START PENDING POOLING");
+    settings.process?.(currentMap, data);
+    console.log("END PENDING POOLING");
+}
+
 function startDebouncePulse(settings, data) {
     if (debouncingInterval !== null) return; // Already running
 
-    debouncingInterval = setInterval(() => {
-        if (debouncingMap.size === 0) return; // Nothing to process
-
-        // Copy and clear the map for this pulse
-        const currentMap = new Map(debouncingMap);
-        debouncingMap.clear();
-
-        console.log("START PENDING POOLING");
-        settings.process?.(currentMap, data);
-        console.log("END PENDING POOLING");
-    }, DEBOUNCE_PULSE_MS);
+    debouncingInterval = setInterval(() => sendBatch(settings, data), DEBOUNCE_PULSE_MS);
 }
 
 function stopDebouncePulse() {
@@ -373,17 +385,25 @@ export function getSessions(settings, games) {
         let nonce = randomString(12);
         url.searchParams.append("nonce", nonce);
 
+        let done = false;
+
         var eventSource = new EventSource(url);
         eventSource.onmessage = function (event) {
             var s = event.data + "\n";
             settings.raw?.(s);
             var data = JSON.parse(event.data);
             incomingDataQueue.push(data);
+            // If this is the done event, set done flag
+            if (data.$type === 'mark' && data.mark === 'end' && data.nonce === nonce) {
+                done = true;
+            }
             processIncomingDataDebounced(settings, nonce);
         };
-        eventSource.onerror = function () {
+        eventSource.onerror = function (e) {
             eventSource.close();
-            settings.done?.();
+            if (!done) {
+                settings.done?.();
+            }
         };
         sessionAjax = eventSource;
     } else {
