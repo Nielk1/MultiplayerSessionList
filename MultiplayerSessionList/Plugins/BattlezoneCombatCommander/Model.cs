@@ -124,7 +124,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public int CurPlayers { get { return pl?.Length ?? 0; } }
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public bool Locked { get { return l == 1; } }
-        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public bool Passworded { get { return k != 0; } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public bool Passworded { get { return k == 1; } }
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
