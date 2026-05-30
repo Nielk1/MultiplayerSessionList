@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -53,14 +52,7 @@ namespace MultiplayerSessionList
             services.AddSingleton<SteamInterface>();
             services.AddHttpClient();
             services.AddSingleton<CachedAdvancedWebClient>();
-
-            services.AddSingleton(sp => new TemporalCache<ulong, BZCCGame>(m =>
-            {
-                var keys = new List<string>();
-                if (!string.IsNullOrEmpty(m.SessionName))
-                    keys.Add(m.SessionName);
-                return keys;
-            }));
+            services.AddSingleton<Plugins.BattlezoneCombatCommander.DataService>(); // eventually move this to plugin loading code
 
             services.AddSingleton<GameListModuleManager>();
             services.AddScoped<ScopedGameListModuleManager>();

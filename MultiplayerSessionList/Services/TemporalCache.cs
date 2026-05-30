@@ -12,11 +12,13 @@ namespace MultiplayerSessionList.Services
         private readonly Dictionary<K, HashSet<string>> _reverseFuzzyLookup = new();
         private readonly ReaderWriterLockSlim _lock = new();
         private readonly Func<T, IEnumerable<string>> _fuzzyKeySelector;
+        private readonly TimeSpan _checkRate = TimeSpan.FromMinutes(5);
+        private readonly TimeSpan _expiration;
+        private DateTime lastCheckedExpiration = DateTime.UtcNow;
 
-        // todo still need to remove items that time out
-
-        public TemporalCache(Func<T, IEnumerable<string>> fuzzyKeySelector)
+        public TemporalCache(TimeSpan expiration, Func<T, IEnumerable<string>> fuzzyKeySelector)
         {
+            _expiration = expiration;
             _fuzzyKeySelector = fuzzyKeySelector ?? throw new ArgumentNullException(nameof(fuzzyKeySelector));
         }
 
@@ -94,13 +96,41 @@ namespace MultiplayerSessionList.Services
             {
                 if (_fuzzyLookup.TryGetValue(fuzzyKey, out var set))
                 {
-                    return new List<K>(set);
+                    return [.. set];
                 }
                 return Array.Empty<K>();
             }
             finally
             {
                 _lock.ExitReadLock();
+            }
+        }
+
+        private void TryCleanupExpiredEntries()
+        {
+            if (DateTime.UtcNow - lastCheckedExpiration < _checkRate)
+                return;
+            _lock.EnterWriteLock();
+            try
+            {
+                var now = DateTime.UtcNow;
+                var keysToRemove = new List<K>();
+                foreach (var kvp in _lastTouched)
+                {
+                    if (now - kvp.Value > _expiration)
+                    {
+                        keysToRemove.Add(kvp.Key);
+                    }
+                }
+                foreach (var key in keysToRemove)
+                {
+                    Remove(key);
+                }
+                lastCheckedExpiration = now;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
             }
         }
 

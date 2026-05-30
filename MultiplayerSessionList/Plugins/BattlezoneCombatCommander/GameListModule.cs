@@ -26,14 +26,14 @@ public class GameListModule : IGameListModule
     private readonly GogInterface gogInterface;
     private readonly SteamInterface steamInterface;
     private readonly CachedAdvancedWebClient cachedAdvancedWebClient;
-    private readonly TemporalCache<ulong, BZCCGame> temporalCache;
+    private readonly DataService dataService;
 
     public GameListModule(
         IConfiguration configuration,
         GogInterface gogInterface,
         SteamInterface steamInterface,
         CachedAdvancedWebClient cachedAdvancedWebClient,
-        TemporalCache<ulong, BZCCGame> temporalCache)
+        DataService dataService)
     {
         queryUrl = configuration[$"{GameID}:sessions"]!;
         mapUrl = configuration[$"{GameID}:maps"]!;
@@ -43,7 +43,7 @@ public class GameListModule : IGameListModule
         this.gogInterface = gogInterface;
         this.steamInterface = steamInterface;
         this.cachedAdvancedWebClient = cachedAdvancedWebClient;
-        this.temporalCache = temporalCache;
+        this.dataService = dataService;
     }
 
     public async IAsyncEnumerable<Datum> GetGameListChunksAsync(
@@ -124,58 +124,11 @@ public class GameListModule : IGameListModule
             // impossible illegal game, fake game violating basic logic rules
             if (raw.NATNegID == null) continue;
 
-            gamelist.proxyStatus.TryGetValue(raw.proxySource ?? "IonDriver", out ProxyStatus stat);
-            if (stat != null && stat.updated.HasValue)
             {
-                DateTime recordDate = stat.updated.Value;
-
-                if (raw.GameTimeMinutes.HasValue)
-                {
-                    if (raw.GameTimeMinutes.Value != 255)
-                        raw.GameStateStarted = recordDate.AddMinutes(-raw.GameTimeMinutes.Value);
-
-                    temporalCache.TryGet(raw.NATNegGuid, out var cachedGame);
-                    if (cachedGame != null && cachedGame.GameTimeMinutes.HasValue && cachedGame.GameStateStarted.HasValue)
-                    {
-                        if (cachedGame.ServerMode == raw.ServerMode && cachedGame.GameTimeMinutes.Value <= raw.GameTimeMinutes.Value)
-                        {
-                            if (raw.GameTimeMinutes.Value == 255)
-                            {
-                                // current game is past all possible measurement, so use the cached game's start time if we have it to preserve the best possible estimate of when the game started
-                                raw.GameStateStarted = cachedGame.GameStateStarted;
-                            }
-                        }
-                    }
-                    else if (raw.SessionName != null)
-                    {
-                        // fuzzy match, which helps with host migration
-                        var possibleMatches = temporalCache.FuzzyLookup(raw.SessionName);
-                        if (possibleMatches != null)
-                        {
-                            var fuzzyGame = possibleMatches.Select(dr =>
-                            {
-                                if (temporalCache.TryGet(dr, out BZCCGame value))
-                                    return value;
-                                return null;
-                            }).Where(dr => dr != null && dr.ServerMode == raw.ServerMode && cachedGame.GameTimeMinutes.Value <= raw.GameTimeMinutes.Value)
-                            .Where(dr => dr.pl.Any(player => player != null && (raw.pl?.Any(px => player.PlayerID == px.PlayerID) ?? false))) // at least one matching player, helps ensure we are matching the same game and not just a different game with the same name and similar time)
-                            .OrderByDescending(dr => dr.GameStateStarted)
-                            .FirstOrDefault();
-
-                            if (fuzzyGame != null)
-                            {
-                                if (raw.GameTimeMinutes.Value == 255)
-                                {
-                                    // current game is past all possible measurement, so use the fuzzy matched game's start time if we have it to preserve the best possible estimate of when the game started
-                                    raw.GameStateStarted = fuzzyGame.GameStateStarted;
-                                }
-                            }
-                        }
-                    }
-                }
+                ProxyStatus? stat = null;
+                gamelist.proxyStatus?.TryGetValue(raw.proxySource ?? "IonDriver", out stat);
+                dataService.Decorate(raw, stat?.updated);
             }
-
-            temporalCache.Set(raw.NATNegGuid, raw);
 
             // if the game's only player is the spam game account and it is locked, ignore it unless we're in admin mode
             if (!admin && raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))  continue;
