@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Net;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
@@ -118,6 +119,8 @@ public class GameListModule : IGameListModule
 
         foreach (var raw in gamelist.GET)
         {
+            if (raw == null) continue;
+
             // ignore dummy games
             if (raw.NATNegID == "XXXXXXX@XX") continue;
 
@@ -435,7 +438,7 @@ public class GameListModule : IGameListModule
                                     break;
                                 default:
                                     //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
-                                    if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, "STRAT")))
+                                    if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"UNK{GetGameModeOutput}")))
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:UNK{GetGameModeOutput}", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{GetGameModeOutput}" } });
                                     break;
                             }
@@ -462,6 +465,8 @@ public class GameListModule : IGameListModule
                 for (int pl_i = 0; pl_i < raw.pl.Length; pl_i++)
                 {
                     var dr = raw.pl[pl_i];
+                    if (dr == null) continue;
+
                     DataCache player = new DataCache();
 
                     player[GAMELIST_TERMS.PLAYER_NAME] = dr.Name;
@@ -555,14 +560,17 @@ public class GameListModule : IGameListModule
             {
                 // dedicated server
                 List<DataCache> PlayerTypes = new List<DataCache>();
+                var dedicatedMaxPlayers = raw.MaxPlayers.HasValue ? Math.Max(0, raw.MaxPlayers.Value - 1) : 0;
+                var dedicatedCurPlayers = Math.Max(0, raw.CurPlayers - 1);
+
                 PlayerTypes.Add(new DataCache()
                 {
                     { GAMELIST_TERMS.PLAYERTYPE_TYPES, new List<string>() { GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER } },
-                    { GAMELIST_TERMS.PLAYERTYPE_MAX, raw.MaxPlayers - 1 },
+                    { GAMELIST_TERMS.PLAYERTYPE_MAX, dedicatedMaxPlayers },
                 });
                 session[GAMELIST_TERMS.SESSION_PLAYERTYPES] = PlayerTypes;
 
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.CurPlayers - 1);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", dedicatedCurPlayers);
 
                 session[GAMELIST_TERMS.SESSION_TYPE] = GAMELIST_TERMS.SESSION_TYPE_VALUE_DEDICATED;
             }
@@ -640,11 +648,13 @@ public class GameListModule : IGameListModule
 
         foreach (var proxyStatus in gamelist.proxyStatus)
         {
+            if (proxyStatus.Value == null) continue;
+
             var datum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:{proxyStatus.Key}", new DataCache
-            {
-                { GAMELIST_TERMS.SOURCE_NAME, proxyStatus.Key },
-                { "status", proxyStatus.Value.status }
-            });
+        {
+            { GAMELIST_TERMS.SOURCE_NAME, proxyStatus.Key },
+            { "status", proxyStatus.Value.status }
+        });
             if (proxyStatus.Value.success != null)
                 datum["success"] = proxyStatus.Value.success;
             if (proxyStatus.Value.updated != null)
@@ -655,7 +665,9 @@ public class GameListModule : IGameListModule
 
     private async IAsyncEnumerable<Datum> BuildDatumsForMapDataAsync(string modID, string mapID, ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
     {
-        CachedData<MapData>? mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={mapID}&mod={modID}");
+        var encodedMapId = WebUtility.UrlEncode(mapID);
+        var encodedModId = WebUtility.UrlEncode(modID);
+        CachedData<MapData>? mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={encodedMapId}&mod={encodedModId}");
         MapData? mapData = mapDataC?.Data;
         if (mapData != null)
         {
