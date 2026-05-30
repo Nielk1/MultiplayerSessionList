@@ -475,14 +475,23 @@ public class GameListModule : IGameListModule
                     cancellationToken.ThrowIfCancellationRequested();
 
                     var dr = raw.pl[pl_i];
-                    if (dr == null) continue;
+                    if (dr == null) continue; // If slot 0 is invalid, host is unknown by design.
 
                     DataCache player = new DataCache();
 
                     player[GAMELIST_TERMS.PLAYER_NAME] = dr.Name;
                     player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER;
                     if (pl_i == 0)
-                        player[GAMELIST_TERMS.PLAYER_ISHOST] = true; // assume the first player is the owner of the game
+                    {
+                        player[GAMELIST_TERMS.PLAYER_ISHOST] = true;
+
+                        // dedicated bot detection constant
+                        if (!string.IsNullOrWhiteSpace(dr.PlayerID) && dr.PlayerID == DedicatedServerHostBotPlayerId)
+                        {
+                            player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_BOT;
+                            specialDedicatedServer = true;
+                        }
+                    }
 
                     if ((dr.Team ?? 255) != 255) // 255 means not on a team yet? could be understood as -1
                     {
@@ -518,12 +527,6 @@ public class GameListModule : IGameListModule
                     if (!string.IsNullOrWhiteSpace(dr.PlayerID))
                     {
                         player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_IDS}:bzr_net:{GAMELIST_TERMS.PLAYER_IDS_X_ID}", dr.PlayerID);
-                        if (pl_i == 0 && dr.PlayerID == @"S76561199232890248")
-                        {
-                            // this is the first player (host) and it's the dedicated server host bot
-                            player[GAMELIST_TERMS.PLAYER_TYPE] = GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_BOT;
-                            specialDedicatedServer = true;
-                        }
                         switch (dr.PlayerID[0])
                         {
                             case 'S':
@@ -600,11 +603,11 @@ public class GameListModule : IGameListModule
 
             if (raw != null && includeStateTime)
             {
-                if (raw.GameTimeMinutes.HasValue && (raw.GameTimeMinutes.Value != 255 || !raw.GameStateStarted.HasValue))
+                if (raw.GameTimeMinutes.HasValue && (raw.GameTimeMinutes.Value != GameTimeMaxSentinelMinutes || !raw.GameStateStarted.HasValue))
                 {
                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", raw.GameTimeMinutes * 60);
                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 60);
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_MAX}", raw.GameTimeMinutes.Value == 255); // 255 appears to mean it maxed out?  Does for currently playing.
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_MAX}", raw.GameTimeMinutes.Value == GameTimeMaxSentinelMinutes);
                     if (!string.IsNullOrWhiteSpace(ServerState))
                         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_CONTEXT}", ServerState);
                 }
@@ -673,56 +676,66 @@ public class GameListModule : IGameListModule
         }
     }
 
-    private async IAsyncEnumerable<Datum> BuildDatumsForMapDataAsync(string modID, string mapID, ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
+    private async IAsyncEnumerable<Datum> BuildDatumsForMapDataAsync(
+        string modID,
+        string mapID,
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var encodedMapId = WebUtility.UrlEncode(mapID);
         var encodedModId = WebUtility.UrlEncode(modID);
-        CachedData<MapData>? mapDataC = await cachedAdvancedWebClient.GetObject<MapData>($"{mapUrl.TrimEnd('/')}/getdata.php?map={encodedMapId}&mod={encodedModId}");
+
+        CachedData<MapData>? mapDataC = await cachedAdvancedWebClient.GetObject<MapData>(
+            $"{mapUrl.TrimEnd('/')}/getdata.php?map={encodedMapId}&mod={encodedModId}",
+            cancellationToken: cancellationToken);
+
         MapData? mapData = mapDataC?.Data;
-        if (mapData != null)
+        if (mapData == null)
+            yield break;
+
+        Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}", new DataCache() {
+            { GAMELIST_TERMS.MAP_NAME, mapData?.title },
+            { GAMELIST_TERMS.MAP_DESCRIPTION, mapData?.description },
+            { GAMELIST_TERMS.MAP_MAPFILE, mapID + @".bzn" },
+        });
+        if (mapData?.image != null)
+            mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
+        if (mapData?.netVars != null && (mapData?.netVars?.Count ?? 0) > 0)
         {
-            Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}", new DataCache() {
-                { GAMELIST_TERMS.MAP_NAME, mapData?.title },
-                { GAMELIST_TERMS.MAP_DESCRIPTION, mapData?.description },
-                { GAMELIST_TERMS.MAP_MAPFILE, mapID + @".bzn" },
-            });
-            if (mapData?.image != null)
-                mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
-            if (mapData?.netVars != null && (mapData?.netVars?.Count ?? 0) > 0)
+            if (mapData != null && mapData.netVars.ContainsKey("ivar3") && mapData.netVars["ivar3"] == "1")
             {
-                if (mapData != null && mapData.netVars.ContainsKey("ivar3") && mapData.netVars["ivar3"] == "1")
-                {
-                    if (mapData.netVars.ContainsKey("svar1")) mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:1:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", mapData.netVars["svar1"]);
-                    if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:2:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", mapData.netVars["svar2"]);
-                }
+                if (mapData.netVars.ContainsKey("svar1")) mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:1:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", mapData.netVars["svar1"]);
+                if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:2:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", mapData.netVars["svar2"]);
             }
-            yield return mapDatum;
+        }
+        yield return mapDatum;
 
-            if (mapData?.mods != null)
+        if (mapData?.mods != null)
+        {
+            foreach (var mod in mapData.mods)
             {
-                foreach (var mod in mapData.mods)
+                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}")))
                 {
-                    if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}")))
+                    Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}", new DataCache() { });
+
+                    var modName = mod.Value?.name ?? mod.Value?.workshop_name;
+                    if (modName != null)
+                        modData.Data[GAMELIST_TERMS.MOD_NAME] = modName;
+
+                    if (mod.Value?.image != null)
+                        modData.Data[GAMELIST_TERMS.MOD_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
+
+                    if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
+                        modData.Data[GAMELIST_TERMS.MOD_URL] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
+
+                    if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
                     {
-                        Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}", new DataCache() { });
-
-                        var modName = mod.Value?.name ?? mod.Value?.workshop_name;
-                        if (modName != null)
-                            modData.Data[GAMELIST_TERMS.MOD_NAME] = modName;
-
-                        if (mod.Value?.image != null)
-                            modData.Data[GAMELIST_TERMS.MOD_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
-
-                        if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
-                            modData.Data[GAMELIST_TERMS.MOD_URL] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
-
-                        if (mod.Value?.dependencies != null && mod.Value.dependencies.Count > 0)
-                        {
-                            modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{dep}")));
-                        }
-
-                        yield return modData;
+                        modData.AddObjectPath(GAMELIST_TERMS.MOD_DEPENDENCIES, mod.Value.dependencies.Select(dep => new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{dep}")));
                     }
+
+                    yield return modData;
                 }
             }
         }

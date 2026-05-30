@@ -7,6 +7,7 @@ using System.Data.SqlTypes;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,11 +34,13 @@ namespace MultiplayerSessionList.Services
             options.Converters.Add(new FaultTolerantStringConverter());
         }
 
-        public Task<CachedData<T>?> GetObject<T>(string url) =>
-            GetObject<T>(url, TimeSpan.FromHours(1));
+        public Task<CachedData<T>?> GetObject<T>(string url,
+            CancellationToken cancellationToken = default) =>
+            GetObject<T>(url, TimeSpan.FromHours(1), cancellationToken);
 
-        public Task<CachedData<T>?> GetObject<T>(string url, TimeSpan cacheTime) =>
-            GetObject<T>(url, cacheTime, cacheTime);
+        public Task<CachedData<T>?> GetObject<T>(string url, TimeSpan cacheTime,
+            CancellationToken cancellationToken = default) =>
+            GetObject<T>(url, cacheTime, cacheTime, null, cancellationToken);
 
         public async Task<CachedData<T>?> GetObject<T>(
             string url,
