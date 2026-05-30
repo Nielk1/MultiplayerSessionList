@@ -1,101 +1,192 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Services;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
     public class DataService
     {
-        private readonly TemporalCache<ulong, BZCCGame> temporalCache;
-        private readonly TimeSpan maxDataAge;
+        private readonly TemporalCache<ulong, CachedGameSnapshot> temporalCache;
 
         public DataService(IConfiguration configuration)
         {
-            string? maxDataAgeText = configuration[$"BattlezoneCombatCommander:DataService:MaxDataAge"];
-            TimeSpan maxDataAge = TimeSpan.FromDays(1);
-            if (maxDataAgeText != null && TimeSpan.TryParse(maxDataAgeText, out TimeSpan parsedMaxDataAge))
-                maxDataAge = parsedMaxDataAge;
-
-            this.temporalCache = new TemporalCache<ulong, BZCCGame>(maxDataAge, m =>
+            if (configuration == null)
             {
-                var keys = new List<string>();
-                if (!string.IsNullOrEmpty(m.SessionName))
-                    keys.Add(m.SessionName);
-                return keys;
-            });
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            var maxDataAgeText = configuration["BattlezoneCombatCommander:DataService:MaxDataAge"];
+            var maxDataAge = TimeSpan.FromDays(1);
+            if (!string.IsNullOrWhiteSpace(maxDataAgeText) && TimeSpan.TryParse(maxDataAgeText, out var parsedMaxDataAge))
+            {
+                maxDataAge = parsedMaxDataAge;
+            }
+
+            temporalCache = new TemporalCache<ulong, CachedGameSnapshot>(
+                maxDataAge,
+                snapshot => string.IsNullOrEmpty(snapshot.SessionName) ? Array.Empty<string>() : new[] { snapshot.SessionName });
         }
 
         public void Decorate(BZCCGame game, DateTime? baseTime)
         {
-            // first, build a best effort estimate of when the game's current state started, if possible
-            if (baseTime.HasValue)
+            if (game == null)
             {
-                if (game.GameTimeMinutes.HasValue)
-                {
-                    if (game.GameTimeMinutes.Value != 255)
-                        game.GameStateStarted = baseTime.Value.AddMinutes(-game.GameTimeMinutes.Value);
-                }
+                throw new ArgumentNullException(nameof(game));
             }
+
+            var currentGameMinutes = game.GameTimeMinutes;
+            TryEstimateCurrentGameStateStart(game, baseTime, currentGameMinutes);
 
             temporalCache.TryGet(game.NATNegGuid, out var cachedGame);
+
             if (cachedGame != null)
             {
-                // the cached game has the same NATNegGuid so we know it's the same game
-
-                if (!game.GameStateStarted.HasValue || (cachedGame.ServerMode == game.ServerMode && cachedGame.GameTimeMinutes.Value <= game.GameTimeMinutes.Value))
+                if (ShouldReuseStartTime(cachedGame, game, currentGameMinutes))
                 {
-                    // either we don't have a current estimate for when the game started or the cached game is in the same server mode and has a game time current or in the past
-
-                    if (game.GameTimeMinutes.Value == 255)
-                    {
-                        // The current game's data is past possible measurement, so use the cached game's start time if we have it to preserve the best possible estimate of when the game started
-
-                        game.GameStateStarted = cachedGame.GameStateStarted;
-                    }
+                    game.GameStateStarted = cachedGame.GameStateStarted;
                 }
             }
-
-            if (cachedGame == null && game.SessionName != null)
+            else if (!string.IsNullOrEmpty(game.SessionName))
             {
-                // there was no successful match to a game, which either means we've never seen it before, or a host migration occurred
-
-                var possibleMatches = temporalCache.FuzzyLookup(game.SessionName);
-                if (possibleMatches != null)
+                var fuzzyGame = TryFindBestFuzzyMatch(game, currentGameMinutes);
+                if (fuzzyGame != null)
                 {
-                    // try to find the best matching game from the temporal cache
-                    // the session name was guaranteed to match, but might not be unique
-                    // confirm that the candidate matches are in the same server mode and have a game time that is current or in the past
-                    // confirm that at least one player matches between the candidate and current game, which would be required for a migration (a double migration to a whole new player is so extremely unlikely as to be irrelevant)
-                    // if multiple candidates remain, take the most recent one, which helps ensure we are matching the same game and not just a different game with the same name and similar time
-                    var fuzzyGame = possibleMatches.Select(dr =>
+                    if (currentGameMinutes == 255)
                     {
-                        if (temporalCache.TryGet(dr, out BZCCGame value))
-                            return value;
-                        return null;
-                    }).Where(dr => dr != null && dr.ServerMode == game.ServerMode && cachedGame.GameTimeMinutes.Value <= game.GameTimeMinutes.Value)
-                    .Where(dr => dr.pl.Any(player => player != null && (game.pl?.Any(px => player.PlayerID == px.PlayerID) ?? false))) // at least one matching player, helps ensure we are matching the same game and not just a different game with the same name and similar time)
-                    .OrderByDescending(dr => dr.GameStateStarted)
-                    .FirstOrDefault();
-
-                    if (fuzzyGame != null)
-                    {
-                        if (game.GameTimeMinutes.Value == 255)
-                        {
-                            // The current game's data is past possible measurement, so use the cached game's start time if we have it to preserve the best possible estimate of when the game started
-
-                            game.GameStateStarted = fuzzyGame.GameStateStarted;
-                        }
-
-                        // copy additional data related to the migration here, such as if we add an "ID History" or do other actions
+                        game.GameStateStarted = fuzzyGame.GameStateStarted;
                     }
+
+                    // copy additional data related to the migration here, such as if we add an "ID History" or do other actions
                 }
             }
 
-            // push the current game data into the cache
-            temporalCache.Set(game.NATNegGuid, game);
+            temporalCache.Set(game.NATNegGuid, CachedGameSnapshot.FromGame(game));
+        }
+
+        private static void TryEstimateCurrentGameStateStart(BZCCGame game, DateTime? baseTime, int? currentGameMinutes)
+        {
+            if (baseTime.HasValue && currentGameMinutes.HasValue && currentGameMinutes.Value != 255)
+            {
+                game.GameStateStarted = baseTime.Value.AddMinutes(-currentGameMinutes.Value);
+            }
+        }
+
+        private static bool ShouldReuseStartTime(CachedGameSnapshot cachedGame, BZCCGame currentGame, int? currentGameMinutes)
+        {
+            if (currentGameMinutes != 255)
+            {
+                return false;
+            }
+
+            if (!currentGame.GameStateStarted.HasValue)
+            {
+                return true;
+            }
+
+            if (cachedGame.ServerMode != currentGame.ServerMode)
+            {
+                return false;
+            }
+
+            if (!cachedGame.GameTimeMinutes.HasValue || !currentGameMinutes.HasValue)
+            {
+                return false;
+            }
+
+            return cachedGame.GameTimeMinutes.Value <= currentGameMinutes.Value;
+        }
+
+        private CachedGameSnapshot? TryFindBestFuzzyMatch(BZCCGame currentGame, int? currentGameMinutes)
+        {
+            if (!currentGameMinutes.HasValue)
+            {
+                return null;
+            }
+
+            CachedGameSnapshot? bestMatch = null;
+
+            foreach (var cacheKey in temporalCache.FuzzyLookup(currentGame.SessionName!))
+            {
+                if (!temporalCache.TryGet(cacheKey, out var candidate) || candidate == null)
+                {
+                    continue;
+                }
+
+                if (candidate.ServerMode != currentGame.ServerMode)
+                {
+                    continue;
+                }
+
+                if (!candidate.GameTimeMinutes.HasValue || candidate.GameTimeMinutes.Value > currentGameMinutes.Value)
+                {
+                    continue;
+                }
+
+                if (!candidate.HasAnyPlayerOverlap(currentGame))
+                {
+                    continue;
+                }
+
+                if (bestMatch == null || candidate.GameStateStarted > bestMatch.GameStateStarted)
+                {
+                    bestMatch = candidate;
+                }
+            }
+
+            return bestMatch;
+        }
+
+        private sealed class CachedGameSnapshot
+        {
+            public string? SessionName { get; private set; }
+            public EServerInfoMode? ServerMode { get; private set; }
+            public int? GameTimeMinutes { get; private set; }
+            public DateTime? GameStateStarted { get; private set; }
+            public HashSet<string> PlayerIds { get; private set; } = new HashSet<string>(StringComparer.Ordinal);
+
+            public static CachedGameSnapshot FromGame(BZCCGame game)
+            {
+                var playerIds = new HashSet<string>(StringComparer.Ordinal);
+
+                if (game.pl != null)
+                {
+                    foreach (var player in game.pl)
+                    {
+                        if (player != null && !string.IsNullOrEmpty(player.PlayerID))
+                        {
+                            playerIds.Add(player.PlayerID);
+                        }
+                    }
+                }
+
+                return new CachedGameSnapshot
+                {
+                    SessionName = game.SessionName,
+                    ServerMode = game.ServerMode,
+                    GameTimeMinutes = game.GameTimeMinutes,
+                    GameStateStarted = game.GameStateStarted,
+                    PlayerIds = playerIds
+                };
+            }
+
+            public bool HasAnyPlayerOverlap(BZCCGame game)
+            {
+                if (PlayerIds.Count == 0 || game.pl == null)
+                {
+                    return false;
+                }
+
+                foreach (var player in game.pl)
+                {
+                    if (player != null && !string.IsNullOrEmpty(player.PlayerID) && PlayerIds.Contains(player.PlayerID))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
     }
 }
