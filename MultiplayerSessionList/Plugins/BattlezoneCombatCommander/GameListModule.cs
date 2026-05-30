@@ -1,19 +1,14 @@
 ﻿using System.Net;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
 
@@ -21,6 +16,13 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
 public class GameListModule : IGameListModule
 {
     private const string GameID = "bigboat:battlezone_combat_commander";
+    private const string DefaultProxySource = "IonDriver"; // IonDriver is our source and it only lists source for games it proxied from other sources
+    private const string DummyNatNegId = "XXXXXXX@XX"; // Dummy NatNegId used by IonDriver's placeholder game which should be ignored. It might not even be valid CustomBase64
+    private const string SpamGamePlayerId = "S76561199685297391"; // This player ID is responsible for a lot of fake spam games, so don't show them unless there's at least one other player
+    private const string DedicatedServerHostBotPlayerId = "S76561199232890248"; // This is the player ID of the host bot account used by the community dedicated server
+    private const string StockModId = "0"; // The stock/default mod is 0, but the game explicitly includes it
+    private const string VsrModId = "1325933293"; // The VSR mod has a well known ID which we use to trigger custom additional data
+    private const int GameTimeMaxSentinelMinutes = 255; // This game time is the maximum the game supports, so when we see it the game time can't be determined from the data
 
     private readonly string queryUrl = null!;
     private readonly string mapUrl = null!;
@@ -52,7 +54,14 @@ public class GameListModule : IGameListModule
         bool mock,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var res = await cachedAdvancedWebClient.GetObject<BZCCRaknetData>(queryUrl, TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(5));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var res = await cachedAdvancedWebClient.GetObject<BZCCRaknetData>(
+            queryUrl,
+            TimeSpan.FromMinutes(1),
+            TimeSpan.FromSeconds(5),
+            cancellationToken: cancellationToken);
+
         if (res == null) yield break;
         if (res.Data == null) yield break; // TODO determine what to do in this case
 
@@ -74,6 +83,7 @@ public class GameListModule : IGameListModule
         DataCache rootLevelSources = new DataCache();
         foreach (var kv in BuildSources(gamelist))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             rootLevelSources[kv.shortId] = kv.data.CreateDatumRef();
             yield return kv.data;
         }
@@ -86,6 +96,7 @@ public class GameListModule : IGameListModule
         DataCache rootLevelSessions = new DataCache();
         foreach (var datum in BuildSessionsAsync(gamelist, curTime, admin, pendingWorkPool, cancellationToken))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (datum.Type == GAMELIST_TERMS.TYPE_SESSION)
                 rootLevelSessions[datum.ID] = datum.CreateDatumRef();
             yield return datum;
@@ -101,6 +112,7 @@ public class GameListModule : IGameListModule
         // Process pending work
         await foreach (var datum in pendingWorkPool.RunUntilEmptyAsync(cancellationToken))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             yield return datum;
         }
     }
@@ -119,27 +131,22 @@ public class GameListModule : IGameListModule
 
         foreach (var raw in gamelist.GET)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (raw == null) continue;
-
-            // ignore dummy games
-            if (raw.NATNegID == "XXXXXXX@XX") continue;
-
-            // impossible illegal game, fake game violating basic logic rules
+            if (raw.NATNegID == DummyNatNegId) continue;
             if (raw.NATNegID == null) continue;
 
-            {
-                ProxyStatus? stat = null;
-                gamelist.proxyStatus?.TryGetValue(raw.proxySource ?? "IonDriver", out stat);
-                dataService.Decorate(raw, stat?.updated);
-            }
+            ProxyStatus? stat = null;
+            gamelist.proxyStatus?.TryGetValue(raw.proxySource ?? DefaultProxySource, out stat);
+            dataService.Decorate(raw, stat?.updated);
 
             // if the game's only player is the spam game account and it is locked, ignore it unless we're in admin mode
-            if (!admin && raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))  continue;
+            if (!admin && raw.Locked && (raw.pl?.All(player => player?.PlayerID == SpamGamePlayerId) ?? false))
+                continue;
 
             // Session ID
-            //UInt64 natNegId = CustomBase64.DecodeRaknetGuid(raw.NATNegID);
-            //Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
-            Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{raw.NATNegGuid:x16}");
+            Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? DefaultProxySource}:{raw.NATNegGuid:x16}");
 
             // All servers are "listen" servers unless we override this later in a special situation
             // session/type
@@ -155,7 +162,7 @@ public class GameListModule : IGameListModule
             if (!string.IsNullOrWhiteSpace(raw.MOTD))
                 session[GAMELIST_TERMS.SESSION_MESSAGE] = raw.MOTD;
 
-            string modID = raw.Mods?.FirstOrDefault() ?? @"0";
+            string modID = raw.Mods?.FirstOrDefault() ?? StockModId;
             string mapID = raw.MapFile?.ToLowerInvariant() ?? string.Empty;
 
             // session/level/map
@@ -167,8 +174,9 @@ public class GameListModule : IGameListModule
                 yield return mapData; // emit a stub that has only the map/map_file
 
                 if (!string.IsNullOrWhiteSpace(raw.MapFile))
-                    pendingWorkPool.Add(BuildDatumsForMapDataAsync(modID, mapID, datumsAlreadyQueued));
+                    pendingWorkPool.Add(BuildDatumsForMapDataAsync(modID, mapID, datumsAlreadyQueued, cancellationToken));
             }
+
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
 
             // session/status/locked
@@ -464,6 +472,8 @@ public class GameListModule : IGameListModule
                 List<DataCache> Players = new List<DataCache>();
                 for (int pl_i = 0; pl_i < raw.pl.Length; pl_i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     var dr = raw.pl[pl_i];
                     if (dr == null) continue;
 
