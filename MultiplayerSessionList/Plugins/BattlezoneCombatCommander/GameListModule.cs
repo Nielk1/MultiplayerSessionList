@@ -1,11 +1,12 @@
-﻿using System.Net;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
+using MultiplayerSessionList.Plugins.Battlezone98Redux;
 using MultiplayerSessionList.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
@@ -42,6 +43,7 @@ public class GameListModule : IGameListModule
         mapUrl = configuration[$"{GameID}:maps"]!;
         if (string.IsNullOrWhiteSpace(queryUrl) || string.IsNullOrWhiteSpace(mapUrl))
             throw new InvalidOperationException($"Critical configuration value for '{GameID}' is missing or empty.");
+        mapUrl = mapUrl.TrimEnd('/');
 
         this.gogInterface = gogInterface;
         this.steamInterface = steamInterface;
@@ -555,21 +557,40 @@ public class GameListModule : IGameListModule
         var encodedMapId = WebUtility.UrlEncode(mapID);
         var encodedModId = WebUtility.UrlEncode(modID);
 
-        CachedData<MapData>? mapDataC = await cachedAdvancedWebClient.GetObject<MapData>(
-            $"{mapUrl.TrimEnd('/')}/getdata.php?map={encodedMapId}&mod={encodedModId}",
+        CachedData<MapData>? cachedMapData = await cachedAdvancedWebClient.GetObject<MapData>(
+            $"{mapUrl}/getdata.php?map={encodedMapId}&mod={encodedModId}",
             cancellationToken: cancellationToken);
 
-        MapData? mapData = mapDataC?.Data;
+        MapData? mapData = cachedMapData?.Data;
         if (mapData == null)
             yield break;
 
+        yield return CreateMapDatum(mapID, modID, mapData, mapUrl);
+
+        foreach(var modDatum in BuildModDatums(mapData, mapUrl, datumsAlreadyQueued))
+        {
+            yield return modDatum;
+        }
+    }
+
+
+    private static Datum CreateMapDatum(string mapID, string modID, MapData mapData, string mapUrl)
+    {
         Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}", new DataCache() {
             { GAMELIST_TERMS.MAP_NAME, mapData?.title },
             { GAMELIST_TERMS.MAP_DESCRIPTION, mapData?.description },
             { GAMELIST_TERMS.MAP_MAPFILE, mapID + @".bzn" },
         });
         if (mapData?.image != null)
-            mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mapData.image}";
+            mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl}/{mapData.image}";
+
+        ApplyMapTeamMetadata(mapDatum, mapData);
+
+        return mapDatum;
+    }
+
+    private static void ApplyMapTeamMetadata(Datum mapDatum, MapData mapData)
+    {
         if (mapData?.netVars != null && (mapData?.netVars?.Count ?? 0) > 0)
         {
             if (mapData != null && mapData.netVars.ContainsKey("ivar3") && mapData.netVars["ivar3"] == "1")
@@ -578,8 +599,10 @@ public class GameListModule : IGameListModule
                 if (mapData.netVars.ContainsKey("svar2")) mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:2:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", mapData.netVars["svar2"]);
             }
         }
-        yield return mapDatum;
+    }
 
+    private static IEnumerable<Datum> BuildModDatums(MapData mapData, string mapUrl, ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
+    {
         if (mapData?.mods != null)
         {
             foreach (var mod in mapData.mods)
@@ -593,7 +616,7 @@ public class GameListModule : IGameListModule
                         modData.Data[GAMELIST_TERMS.MOD_NAME] = modName;
 
                     if (mod.Value?.image != null)
-                        modData.Data[GAMELIST_TERMS.MOD_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
+                        modData.Data[GAMELIST_TERMS.MOD_IMAGE] = $"{mapUrl}/{mod.Value.image}";
 
                     if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
                         modData.Data[GAMELIST_TERMS.MOD_URL] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
