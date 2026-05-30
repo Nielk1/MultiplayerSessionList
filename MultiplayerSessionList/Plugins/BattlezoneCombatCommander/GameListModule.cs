@@ -235,7 +235,7 @@ public class GameListModule : IGameListModule
                 if (modsLen > 1)
                 {
                     // this is the legacy path where dependencies get spun out as minor mods, only pre-community-patch does this
-                    var dependencyMods = raw?.Mods.Skip(1).Select(m =>
+                    var dependencyMods = raw.Mods.Skip(1).Select(m =>
                     {
                         DataCache modwrap = new DataCache();
 
@@ -300,14 +300,14 @@ public class GameListModule : IGameListModule
                 case 1:
                     if (raw.GameSubType != null)
                     {
-                        int GetGameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
+                        int getGameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
                         int detailed = raw.GameSubType.Value / (int)EGameMode.GAMEMODE_MAX; // ivar7
-                        bool RespawnSameRace = (detailed & 256) == 256;
-                        bool RespawnAnyRace = (detailed & 512) == 512;
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:respawn", RespawnSameRace ? "Race" : RespawnAnyRace ? "Any" : "One");
+                        bool respawnSameRace = (detailed & 256) == 256;
+                        bool respawnAnyRace = (detailed & 512) == 512;
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:respawn", respawnSameRace ? "Race" : respawnAnyRace ? "Any" : "One");
                         detailed = (detailed & 0xff);
 
-                        switch ((EGameMode)GetGameModeOutput)
+                        switch ((EGameMode)getGameModeOutput)
                         {
                             case EGameMode.GAMEMODE_TEAM_DM:
                             case EGameMode.GAMEMODE_TEAM_KOTH:
@@ -422,7 +422,7 @@ public class GameListModule : IGameListModule
                     break;
             }
 
-            if (!string.IsNullOrWhiteSpace(raw?.d))
+            if (!string.IsNullOrWhiteSpace(raw.d))
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_OTHER}:mod_hash", raw.d); // base64 encoded CRC32
 
             bool specialDedicatedServer = ApplyPlayers(raw, session, teamsOn, onlyOneTeam, pendingWorkPool, cancellationToken);
@@ -521,26 +521,6 @@ public class GameListModule : IGameListModule
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     private static (string? serverState, bool includeStateTime) DetermineServerState(BZCCGame raw)
     {
@@ -782,8 +762,9 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_COMPUTER}", false);
             if (raw.MaxPlayers.HasValue)
             {
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", Math.Min(5, raw.MaxPlayers.Value - 1));
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", Math.Min(5, raw.MaxPlayers.Value - 1));
+                var dedicatedMaxPlayers = Math.Clamp(raw.MaxPlayers.Value - 1, 0, 5);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", dedicatedMaxPlayers);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", dedicatedMaxPlayers);
             }
         }
         else
@@ -794,19 +775,4 @@ public class GameListModule : IGameListModule
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", Math.Min(5, raw.MaxPlayers.Value));
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
