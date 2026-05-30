@@ -288,139 +288,14 @@ public class GameListModule : IGameListModule
 
             ApplySessionSource(session, raw);
 
-            bool teamsOn = false;
-            bool onlyOneTeam = false;
-
-            switch (raw.GameType)
+            var gameTypeModeResult = ApplyGameTypeAndMode(raw, session, datumsAlreadyQueued);
+            foreach (var extraDatum in gameTypeModeResult.EmittedDatums)
             {
-                case 0:
-                    // removed this as it's invalid, will probably need to use maps to override it via manual metadata
-                    //session.AddObjectPath($"level:game_type", "All"); // TODO we saw this on a retaliation MPI, WTF?
-                    break;
-                case 1:
-                    if (raw.GameSubType != null)
-                    {
-                        int getGameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
-                        int detailed = raw.GameSubType.Value / (int)EGameMode.GAMEMODE_MAX; // ivar7
-                        bool respawnSameRace = (detailed & 256) == 256;
-                        bool respawnAnyRace = (detailed & 512) == 512;
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:respawn", respawnSameRace ? "Race" : respawnAnyRace ? "Any" : "One");
-                        detailed = (detailed & 0xff);
-
-                        switch ((EGameMode)getGameModeOutput)
-                        {
-                            case EGameMode.GAMEMODE_TEAM_DM:
-                            case EGameMode.GAMEMODE_TEAM_KOTH:
-                            case EGameMode.GAMEMODE_TEAM_CTF:
-                            case EGameMode.GAMEMODE_TEAM_LOOT:
-                            case EGameMode.GAMEMODE_TEAM_RACE:
-                                teamsOn = true;
-                                break;
-                            case EGameMode.GAMEMODE_DM:
-                            case EGameMode.GAMEMODE_KOTH:
-                            case EGameMode.GAMEMODE_CTF:
-                            case EGameMode.GAMEMODE_LOOT:
-                            case EGameMode.GAMEMODE_RACE:
-                            default:
-                                teamsOn = false;
-                                break;
-                        }
-
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
-                        if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMETYPE, $"DM")))
-                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Deathmatch" } });
-
-                        switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
-                        {
-                            case 0: // Deathmatch
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}DM"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}DM")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}Deathmatch" } });
-                                break;
-                            case 1: // King of the Hill
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}KOTH"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}KOTH")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}KOTH", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}King of the Hill" } });
-                                break;
-                            case 2: // Capture the Flag
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}CTF"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}CTF")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}CTF", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}Capture the Flag" } });
-                                break;
-                            case 3: // Loot
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}LOOT"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}LOOT")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}LOOT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}Loot" } });
-                                break;
-                            case 4: // DM [RESERVED]
-                                break;
-                            case 5: // Race
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}RACE"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}RACE")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}Race" } });
-                                break;
-                            case 6: // Race (Vehicle Only)
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}RACE"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}RACE")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}RACE", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}Race" } });
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
-                                break;
-                            case 7: // DM (Vehicle Only)
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}DM"));
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"{(teamsOn ? "TEAM_" : string.Empty)}DM")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{(teamsOn ? "TEAM_" : string.Empty)}DM", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}Deathmatch" } });
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
-                                break;
-                            default:
-                                //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : string.Empty) + "DM [UNKNOWN {raw.GameSubType}]";
-                                break;
-                        }
-                    }
-                    break;
-                case 2:
-                    if (raw.GameSubType != null)
-                    {
-                        int GetGameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
-
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT"));
-                        if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMETYPE, $"STRAT")))
-                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Strategy" } });
-
-                        switch ((EGameMode)GetGameModeOutput)
-                        {
-                            case EGameMode.GAMEMODE_TEAM_STRAT:
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT"));
-                                teamsOn = true;
-                                onlyOneTeam = false;
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, "STRAT")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Team Strategy" } });
-                                break;
-                            case EGameMode.GAMEMODE_STRAT:
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA"));
-                                teamsOn = false;
-                                onlyOneTeam = false;
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, "FFA")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Free for All" } });
-                                break;
-                            case EGameMode.GAMEMODE_MPI:
-                                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI"));
-                                teamsOn = true;
-                                onlyOneTeam = true;
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, "MPI")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Multiplayer Instant Action" } });
-                                break;
-                            default:
-                                //game.Level["GameType"] = $"STRAT [UNKNOWN {GetGameModeOutput}]";
-                                if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, $"UNK{GetGameModeOutput}")))
-                                    yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:UNK{GetGameModeOutput}", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{GetGameModeOutput}" } });
-                                break;
-                        }
-                    }
-                    break;
-                case 3: // impossible, BZCC limits to 0-2
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", $"{GameID}:MPI"); //  "MPI [Invalid]";
-                    break;
+                yield return extraDatum;
             }
+
+            bool teamsOn = gameTypeModeResult.TeamsOn;
+            bool onlyOneTeam = gameTypeModeResult.OnlyOneTeam;
 
             if (!string.IsNullOrWhiteSpace(raw.d))
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_OTHER}:mod_hash", raw.d); // base64 encoded CRC32
@@ -434,6 +309,202 @@ public class GameListModule : IGameListModule
         }
 
         yield break;
+    }
+
+    private readonly struct GameTypeModeResult
+    {
+        public bool TeamsOn { get; init; }
+        public bool OnlyOneTeam { get; init; }
+        public IReadOnlyList<Datum> EmittedDatums { get; init; }
+    }
+
+    private GameTypeModeResult ApplyGameTypeAndMode(
+        BZCCGame raw,
+        Datum session,
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
+    {
+        var emittedDatums = new List<Datum>();
+        bool teamsOn = false;
+        bool onlyOneTeam = false;
+
+        switch (raw.GameType)
+        {
+            case 0:
+                // removed this as it's invalid, will probably need to use maps to override it via manual metadata
+                //session.AddObjectPath($"level:game_type", "All"); // TODO we saw this on a retaliation MPI, WTF?
+                break;
+
+            case 1:
+                if (raw.GameSubType != null)
+                {
+                    int gameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
+                    int detailed = raw.GameSubType.Value / (int)EGameMode.GAMEMODE_MAX; // ivar7
+                    bool respawnSameRace = (detailed & 256) == 256;
+                    bool respawnAnyRace = (detailed & 512) == 512;
+                    session.AddObjectPath(
+                        $"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:respawn",
+                        respawnSameRace ? "Race" : respawnAnyRace ? "Any" : "One");
+
+                    detailed = detailed & 0xff;
+
+                    teamsOn = ((EGameMode)gameModeOutput) switch
+                    {
+                        EGameMode.GAMEMODE_TEAM_DM or
+                        EGameMode.GAMEMODE_TEAM_KOTH or
+                        EGameMode.GAMEMODE_TEAM_CTF or
+                        EGameMode.GAMEMODE_TEAM_LOOT or
+                        EGameMode.GAMEMODE_TEAM_RACE => true,
+                        EGameMode.GAMEMODE_DM or
+                        EGameMode.GAMEMODE_KOTH or
+                        EGameMode.GAMEMODE_CTF or
+                        EGameMode.GAMEMODE_LOOT or
+                        EGameMode.GAMEMODE_RACE => false,
+                        _ => false
+                    };
+
+                    session.AddObjectPath(
+                        $"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}",
+                        new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM"));
+
+                    AddIfUnique(
+                        emittedDatums,
+                        datumsAlreadyQueued,
+                        GAMELIST_TERMS.TYPE_GAMETYPE,
+                        "DM",
+                        new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:DM", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Deathmatch" } }));
+
+                    switch (detailed) // first byte of ivar7?  might be all of ivar7 // Deathmatch subtype (0 = normal; 1 = KOH; 2 = CTF; add 256 for random respawn on same race, or add 512 for random respawn w/o regard to race)
+                    {
+                        case 0: // Deathmatch
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "DM", "Deathmatch");
+                            break;
+                        case 1: // King of the Hill
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "KOTH", "King of the Hill");
+                            break;
+                        case 2: // Capture the Flag
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "CTF", "Capture the Flag");
+                            break;
+                        case 3: // Loot
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "LOOT", "Loot");
+                            break;
+                        case 4: // DM [RESERVED]
+                            break;
+                        case 5: // Race
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "RACE", "Race");
+                            break;
+                        case 6: // Race (Vehicle Only)
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "RACE", "Race");
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
+                            break;
+                        case 7: // DM (Vehicle Only)
+                            AddModeDatum(session, emittedDatums, datumsAlreadyQueued, teamsOn, "DM", "Deathmatch");
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:vehicle_only", true);
+                            break;
+                        default:
+                            //game.Level["GameMode"] = (m_TeamsOn ? "TEAM " : string.Empty) + "DM [UNKNOWN {raw.GameSubType}]";
+                            break;
+                    }
+                }
+                break;
+
+            case 2:
+                if (raw.GameSubType != null)
+                {
+                    int gameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
+
+                    session.AddObjectPath(
+                        $"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}",
+                        new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT"));
+
+                    AddIfUnique(
+                        emittedDatums,
+                        datumsAlreadyQueued,
+                        GAMELIST_TERMS.TYPE_GAMETYPE,
+                        "STRAT",
+                        new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Strategy" } }));
+
+                    switch ((EGameMode)gameModeOutput)
+                    {
+                        case EGameMode.GAMEMODE_TEAM_STRAT:
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT"));
+                            teamsOn = true;
+                            onlyOneTeam = false;
+                            AddIfUnique(emittedDatums, datumsAlreadyQueued, GAMELIST_TERMS.TYPE_GAMEMODE, "STRAT",
+                                new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Team Strategy" } }));
+                            break;
+
+                        case EGameMode.GAMEMODE_STRAT:
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA"));
+                            teamsOn = false;
+                            onlyOneTeam = false;
+                            AddIfUnique(emittedDatums, datumsAlreadyQueued, GAMELIST_TERMS.TYPE_GAMEMODE, "FFA",
+                                new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Free for All" } }));
+                            break;
+
+                        case EGameMode.GAMEMODE_MPI:
+                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI"));
+                            teamsOn = true;
+                            onlyOneTeam = true;
+                            AddIfUnique(emittedDatums, datumsAlreadyQueued, GAMELIST_TERMS.TYPE_GAMEMODE, "MPI",
+                                new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Multiplayer Instant Action" } }));
+                            break;
+
+                        default:
+                            AddIfUnique(emittedDatums, datumsAlreadyQueued, GAMELIST_TERMS.TYPE_GAMEMODE, $"UNK{gameModeOutput}",
+                                new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:UNK{gameModeOutput}", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{gameModeOutput}" } }));
+                            break;
+                    }
+                }
+                break;
+
+            case 3: // impossible, BZCC limits to 0-2
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", $"{GameID}:MPI"); //  "MPI [Invalid]";
+                break;
+        }
+
+        return new GameTypeModeResult
+        {
+            TeamsOn = teamsOn,
+            OnlyOneTeam = onlyOneTeam,
+            EmittedDatums = emittedDatums
+        };
+    }
+
+    private static void AddIfUnique(
+        List<Datum> emittedDatums,
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued,
+        string type,
+        string shortId,
+        Datum datum)
+    {
+        if (datumsAlreadyQueued.Add(new DatumKey(type, shortId)))
+        {
+            emittedDatums.Add(datum);
+        }
+    }
+
+    private static void AddModeDatum(
+        Datum session,
+        List<Datum> emittedDatums,
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued,
+        bool teamsOn,
+        string modeSuffix,
+        string modeName)
+    {
+        var key = $"{(teamsOn ? "TEAM_" : string.Empty)}{modeSuffix}";
+        session.AddObjectPath(
+            $"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}",
+            new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:{key}"));
+
+        AddIfUnique(
+            emittedDatums,
+            datumsAlreadyQueued,
+            GAMELIST_TERMS.TYPE_GAMEMODE,
+            key,
+            new Datum(
+                GAMELIST_TERMS.TYPE_GAMEMODE,
+                $"{GameID}:{key}",
+                new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}{modeName}" } }));
     }
 
     private IEnumerable<(string shortId, Datum data)> BuildSources(BZCCRaknetData gamelist)
@@ -762,9 +833,9 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_COMPUTER}", false);
             if (raw.MaxPlayers.HasValue)
             {
-                var dedicatedMaxPlayers = Math.Clamp(raw.MaxPlayers.Value - 1, 0, 5);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", dedicatedMaxPlayers);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", dedicatedMaxPlayers);
+                var teamMaxPlayers = Math.Clamp(raw.MaxPlayers.Value - 1, 0, 5); // max size of teams is 5, but if max players is, for example 5, then the max team size is 4 because teams need at least 1 player
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", teamMaxPlayers);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", teamMaxPlayers);
             }
         }
         else
@@ -772,7 +843,7 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_HUMAN}", false);
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_COMPUTER}", true);
             if (raw.MaxPlayers.HasValue)
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", Math.Min(5, raw.MaxPlayers.Value));
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", raw.MaxPlayers.Value);
         }
     }
 }
