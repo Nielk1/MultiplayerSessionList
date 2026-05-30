@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
-using MultiplayerSessionList.Plugins.Battlezone98Redux;
 using MultiplayerSessionList.Services;
 using System;
 using System.Collections.Generic;
@@ -83,7 +82,7 @@ public class GameListModule : IGameListModule
 
         // Generate Source Datums
         DataCache rootLevelSources = new DataCache();
-        foreach (var kv in BuildSources(gamelist))
+        foreach (var kv in BuildSources(gamelist, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             rootLevelSources[kv.shortId] = kv.data.CreateDatumRef();
@@ -190,7 +189,7 @@ public class GameListModule : IGameListModule
             var (serverState, includeStateTime) = DetermineServerState(raw);
             ApplyServerState(session, serverState);
 
-            foreach (var extraDatum in ApplyModsAndSessionFields(raw, session, datumsAlreadyQueued))
+            foreach (var extraDatum in ApplyModsAndSessionFields(raw, session, datumsAlreadyQueued, cancellationToken))
             {
                 yield return extraDatum;
             }
@@ -223,8 +222,11 @@ public class GameListModule : IGameListModule
     private IEnumerable<Datum> ApplyModsAndSessionFields(
         BZCCGame raw,
         Datum session,
-        ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (raw.Mods != null)
         {
             int modsLen = raw.Mods.Length;
@@ -279,6 +281,8 @@ public class GameListModule : IGameListModule
                 // this is the legacy path where dependencies get spun out as minor mods, only pre-community-patch does this
                 var dependencyMods = raw.Mods.Skip(1).Select(m =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     DataCache modwrap = new DataCache();
 
                     // session/game/mods/minor/[]/role = dependency
@@ -525,27 +529,29 @@ public class GameListModule : IGameListModule
                 new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, $"{(teamsOn ? "Team " : string.Empty)}{modeName}" } }));
     }
 
-    private IEnumerable<(string shortId, Datum data)> BuildSources(BZCCRaknetData gamelist)
+    private IEnumerable<(string shortId, Datum data)> BuildSources(BZCCRaknetData gamelist, CancellationToken cancellationToken)
     {
         if (gamelist?.proxyStatus == null) yield break;
 
         foreach (var proxyStatus in gamelist.proxyStatus)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (proxyStatus.Value == null) continue;
 
             var datum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:{proxyStatus.Key}", new DataCache
-        {
-            { GAMELIST_TERMS.SOURCE_NAME, proxyStatus.Key },
-            { "status", proxyStatus.Value.status }
-        });
+            {
+                { GAMELIST_TERMS.SOURCE_NAME, proxyStatus.Key },
+                { "status", proxyStatus.Value.status }
+            });
+
             if (proxyStatus.Value.success != null)
                 datum["success"] = proxyStatus.Value.success;
             if (proxyStatus.Value.updated != null)
                 datum["timestamp"] = proxyStatus.Value.updated;
+
             yield return (proxyStatus.Key, datum);
         }
     }
-
     private async IAsyncEnumerable<Datum> BuildDatumsForMapDataAsync(
         string modID,
         string mapID,
@@ -567,7 +573,7 @@ public class GameListModule : IGameListModule
 
         yield return CreateMapDatum(mapID, modID, mapData, mapUrl);
 
-        foreach(var modDatum in BuildModDatums(mapData, mapUrl, datumsAlreadyQueued))
+        foreach(var modDatum in BuildModDatums(mapData, mapUrl, datumsAlreadyQueued, cancellationToken))
         {
             yield return modDatum;
         }
@@ -577,11 +583,11 @@ public class GameListModule : IGameListModule
     private static Datum CreateMapDatum(string mapID, string modID, MapData mapData, string mapUrl)
     {
         Datum mapDatum = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}", new DataCache() {
-            { GAMELIST_TERMS.MAP_NAME, mapData?.title },
-            { GAMELIST_TERMS.MAP_DESCRIPTION, mapData?.description },
+            { GAMELIST_TERMS.MAP_NAME, mapData.title },
+            { GAMELIST_TERMS.MAP_DESCRIPTION, mapData.description },
             { GAMELIST_TERMS.MAP_MAPFILE, mapID + @".bzn" },
         });
-        if (mapData?.image != null)
+        if (mapData.image != null)
             mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl}/{mapData.image}";
 
         ApplyMapTeamMetadata(mapDatum, mapData);
@@ -591,7 +597,7 @@ public class GameListModule : IGameListModule
 
     private static void ApplyMapTeamMetadata(Datum mapDatum, MapData mapData)
     {
-        if (mapData?.netVars != null && (mapData?.netVars?.Count ?? 0) > 0)
+        if (mapData.netVars != null && (mapData.netVars?.Count ?? 0) > 0)
         {
             if (mapData != null && mapData.netVars.ContainsKey("ivar3") && mapData.netVars["ivar3"] == "1")
             {
@@ -601,12 +607,18 @@ public class GameListModule : IGameListModule
         }
     }
 
-    private static IEnumerable<Datum> BuildModDatums(MapData mapData, string mapUrl, ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
+    private static IEnumerable<Datum> BuildModDatums(
+        MapData mapData,
+        string mapUrl,
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued,
+        CancellationToken cancellationToken)
     {
         if (mapData?.mods != null)
         {
             foreach (var mod in mapData.mods)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}")))
                 {
                     Datum modData = new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}", new DataCache() { });
@@ -882,7 +894,7 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_HUMAN}", false);
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:2:{GAMELIST_TERMS.SESSION_TEAMS_X_COMPUTER}", true);
             if (raw.MaxPlayers.HasValue)
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", raw.MaxPlayers.Value);
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TEAMS}:1:{GAMELIST_TERMS.SESSION_TEAMS_X_MAX}", Math.Max(0, raw.MaxPlayers.Value));
         }
     }
 }
