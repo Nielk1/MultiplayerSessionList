@@ -14,29 +14,6 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         public Dictionary<string, ProxyStatus>? proxyStatus { get; set; }
     }
 
-    ///// All possible types of NATs (except NAT_TYPE_COUNT, which is an internal value) 
-    //enum NATTypeDetectionResult
-    //{
-    //    /// Works with anyone
-    //    NAT_TYPE_NONE,
-    //    /// Accepts any datagrams to a port that has been previously used. Will accept the first datagram from the remote peer.
-    //    NAT_TYPE_FULL_CONE,
-    //    /// Accepts datagrams to a port as long as the datagram source IP address is a system we have already sent to. Will accept the first datagram if both systems send simultaneously. Otherwise, will accept the first datagram after we have sent one datagram.
-    //    NAT_TYPE_ADDRESS_RESTRICTED,
-    //    /// Same as address-restricted cone NAT, but we had to send to both the correct remote IP address and correct remote port. The same source address and port to a different destination uses the same mapping.
-    //    NAT_TYPE_PORT_RESTRICTED,
-    //    /// A different port is chosen for every remote destination. The same source address and port to a different destination uses a different mapping. Since the port will be different, the first external punchthrough attempt will fail. For this to work it requires port-prediction (MAX_PREDICTIVE_PORT_RANGE>1) and that the router chooses ports sequentially.
-    //    NAT_TYPE_SYMMETRIC,
-    //    /// Hasn't been determined. NATTypeDetectionClient does not use this, but other plugins might
-    //    NAT_TYPE_UNKNOWN,
-    //    /// In progress. NATTypeDetectionClient does not use this, but other plugins might
-    //    NAT_TYPE_DETECTION_IN_PROGRESS,
-    //    /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
-    //    NAT_TYPE_SUPPORTS_UPNP,
-    //    /// \internal Must be last
-    //    NAT_TYPE_COUNT
-    //};
-
     public class BZCCPlayerData
     {
         public string? n { get; set; } // name (base 64)
@@ -47,10 +24,9 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [Newtonsoft.Json.JsonProperty("s")][JsonPropertyName("s")] public int? Score { get; set; } // score
         [Newtonsoft.Json.JsonProperty("t")][JsonPropertyName("t")] public int? Team { get; set; } // team
 
-        //[Newtonsoft.Json.JsonIgnore][JsonIgnore] public string Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.UTF8.GetString(Convert.FromBase64String(n)); } }
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string? Name { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n)); } }
     }
-    enum GameMode : int
+    enum EGameMode : int
     {
         GAMEMODE_UNKNOWN,
         GAMEMODE_DM,
@@ -69,7 +45,7 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 
         GAMEMODE_MAX // Must be last, thank you.
     };
-    public enum NatType : byte
+    public enum ENatType : byte
     {
         NONE = 0, /// Works with anyone
         FULL_CONE = 1, /// Accepts any datagrams to a port that has been previously used. Will accept the first datagram from the remote peer.
@@ -80,17 +56,29 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         DETECTION_IN_PROGRESS = 6, /// In progress. NATTypeDetectionClient does not use this, but other plugins might
         SUPPORTS_UPNP = 7, /// Didn't bother figuring it out, as we support UPNP, so it is equivalent to NAT_TYPE_NONE. NATTypeDetectionClient does not use this, but other plugins might
     }
+
+    public enum EServerInfoMode
+    {
+         Unknown = 0,
+         OpenWaiting = 1,
+         ClosedWaiting = 2,
+         OpenPlaying = 3,
+         ClosedPlaying = 4,
+         Exiting = 5,
+    }
+
     public class BZCCGame
     {
         //public string __addr { get; set; }
         public string? proxySource { get; set; }
 
         [Newtonsoft.Json.JsonProperty("g")][JsonPropertyName("g")] public string NATNegID { get; set; } = null!; // Raknet GUID, Base64 encoded with custom alphabet
+        [JsonIgnore] public UInt64 NATNegGuid { get { return CustomBase64.DecodeRaknetGuid(NATNegID); } set { NATNegID = CustomBase64.EncodeRaknetGuid(value); } }
         public string? n { get; set; } // varchar(256) | Name of client game session, base64 and null terminate.
         [Newtonsoft.Json.JsonProperty("m")][JsonPropertyName("m")] public string? MapFile { get; set; } // varchar(68)  | Name of client map, no bzn extension.
         public byte? k { get; set; } // tinyint      | Password Flag.
         public string? d { get; set; } // varchar(16)  | MODSLISTCRC_KEY
-        [Newtonsoft.Json.JsonProperty("t")][JsonPropertyName("t")] public NatType? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
+        [Newtonsoft.Json.JsonProperty("t")][JsonPropertyName("t")] public ENatType? NATType { get; set; } // tinyint      | NATTYPE_KEY //nat type 5 seems bad, 7 seems to mean direct connect
         public string? v { get; set; } // varchar(8)   | GAMEVERSION_KEY (nice string now)
         [JsonConverter(typeof(FaultTolerantIntConverter))] public int? l { get; set; } // locked, this was a string in error in my raknet server's fake marker game
         [Newtonsoft.Json.JsonProperty("h")][JsonPropertyName("h")] public string? MOTD { get; set; } // server message (not base64 yet)
@@ -101,11 +89,27 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [Newtonsoft.Json.JsonProperty("pm")][JsonPropertyName("pm")] public int? MaxPlayers { get; set; } // max players
 
         [Newtonsoft.Json.JsonProperty("tps")][JsonPropertyName("tps")] public int? TPS { get; set; } // tps
-        [Newtonsoft.Json.JsonProperty("si")][JsonPropertyName("si")] public int? ServerInfoMode { get; set; } // gamestate
+        [Newtonsoft.Json.JsonProperty("si")][JsonPropertyName("si")] public EServerInfoMode? ServerInfoMode { get; set; } // gamestate
+
+        // Map the closed modes to their open equivalents for time context purposes
+        [JsonIgnore]
+        public EServerInfoMode? ServerMode
+        {
+            get
+            {
+                return ServerInfoMode switch
+                {
+                    EServerInfoMode.ClosedWaiting => EServerInfoMode.OpenWaiting,
+                    EServerInfoMode.ClosedPlaying => EServerInfoMode.OpenPlaying,
+                    _ => ServerInfoMode
+                };
+            }
+        }
+
         [Newtonsoft.Json.JsonProperty("ti")][JsonPropertyName("ti")] public int? TimeLimit { get; set; } // time limit
         [Newtonsoft.Json.JsonProperty("ki")][JsonPropertyName("ki")] public int? KillLimit { get; set; } // kill limit
 
-        [Newtonsoft.Json.JsonProperty("gtm")][JsonPropertyName("gtm")] public int? GameTimeMinutes { get; set; } // game time min (max 255)
+        [Newtonsoft.Json.JsonProperty("gtm")][JsonPropertyName("gtm")] public int? GameTimeMinutes { get; set; } // game time min (max 255) (appears to be hard-locked to 60 for post-game)
         [Newtonsoft.Json.JsonProperty("pg")][JsonPropertyName("pg")] public int? MaxPingSeen { get; set; } // seen max ping
         [Newtonsoft.Json.JsonProperty("pgm")][JsonPropertyName("pgm")] public int? MaxPing { get; set; } // max ping
 
@@ -127,7 +131,10 @@ namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public bool Passworded { get { return k == 1; } }
         [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string? SessionName { get { return string.IsNullOrWhiteSpace(n) ? null : Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(n).TakeWhile(chr => chr != 0x00).ToArray()).Replace('�', '#'); } }
 
-        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? new string[] { }; } }
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public string[] Mods { get { return mm?.Split(';') ?? []; } }
+
+
+        [Newtonsoft.Json.JsonIgnore][JsonIgnore] public DateTime? GameStateStarted { get; set;}
 
         public bool IsOnRebellion()
         {

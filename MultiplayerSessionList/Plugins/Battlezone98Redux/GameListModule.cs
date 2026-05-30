@@ -56,10 +56,10 @@ public class GameListModule : IGameListModule
         var gamelist = res.Data;
         if (gamelist == null) yield break;
 
-#if DEBUG
-        // any games that don't include CreepingDeath, because he loves to sit in games forever
-        mock = mock || (gamelist != null && !gamelist.Where(dr => (dr.Value?.LobbyType ?? Lobby.ELobbyType.Unknown) == Lobby.ELobbyType.Game && (dr.Value?.users?.Values?.Any(dx => dx.id != "S76561199054029199") ?? false)).Any());
-#endif
+//#if DEBUG
+//        // any games that don't include CreepingDeath, because he loves to sit in games forever
+//        mock = mock || (gamelist != null && !gamelist.Where(dr => (dr.Value?.LobbyType ?? Lobby.ELobbyType.Unknown) == Lobby.ELobbyType.Game && (dr.Value?.users?.Values?.Any(dx => dx.id != "S76561199054029199") ?? false)).Any());
+//#endif
         if (mock)
             gamelist = JsonConvert.DeserializeObject<Dictionary<string, Lobby>>(
                 System.IO.File.ReadAllText(@"mock\bigboat\battlezone_98_redux.json"));

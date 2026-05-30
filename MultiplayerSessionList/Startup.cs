@@ -3,12 +3,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MultiplayerSessionList.Plugins.BattlezoneCombatCommander;
 using MultiplayerSessionList.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime;
-using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MultiplayerSessionList
 {
@@ -50,6 +53,14 @@ namespace MultiplayerSessionList
             services.AddSingleton<SteamInterface>();
             services.AddHttpClient();
             services.AddSingleton<CachedAdvancedWebClient>();
+
+            services.AddSingleton(sp => new TemporalCache<ulong, BZCCGame>(m =>
+            {
+                var keys = new List<string>();
+                if (!string.IsNullOrEmpty(m.SessionName))
+                    keys.Add(m.SessionName);
+                return keys;
+            }));
 
             services.AddSingleton<GameListModuleManager>();
             services.AddScoped<ScopedGameListModuleManager>();

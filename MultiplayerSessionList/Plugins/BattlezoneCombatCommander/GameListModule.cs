@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using MultiplayerSessionList.Models;
 using MultiplayerSessionList.Modules;
 using MultiplayerSessionList.Services;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,12 +26,14 @@ public class GameListModule : IGameListModule
     private readonly GogInterface gogInterface;
     private readonly SteamInterface steamInterface;
     private readonly CachedAdvancedWebClient cachedAdvancedWebClient;
+    private readonly TemporalCache<ulong, BZCCGame> temporalCache;
 
     public GameListModule(
         IConfiguration configuration,
         GogInterface gogInterface,
         SteamInterface steamInterface,
-        CachedAdvancedWebClient cachedAdvancedWebClient)
+        CachedAdvancedWebClient cachedAdvancedWebClient,
+        TemporalCache<ulong, BZCCGame> temporalCache)
     {
         queryUrl = configuration[$"{GameID}:sessions"]!;
         mapUrl = configuration[$"{GameID}:maps"]!;
@@ -39,6 +43,7 @@ public class GameListModule : IGameListModule
         this.gogInterface = gogInterface;
         this.steamInterface = steamInterface;
         this.cachedAdvancedWebClient = cachedAdvancedWebClient;
+        this.temporalCache = temporalCache;
     }
 
     public async IAsyncEnumerable<Datum> GetGameListChunksAsync(
@@ -53,10 +58,10 @@ public class GameListModule : IGameListModule
         var gamelist = res.Data;
         if (gamelist == null) yield break;
 
-#if DEBUG
-        // any games that aren't my placeholder
-        mock = mock || !gamelist.GET.Where(raw => raw.NATNegID != "XXXXXXX@XX").Any();
-#endif
+//#if DEBUG
+//        // any games that aren't my placeholder
+//        mock = mock || !gamelist.GET.Where(raw => raw.NATNegID != "XXXXXXX@XX").Any();
+//#endif
         if (mock)
             gamelist = JsonSerializer.Deserialize<BZCCRaknetData>(
                 System.IO.File.ReadAllText(@"mock\bigboat\battlezone_combat_commander.json"));
@@ -74,9 +79,11 @@ public class GameListModule : IGameListModule
 
         DynamicAsyncEnumerablePool<Datum> pendingWorkPool = new DynamicAsyncEnumerablePool<Datum>();
 
+        DateTime curTime = res.LastModified ?? DateTime.UtcNow;
+
         // Generate Session Datums
         DataCache rootLevelSessions = new DataCache();
-        foreach (var datum in BuildSessionsAsync(gamelist, admin, pendingWorkPool, cancellationToken))
+        foreach (var datum in BuildSessionsAsync(gamelist, curTime, admin, pendingWorkPool, cancellationToken))
         {
             if (datum.Type == GAMELIST_TERMS.TYPE_SESSION)
                 rootLevelSessions[datum.ID] = datum.CreateDatumRef();
@@ -98,6 +105,7 @@ public class GameListModule : IGameListModule
     }
     private IEnumerable<Datum> BuildSessionsAsync(
         BZCCRaknetData gamelist,
+        DateTime curTime,
         bool admin,
         DynamicAsyncEnumerablePool<Datum> pendingWorkPool,
         CancellationToken cancellationToken)
@@ -116,12 +124,66 @@ public class GameListModule : IGameListModule
             // impossible illegal game, fake game violating basic logic rules
             if (raw.NATNegID == null) continue;
 
+            gamelist.proxyStatus.TryGetValue(raw.proxySource ?? "IonDriver", out ProxyStatus stat);
+            if (stat != null && stat.updated.HasValue)
+            {
+                DateTime recordDate = stat.updated.Value;
+
+                if (raw.GameTimeMinutes.HasValue)
+                {
+                    if (raw.GameTimeMinutes.Value != 255)
+                        raw.GameStateStarted = recordDate.AddMinutes(-raw.GameTimeMinutes.Value);
+
+                    temporalCache.TryGet(raw.NATNegGuid, out var cachedGame);
+                    if (cachedGame != null && cachedGame.GameTimeMinutes.HasValue && cachedGame.GameStateStarted.HasValue)
+                    {
+                        if (cachedGame.ServerMode == raw.ServerMode && cachedGame.GameTimeMinutes.Value <= raw.GameTimeMinutes.Value)
+                        {
+                            if (raw.GameTimeMinutes.Value == 255)
+                            {
+                                // current game is past all possible measurement, so use the cached game's start time if we have it to preserve the best possible estimate of when the game started
+                                raw.GameStateStarted = cachedGame.GameStateStarted;
+                            }
+                        }
+                    }
+                    else if (raw.SessionName != null)
+                    {
+                        // fuzzy match, which helps with host migration
+                        var possibleMatches = temporalCache.FuzzyLookup(raw.SessionName);
+                        if (possibleMatches != null)
+                        {
+                            var fuzzyGame = possibleMatches.Select(dr =>
+                            {
+                                if (temporalCache.TryGet(dr, out BZCCGame value))
+                                    return value;
+                                return null;
+                            }).Where(dr => dr != null && dr.ServerMode == raw.ServerMode && cachedGame.GameTimeMinutes.Value <= raw.GameTimeMinutes.Value)
+                            .Where(dr => dr.pl.Any(player => player != null && (raw.pl?.Any(px => player.PlayerID == px.PlayerID) ?? false))) // at least one matching player, helps ensure we are matching the same game and not just a different game with the same name and similar time)
+                            .OrderByDescending(dr => dr.GameStateStarted)
+                            .FirstOrDefault();
+
+                            if (fuzzyGame != null)
+                            {
+                                if (raw.GameTimeMinutes.Value == 255)
+                                {
+                                    // current game is past all possible measurement, so use the fuzzy matched game's start time if we have it to preserve the best possible estimate of when the game started
+                                    raw.GameStateStarted = fuzzyGame.GameStateStarted;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            temporalCache.Set(raw.NATNegGuid, raw);
+
             // if the game's only player is the spam game account and it is locked, ignore it unless we're in admin mode
             if (!admin && raw.Locked && (raw.pl?.All(player => player?.PlayerID == "S76561199685297391") ?? false))  continue;
 
             // Session ID
-            UInt64 natNegId = Base64.DecodeRaknetGuid(raw.NATNegID);
-            Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
+            //UInt64 natNegId = CustomBase64.DecodeRaknetGuid(raw.NATNegID);
+            //Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{natNegId:x16}");
+            Datum session = new Datum(GAMELIST_TERMS.TYPE_SESSION, $"{GameID}:{raw.proxySource ?? "IonDriver"}:{raw.NATNegGuid:x16}");
 
             // All servers are "listen" servers unless we override this later in a special situation
             // session/type
@@ -160,26 +222,29 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_STATUS}:{GAMELIST_TERMS.SESSION_STATUS_PASSWORD}", raw.Passworded);
 
             string? ServerState = null;
+            bool includeStateTime = false;
             if (raw.ServerInfoMode.HasValue)
             {
                 switch (raw.ServerInfoMode)
                 {
-                    case 0: // ServerInfoMode_Unknown
+                    case EServerInfoMode.Unknown:
                         ServerState = SESSION_STATE.Unknown;
                         break;
-                    case 1: // ServerInfoMode_OpenWaiting
-                    case 2: // ServerInfoMode_ClosedWaiting (full)
+                    case EServerInfoMode.OpenWaiting:
+                    case EServerInfoMode.ClosedWaiting:
+                        includeStateTime = true;
                         if (raw?.pl?.Any(dr => dr != null && ((dr.Score ?? 0) != 0 || (dr.Deaths ?? 0) != 0 || (dr.Kills ?? 0) != 0)) ?? false)
                             // PreGame status applied in error, players have in-game sourced data
                             ServerState = SESSION_STATE.InGame;
                         else
                             ServerState = SESSION_STATE.PreGame;
                         break;
-                    case 3: // ServerInfoMode_OpenPlaying
-                    case 4: // ServerInfoMode_ClosedPlaying (full)
+                    case EServerInfoMode.OpenPlaying:
+                    case EServerInfoMode.ClosedPlaying:
+                        includeStateTime = true;
                         ServerState = SESSION_STATE.InGame;
                         break;
-                    case 5: // ServerInfoMode_Exiting
+                    case EServerInfoMode.Exiting:
                         ServerState = SESSION_STATE.PostGame;
                         break;
                 }
@@ -307,26 +372,26 @@ public class GameListModule : IGameListModule
                     case 1:
                         if (raw.GameSubType != null)
                         {
-                            int GetGameModeOutput = raw.GameSubType.Value % (int)GameMode.GAMEMODE_MAX; // extract if we are team or not
-                            int detailed = raw.GameSubType.Value / (int)GameMode.GAMEMODE_MAX; // ivar7
+                            int GetGameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
+                            int detailed = raw.GameSubType.Value / (int)EGameMode.GAMEMODE_MAX; // ivar7
                             bool RespawnSameRace = (detailed & 256) == 256;
                             bool RespawnAnyRace = (detailed & 512) == 512;
                             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:respawn", RespawnSameRace ? "Race" : RespawnAnyRace ? "Any" : "One");
                             detailed = (detailed & 0xff);
-                            switch ((GameMode)GetGameModeOutput)
+                            switch ((EGameMode)GetGameModeOutput)
                             {
-                                case GameMode.GAMEMODE_TEAM_DM:
-                                case GameMode.GAMEMODE_TEAM_KOTH:
-                                case GameMode.GAMEMODE_TEAM_CTF:
-                                case GameMode.GAMEMODE_TEAM_LOOT:
-                                case GameMode.GAMEMODE_TEAM_RACE:
+                                case EGameMode.GAMEMODE_TEAM_DM:
+                                case EGameMode.GAMEMODE_TEAM_KOTH:
+                                case EGameMode.GAMEMODE_TEAM_CTF:
+                                case EGameMode.GAMEMODE_TEAM_LOOT:
+                                case EGameMode.GAMEMODE_TEAM_RACE:
                                     m_TeamsOn = true;
                                     break;
-                                case GameMode.GAMEMODE_DM:
-                                case GameMode.GAMEMODE_KOTH:
-                                case GameMode.GAMEMODE_CTF:
-                                case GameMode.GAMEMODE_LOOT:
-                                case GameMode.GAMEMODE_RACE:
+                                case EGameMode.GAMEMODE_DM:
+                                case EGameMode.GAMEMODE_KOTH:
+                                case EGameMode.GAMEMODE_CTF:
+                                case EGameMode.GAMEMODE_LOOT:
+                                case EGameMode.GAMEMODE_RACE:
                                 default:
                                     m_TeamsOn = false;
                                     break;
@@ -386,29 +451,29 @@ public class GameListModule : IGameListModule
                     case 2:
                         if (raw.GameSubType != null)
                         {
-                            int GetGameModeOutput = raw.GameSubType.Value % (int)GameMode.GAMEMODE_MAX; // extract if we are team or not
+                            int GetGameModeOutput = raw.GameSubType.Value % (int)EGameMode.GAMEMODE_MAX; // extract if we are team or not
 
                             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMETYPE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT"));
                             if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMETYPE, $"STRAT")))
                                 yield return new Datum(GAMELIST_TERMS.TYPE_GAMETYPE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMETYPE_NAME, "Strategy" } });
 
-                            switch ((GameMode)GetGameModeOutput)
+                            switch ((EGameMode)GetGameModeOutput)
                             {
-                                case GameMode.GAMEMODE_TEAM_STRAT:
+                                case EGameMode.GAMEMODE_TEAM_STRAT:
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT"));
                                     m_TeamsOn = true;
                                     m_OnlyOneTeam = false;
                                     if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, "STRAT")))
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:STRAT", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Team Strategy" } });
                                     break;
-                                case GameMode.GAMEMODE_STRAT:
+                                case EGameMode.GAMEMODE_STRAT:
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA"));
                                     m_TeamsOn = false;
                                     m_OnlyOneTeam = false;
                                     if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEMODE, "FFA")))
                                         yield return new Datum(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:FFA", new DataCache() { { GAMELIST_TERMS.GAMEMODE_NAME, "Free for All" } });
                                     break;
-                                case GameMode.GAMEMODE_MPI:
+                                case EGameMode.GAMEMODE_MPI:
                                     session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_GAMEMODE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:MPI"));
                                     m_TeamsOn = true;
                                     m_OnlyOneTeam = true;
@@ -562,13 +627,24 @@ public class GameListModule : IGameListModule
                 session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.CurPlayers);
             }
 
-            if (raw != null && raw.GameTimeMinutes.HasValue)
+            if (raw != null && includeStateTime)
             {
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", raw.GameTimeMinutes * 60);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 60);
-                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_MAX}", raw.GameTimeMinutes.Value == 255); // 255 appears to mean it maxed out?  Does for currently playing.
-                if (!string.IsNullOrWhiteSpace(ServerState))
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_CONTEXT}", ServerState);
+                if (raw.GameTimeMinutes.HasValue && (raw.GameTimeMinutes.Value != 255 || !raw.GameStateStarted.HasValue))
+                {
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", raw.GameTimeMinutes * 60);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 60);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_MAX}", raw.GameTimeMinutes.Value == 255); // 255 appears to mean it maxed out?  Does for currently playing.
+                    if (!string.IsNullOrWhiteSpace(ServerState))
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_CONTEXT}", ServerState);
+                }
+                else if (raw.GameStateStarted.HasValue)
+                {
+                    int min = (int)(curTime - raw.GameStateStarted.Value).TotalMinutes;
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_SECONDS}", min * 60);
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_RESOLUTION}", 60);
+                    if (!string.IsNullOrWhiteSpace(ServerState))
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_TIME}:{GAMELIST_TERMS.SESSION_TIME_CONTEXT}", ServerState);
+                }
             }
 
             if (raw != null && m_TeamsOn)

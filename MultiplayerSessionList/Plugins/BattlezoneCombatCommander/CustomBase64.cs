@@ -3,7 +3,7 @@ using System.Text;
 
 namespace MultiplayerSessionList.Plugins.BattlezoneCombatCommander
 {
-    public static class Base64
+    public static class CustomBase64
     {
         static char[] RaknetGuidEncodeTable = new char[] {
             '@', '1', '2', '3', '4', '5', '6', '7', '8', '9',

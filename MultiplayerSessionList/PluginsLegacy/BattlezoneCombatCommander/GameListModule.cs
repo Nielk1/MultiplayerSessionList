@@ -136,7 +136,12 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                 {
                     Tasks.Add(Task.Run(async () =>
                     {
+                        // ignore dummy games
                         if (raw.NATNegID == "XXXXXXX@XX")
+                            return;
+
+                        // impossible illegal game, fake game violating basic logic rules
+                        if (raw.NATNegID == null)
                             return;
 
                         // if the game's only player is the spam game account, ignore it
@@ -187,22 +192,22 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
                         {
                             switch (raw.ServerInfoMode)
                             {
-                                case 0: // ServerInfoMode_Unknown
+                                case EServerInfoMode.Unknown:
                                     ServerState = SESSION_STATE_LEGACY.Unknown;
                                     break;
-                                case 1: // ServerInfoMode_OpenWaiting
-                                case 2: // ServerInfoMode_ClosedWaiting (full)
+                                case EServerInfoMode.OpenWaiting:
+                                case EServerInfoMode.ClosedWaiting:
                                     if (raw.pl.Any(dr => dr != null && ((dr.Score ?? 0) != 0 || (dr.Deaths ?? 0) != 0 || (dr.Kills ?? 0) != 0)))
                                         // PreGame status applied in error, players have in-game sourced data
                                         ServerState = SESSION_STATE_LEGACY.InGame;
                                     else
                                         ServerState = SESSION_STATE_LEGACY.PreGame;
                                     break;
-                                case 3: // ServerInfoMode_OpenPlaying
-                                case 4: // ServerInfoMode_ClosedPlaying (full)
+                                case EServerInfoMode.OpenPlaying:
+                                case EServerInfoMode.ClosedPlaying:
                                     ServerState = SESSION_STATE_LEGACY.InGame;
                                     break;
-                                case 5: // ServerInfoMode_Exiting
+                                case EServerInfoMode.Exiting:
                                     ServerState = SESSION_STATE_LEGACY.PostGame;
                                     break;
                             }
@@ -644,11 +649,18 @@ namespace MultiplayerSessionList.PluginsLegacy.BattlezoneCombatCommander
 
                         if (raw.GameTimeMinutes.HasValue)
                         {
-                            game.Time.AddObjectPath("Seconds", raw.GameTimeMinutes * 60);
-                            game.Time.AddObjectPath("Resolution", 60);
-                            game.Time.AddObjectPath("Max", raw.GameTimeMinutes.Value == 255); // 255 appears to mean it maxed out?  Does for currently playing.
-                            if (!string.IsNullOrWhiteSpace(ServerState))
-                                game.Time.AddObjectPath("Context", ServerState);
+                            if (raw.ServerInfoMode == EServerInfoMode.Exiting && raw.GameTimeMinutes == 60)
+                            {
+                                // closing down the server hard-codes time as 60 seconds for some reason
+                            }
+                            else
+                            {
+                                game.Time.AddObjectPath("Seconds", raw.GameTimeMinutes * 60);
+                                game.Time.AddObjectPath("Resolution", 60);
+                                game.Time.AddObjectPath("Max", raw.GameTimeMinutes.Value == 255); // 255 appears to mean it maxed out?  Does for currently playing.
+                                if (!string.IsNullOrWhiteSpace(ServerState))
+                                    game.Time.AddObjectPath("Context", ServerState);
+                            }
                         }
 
                         MapData mapData = null;
