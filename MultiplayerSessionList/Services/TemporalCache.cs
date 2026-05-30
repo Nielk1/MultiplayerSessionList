@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace MultiplayerSessionList.Services
 {
-    public class TemporalCache<K, T> where K : notnull
+    public class TemporalCache<K, T> : IDisposable where K : notnull
     {
         private readonly Dictionary<K, T> _cache = new();
         private readonly Dictionary<K, DateTime> _lastTouched = new();
@@ -14,37 +14,43 @@ namespace MultiplayerSessionList.Services
         private readonly Func<T, IEnumerable<string>> _fuzzyKeySelector;
         private readonly TimeSpan _checkRate = TimeSpan.FromMinutes(5);
         private readonly TimeSpan _expiration;
-        private DateTime lastCheckedExpiration = DateTime.UtcNow;
+
+        private long _lastCheckedExpirationTicks = DateTime.UtcNow.Ticks;
+        private int _disposed;
 
         public TemporalCache(TimeSpan expiration, Func<T, IEnumerable<string>> fuzzyKeySelector)
         {
+            if (expiration <= TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(expiration), "Expiration must be greater than zero.");
+            }
+
             _expiration = expiration;
             _fuzzyKeySelector = fuzzyKeySelector ?? throw new ArgumentNullException(nameof(fuzzyKeySelector));
         }
 
         public void Set(K key, T value)
         {
+            ThrowIfDisposed();
+            TryCleanupExpiredEntries();
+
             _lock.EnterWriteLock();
             try
             {
-                // Remove old fuzzy keys if key already exists
-                if (_cache.ContainsKey(key) && _reverseFuzzyLookup.TryGetValue(key, out var oldFuzzyKeys))
-                {
-                    foreach (var fuzzyKey in oldFuzzyKeys)
-                    {
-                        if (_fuzzyLookup.TryGetValue(fuzzyKey, out var set))
-                        {
-                            set.Remove(key);
-                            if (set.Count == 0)
-                                _fuzzyLookup.Remove(fuzzyKey);
-                        }
-                    }
-                }
+                RemoveFuzzyMappingsInternal(key);
 
                 _cache[key] = value;
                 _lastTouched[key] = DateTime.UtcNow;
 
-                var fuzzyKeys = new HashSet<string>(_fuzzyKeySelector(value) ?? Array.Empty<string>());
+                var fuzzyKeys = new HashSet<string>();
+                foreach (var fuzzyKey in _fuzzyKeySelector(value) ?? Array.Empty<string>())
+                {
+                    if (!string.IsNullOrEmpty(fuzzyKey))
+                    {
+                        fuzzyKeys.Add(fuzzyKey);
+                    }
+                }
+
                 _reverseFuzzyLookup[key] = fuzzyKeys;
 
                 foreach (var fuzzyKey in fuzzyKeys)
@@ -54,6 +60,7 @@ namespace MultiplayerSessionList.Services
                         set = new HashSet<K>();
                         _fuzzyLookup[fuzzyKey] = set;
                     }
+
                     set.Add(key);
                 }
             }
@@ -65,6 +72,9 @@ namespace MultiplayerSessionList.Services
 
         public bool TryGet(K key, out T value)
         {
+            ThrowIfDisposed();
+            TryCleanupExpiredEntries();
+
             _lock.EnterUpgradeableReadLock();
             try
             {
@@ -79,8 +89,11 @@ namespace MultiplayerSessionList.Services
                     {
                         _lock.ExitWriteLock();
                     }
+
                     return true;
                 }
+
+                value = default!;
                 return false;
             }
             finally
@@ -91,6 +104,8 @@ namespace MultiplayerSessionList.Services
 
         public IEnumerable<K> FuzzyLookup(string fuzzyKey)
         {
+            ThrowIfDisposed();
+
             _lock.EnterReadLock();
             try
             {
@@ -98,6 +113,7 @@ namespace MultiplayerSessionList.Services
                 {
                     return [.. set];
                 }
+
                 return Array.Empty<K>();
             }
             finally
@@ -106,36 +122,10 @@ namespace MultiplayerSessionList.Services
             }
         }
 
-        private void TryCleanupExpiredEntries()
-        {
-            if (DateTime.UtcNow - lastCheckedExpiration < _checkRate)
-                return;
-            _lock.EnterWriteLock();
-            try
-            {
-                var now = DateTime.UtcNow;
-                var keysToRemove = new List<K>();
-                foreach (var kvp in _lastTouched)
-                {
-                    if (now - kvp.Value > _expiration)
-                    {
-                        keysToRemove.Add(kvp.Key);
-                    }
-                }
-                foreach (var key in keysToRemove)
-                {
-                    Remove(key);
-                }
-                lastCheckedExpiration = now;
-            }
-            finally
-            {
-                _lock.ExitWriteLock();
-            }
-        }
-
         public DateTime? GetLastTouched(K key)
         {
+            ThrowIfDisposed();
+
             _lock.EnterReadLock();
             try
             {
@@ -143,6 +133,7 @@ namespace MultiplayerSessionList.Services
                 {
                     return dt;
                 }
+
                 return null;
             }
             finally
@@ -153,27 +144,12 @@ namespace MultiplayerSessionList.Services
 
         public void Remove(K key)
         {
+            ThrowIfDisposed();
+
             _lock.EnterWriteLock();
             try
             {
-                if (_cache.Remove(key))
-                {
-                    _lastTouched.Remove(key);
-
-                    if (_reverseFuzzyLookup.TryGetValue(key, out var fuzzyKeys))
-                    {
-                        foreach (var fuzzyKey in fuzzyKeys)
-                        {
-                            if (_fuzzyLookup.TryGetValue(fuzzyKey, out var set))
-                            {
-                                set.Remove(key);
-                                if (set.Count == 0)
-                                    _fuzzyLookup.Remove(fuzzyKey);
-                            }
-                        }
-                        _reverseFuzzyLookup.Remove(key);
-                    }
-                }
+                RemoveInternal(key);
             }
             finally
             {
@@ -181,6 +157,95 @@ namespace MultiplayerSessionList.Services
             }
         }
 
-        // Add expiration/purge logic as needed, calling Remove(key) for expired entries.
+        private void TryCleanupExpiredEntries()
+        {
+            var nowTicks = DateTime.UtcNow.Ticks;
+            var lastCheckTicks = Interlocked.Read(ref _lastCheckedExpirationTicks);
+            if (nowTicks - lastCheckTicks < _checkRate.Ticks)
+            {
+                return;
+            }
+
+            _lock.EnterWriteLock();
+            try
+            {
+                nowTicks = DateTime.UtcNow.Ticks;
+                lastCheckTicks = Interlocked.Read(ref _lastCheckedExpirationTicks);
+                if (nowTicks - lastCheckTicks < _checkRate.Ticks)
+                {
+                    return;
+                }
+
+                var expirationCutoff = new DateTime(nowTicks - _expiration.Ticks, DateTimeKind.Utc);
+                var keysToRemove = new List<K>();
+
+                foreach (var kvp in _lastTouched)
+                {
+                    if (kvp.Value <= expirationCutoff)
+                    {
+                        keysToRemove.Add(kvp.Key);
+                    }
+                }
+
+                foreach (var key in keysToRemove)
+                {
+                    RemoveInternal(key);
+                }
+
+                Interlocked.Exchange(ref _lastCheckedExpirationTicks, nowTicks);
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
+        }
+
+        private void RemoveInternal(K key)
+        {
+            if (_cache.Remove(key))
+            {
+                _lastTouched.Remove(key);
+                RemoveFuzzyMappingsInternal(key);
+            }
+        }
+
+        private void RemoveFuzzyMappingsInternal(K key)
+        {
+            if (_reverseFuzzyLookup.TryGetValue(key, out var fuzzyKeys))
+            {
+                foreach (var fuzzyKey in fuzzyKeys)
+                {
+                    if (_fuzzyLookup.TryGetValue(fuzzyKey, out var set))
+                    {
+                        set.Remove(key);
+                        if (set.Count == 0)
+                        {
+                            _fuzzyLookup.Remove(fuzzyKey);
+                        }
+                    }
+                }
+
+                _reverseFuzzyLookup.Remove(key);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
+            _lock.Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (Volatile.Read(ref _disposed) != 0)
+            {
+                throw new ObjectDisposedException(nameof(TemporalCache<K, T>));
+            }
+        }
     }
 }
