@@ -188,102 +188,9 @@ public class GameListModule : IGameListModule
             var (serverState, includeStateTime) = DetermineServerState(raw);
             ApplyServerState(session, serverState);
 
-            if (raw.Mods != null)
+            foreach (var extraDatum in ApplyModsAndSessionFields(raw, session, datumsAlreadyQueued))
             {
-                int modsLen = raw.Mods.Length;
-
-                if (modsLen > 0)
-                {
-                    if (raw.Mods[0] != StockModId)
-                    {
-                        DataCache modwrap = new DataCache();
-
-                        // session/game/mods/major/[]/role = main
-                        modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
-
-                        // session/game/mods/major/[]/mod
-                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{raw.Mods[0]}");
-
-                        // session/game/mods/major/[]
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
-
-                        if (raw.Mods[0] == VsrModId)
-                        {
-                            if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR")))
-                                yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR", new DataCache() {
-                                    { GAMELIST_TERMS.GAMEBALANCE_NAME, "Vet Strategy Recycler Variant" },
-                                    { GAMELIST_TERMS.GAMEBALANCE_ABBR, "VSR" },
-                                    { GAMELIST_TERMS.GAMEBALANCE_NOTE, "This session uses a mod balance paradigm which emphasizes players over AI units and enables flight through the exploitation of physics quirks." }
-                                });
-
-                            // session/game/game_balance
-                            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR"));
-                        }
-                    }
-                    else
-                    {
-                        // we aren't concurrent yet so we're safe to just do this
-                        if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK")))
-                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK", new DataCache() {
-                                { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" }
-                            });
-
-                        // session/game/game_balance
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
-                    }
-                }
-                if (modsLen > 1)
-                {
-                    // this is the legacy path where dependencies get spun out as minor mods, only pre-community-patch does this
-                    var dependencyMods = raw.Mods.Skip(1).Select(m =>
-                    {
-                        DataCache modwrap = new DataCache();
-
-                        // session/game/mods/minor/[]/role = dependency
-                        modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_DEPENDENCY;
-
-                        // session/game/mods/minor/[]/mod
-                        modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{m}");
-
-                        return modwrap;
-                    }).ToArray();
-
-                    // session/game/mods/minor/[]
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MINOR}", dependencyMods);
-                }
-
-                // session/game/version
-                if (!string.IsNullOrWhiteSpace(raw.v))
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.v);
-
-                // session/other/tps
-                if (raw.TPS.HasValue && raw.TPS > 0)
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:tps", raw.TPS);
-
-                // session/other/max_ping
-                if (raw.MaxPing.HasValue && raw.MaxPing > 0)
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:max_ping", raw.MaxPing);
-
-                // session/other/worst_ping
-                if (raw.MaxPingSeen.HasValue && raw.MaxPingSeen > 0)
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:worst_ping", raw.MaxPingSeen);
-
-                // session/level/rules/time_minutes
-                if (raw.TimeLimit.HasValue && raw.TimeLimit > 0)
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:time_limit", raw.TimeLimit);
-
-                // session/level/rules/kill_limit
-                if (raw.KillLimit.HasValue && raw.KillLimit > 0)
-                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:kill_limit", raw.KillLimit);
-
-                // session/address/other/nat_type
-                if (raw.NATType.HasValue)
-                {
-                    if (Enum.IsDefined(raw.NATType.Value))
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", raw.NATType.Value.ToString().Replace('_', ' '));
-                    else
-                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", $"[" + raw.NATType + "]");
-                }
+                yield return extraDatum;
             }
 
             ApplySessionSource(session, raw);
@@ -309,6 +216,115 @@ public class GameListModule : IGameListModule
         }
 
         yield break;
+    }
+
+    private IEnumerable<Datum> ApplyModsAndSessionFields(
+        BZCCGame raw,
+        Datum session,
+        ConcurrentHashSet<DatumKey> datumsAlreadyQueued)
+    {
+        if (raw.Mods != null)
+        {
+            int modsLen = raw.Mods.Length;
+
+            if (modsLen > 0)
+            {
+                if (raw.Mods[0] != StockModId)
+                {
+                    DataCache modwrap = new DataCache();
+
+                    // session/game/mods/major/[]/role = main
+                    modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_MAIN;
+
+                    // session/game/mods/major/[]/mod
+                    modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{raw.Mods[0]}");
+
+                    // session/game/mods/major/[]
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
+
+                    if (raw.Mods[0] == VsrModId)
+                    {
+                        if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR")))
+                        {
+                            yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR", new DataCache() {
+                                { GAMELIST_TERMS.GAMEBALANCE_NAME, "Vet Strategy Recycler Variant" },
+                                { GAMELIST_TERMS.GAMEBALANCE_ABBR, "VSR" },
+                                { GAMELIST_TERMS.GAMEBALANCE_NOTE, "This session uses a mod balance paradigm which emphasizes players over AI units and enables flight through the exploitation of physics quirks." }
+                            });
+                        }
+
+                        // session/game/game_balance
+                        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:VSR"));
+                    }
+                }
+                else
+                {
+                    // we aren't concurrent yet so we're safe to just do this
+                    if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK")))
+                    {
+                        yield return new Datum(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK", new DataCache() {
+                            { GAMELIST_TERMS.GAMEBALANCE_NAME, "Stock" }
+                        });
+                    }
+
+                    // session/game/game_balance
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
+                }
+            }
+
+            if (modsLen > 1)
+            {
+                // this is the legacy path where dependencies get spun out as minor mods, only pre-community-patch does this
+                var dependencyMods = raw.Mods.Skip(1).Select(m =>
+                {
+                    DataCache modwrap = new DataCache();
+
+                    // session/game/mods/minor/[]/role = dependency
+                    modwrap[GAMELIST_TERMS.MODWRAP_ROLE] = GAMELIST_TERMS.MODWRAP_ROLES_DEPENDENCY;
+
+                    // session/game/mods/minor/[]/mod
+                    modwrap[GAMELIST_TERMS.MODWRAP_MOD] = new DatumRef(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{m}");
+
+                    return modwrap;
+                }).ToArray();
+
+                // session/game/mods/minor/[]
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MINOR}", dependencyMods);
+            }
+
+            // session/game/version
+            if (!string.IsNullOrWhiteSpace(raw.v))
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_VERSION}", raw.v);
+
+            // session/other/tps
+            if (raw.TPS.HasValue && raw.TPS > 0)
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:tps", raw.TPS);
+
+            // session/other/max_ping
+            if (raw.MaxPing.HasValue && raw.MaxPing > 0)
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:max_ping", raw.MaxPing);
+
+            // session/other/worst_ping
+            if (raw.MaxPingSeen.HasValue && raw.MaxPingSeen > 0)
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_OTHER}:worst_ping", raw.MaxPingSeen);
+
+            // session/level/rules/time_minutes
+            if (raw.TimeLimit.HasValue && raw.TimeLimit > 0)
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:time_limit", raw.TimeLimit);
+
+            // session/level/rules/kill_limit
+            if (raw.KillLimit.HasValue && raw.KillLimit > 0)
+                session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:kill_limit", raw.KillLimit);
+
+            // session/address/other/nat_type
+            if (raw.NATType.HasValue)
+            {
+                if (Enum.IsDefined(raw.NATType.Value))
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", raw.NATType.Value.ToString().Replace('_', ' '));
+                else
+                    session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:nat_type", $"[{raw.NATType}]");
+            }
+        }
     }
 
     private readonly struct GameTypeModeResult
