@@ -20,6 +20,14 @@ public class GameListModule : IGameListModule
 {
     private const string GameID = "bigboat:battlezone_98_redux";
 
+    private const string SourceRebellion = "Rebellion";
+    private const string StockModId = "0";
+
+    private const string FlagSbp = "sbp";
+    private const string FlagBalanceStock = "balance_stock";
+    private const string FlagAutoAllyTeams = "sbp_auto_ally_teams";
+    private const string FlagWingmanGame = "sbp_wingman_game";
+
     private readonly string queryUrl = null!;
     private readonly string mapUrl = null!;
     private readonly GogInterface gogInterface;
@@ -50,6 +58,7 @@ public class GameListModule : IGameListModule
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        // GetGameListChunksAsync
         var fact_task = cachedAdvancedWebClient.GetObject<Dictionary<string, DataCache>>(
             $"{mapUrl}/factions.json",
             TimeSpan.FromHours(24),
@@ -304,7 +313,9 @@ public class GameListModule : IGameListModule
         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_ADDRESS}:{GAMELIST_TERMS.SESSION_ADDRESS_OTHER}:lobby_id", raw.id);
 
         // [session|lobby]/sources/[]
-        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_SOURCES}:Rebellion", new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:Rebellion"));
+        session.AddObjectPath(
+            $"{GAMELIST_TERMS.SESSION_SOURCES}:{SourceRebellion}",
+            new DatumRef(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:{SourceRebellion}"));
     }
 
     private static void ApplySessionPlayerTypesAndCounts(Lobby raw, Datum session)
@@ -341,8 +352,9 @@ public class GameListModule : IGameListModule
         int countBots = 0;
         if (raw.LobbyType == Lobby.ELobbyType.Chat)
             foreach (var dr in raw.users.Values)
-                if (dr.id[0] == 'B')
-                    countBots++;
+                if (!string.IsNullOrWhiteSpace(dr.id))
+                    if (dr.id[0] == 'B')
+                        countBots++;
 
         // [session|lobby]/player_count/player
         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_PLAYERCOUNT}:{GAMELIST_TERMS.PLAYERTYPE_TYPES_VALUE_PLAYER}", raw.userCount - countBots);
@@ -354,9 +366,10 @@ public class GameListModule : IGameListModule
 
     private IEnumerable<Datum> ApplyGameLobbyFields(Lobby raw, Datum session, ConcurrentHashSet<DatumKey> datumsAlreadyQueued, DynamicAsyncEnumerablePool<Datum> pendingWorkPool, Task<CachedData<Dictionary<string, DataCache>>> fact_task, CancellationToken cancellationToken)
     {
-        string modID = raw.WorkshopID ?? @"0";
+        // ApplyGameLobbyFields
+        string modID = raw.WorkshopID ?? StockModId;
 
-        if (modID != "0")
+        if (modID != StockModId)
         {
             if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MOD, modID)))
                 yield return new Datum(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{modID}");
@@ -373,7 +386,7 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_MODS}:{GAMELIST_TERMS.SESSION_GAME_MODS_MAJOR}", new[] { modwrap });
         }
 
-        if (modID == "0")
+        if (modID == StockModId)
         {
             // we aren't concurrent yet so we're safe to just do this
             if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_GAMEBALANCE, "STOCK")))
@@ -383,24 +396,23 @@ public class GameListModule : IGameListModule
             session.AddObjectPath($"{GAMELIST_TERMS.SESSION_GAME}:{GAMELIST_TERMS.SESSION_GAME_GAMEBALANCE}", new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
         }
 
-        if (string.IsNullOrWhiteSpace(raw.MapFile))
+        if (!string.IsNullOrWhiteSpace(raw.MapFile))
         {
-            yield break;
+            string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
+
+            if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MAP, $"{modID}:{mapID}")))
+            {
+                Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}");
+                mapData[GAMELIST_TERMS.MAP_MAPFILE] = raw.MapFile.ToLowerInvariant();
+                yield return mapData;
+
+                if (!string.IsNullOrWhiteSpace(raw.MapFile))
+                    pendingWorkPool.Add(BuildDatumsForModAndMapDataAsync(modID, mapID, raw, datumsAlreadyQueued, fact_task, cancellationToken));
+            }
+            session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
+
         }
 
-        string mapID = System.IO.Path.GetFileNameWithoutExtension(raw.MapFile).ToLowerInvariant();
-
-        if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MAP, $"{modID}:{mapID}")))
-        {
-            Datum mapData = new Datum(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}");
-            mapData[GAMELIST_TERMS.MAP_MAPFILE] = raw.MapFile.ToLowerInvariant();
-            yield return mapData;
-
-            if (!string.IsNullOrWhiteSpace(raw.MapFile))
-                pendingWorkPool.Add(BuildDatumsForModAndMapDataAsync(modID, mapID, raw, datumsAlreadyQueued, fact_task, cancellationToken));
-        }
-
-        session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_MAP}", new DatumRef(GAMELIST_TERMS.TYPE_MAP, $"{GameID}:{modID}:{mapID}"));
         session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_OTHER}:crc32", raw.CRC32);
 
         if (raw.TimeLimit.HasValue && raw.TimeLimit > 0) session.AddObjectPath($"{GAMELIST_TERMS.SESSION_LEVEL}:{GAMELIST_TERMS.SESSION_LEVEL_RULES}:time_limit", raw.TimeLimit);
@@ -441,14 +453,13 @@ public class GameListModule : IGameListModule
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        Datum sourceDatum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:Rebellion", new DataCache() {
-            { GAMELIST_TERMS.SOURCE_NAME, "Rebellion" },
+        // BuildSources
+        Datum sourceDatum = new Datum(GAMELIST_TERMS.TYPE_SOURCE, $"{GameID}:{SourceRebellion}", new DataCache() {
+            { GAMELIST_TERMS.SOURCE_NAME, SourceRebellion },
         });
-
         if (rebellionResult.LastModified != null)
             sourceDatum["timestamp"] = rebellionResult.LastModified;
-
-        yield return ("Rebellion", sourceDatum);
+        yield return (SourceRebellion, sourceDatum);
     }
 
     private async IAsyncEnumerable<Datum> BuildDatumsForModAndMapDataAsync(
@@ -476,11 +487,11 @@ public class GameListModule : IGameListModule
         if (mapData.map?.title != null)
             mapDatum[GAMELIST_TERMS.MAP_NAME] = mapData.map.title;
         if (mapData.map?.image != null)
-            mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mapData.map.image}";
+            mapDatum[GAMELIST_TERMS.MAP_IMAGE] = $"{mapUrl}/{mapData.map.image}";
 
         //mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_GAMETYPE}:id", mapData?.map?.type); // this might be broken here
-        string? mapType = mapData?.map?.bzcp_type_fix ?? mapData?.map?.bzcp_auto_type_fix ?? mapData?.map?.type;
-        string? mapMode = mapData?.map?.bzcp_type_override ?? mapData?.map?.bzcp_auto_type_override ?? mapType;
+        string? mapType = mapData.map?.bzcp_type_fix ?? mapData.map?.bzcp_auto_type_fix ?? mapData.map?.type;
+        string? mapMode = mapData.map?.bzcp_type_override ?? mapData.map?.bzcp_auto_type_override ?? mapType;
         if (!string.IsNullOrWhiteSpace(mapType))
         {
             Datum? rv;
@@ -660,7 +671,7 @@ public class GameListModule : IGameListModule
                     break;
             }
         }
-        if (!string.IsNullOrWhiteSpace(mapData?.map?.custom_type))
+        if (!string.IsNullOrWhiteSpace(mapData.map?.custom_type))
         {
             mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEMODE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEMODE, $"{GameID}:CUST_{mapData.map.custom_type}"));
             Datum? rv = BuildGameModeDatum($"CUST_{mapData.map.custom_type}", mapData.map.custom_type_name, MapModeIcon, MapModeColorA, MapModeColorB, datumsAlreadyQueued);
@@ -668,14 +679,14 @@ public class GameListModule : IGameListModule
                 yield return rv;
         }
 
-        if (mapData?.map?.flags?.Contains("sbp") ?? false)
+        if (mapData.map?.flags?.Contains(FlagSbp) ?? false)
         {
             mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEBALANCE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:CUST_SBP"));
             Datum? rv = BuildGameBalanceDatum($"CUST_SBP", "Strat Balance Patch", "SBP", "This session uses a mod balance paradigm called \"Strat Balance Patch\" which significantly changes game balance.", datumsAlreadyQueued);
             if (rv != null)
                 yield return rv;
         }
-        else if (mapData?.map?.flags?.Contains("balance_stock") ?? false)
+        else if (mapData.map?.flags?.Contains(FlagBalanceStock) ?? false)
         {
             mapDatum.AddObjectPath(GAMELIST_TERMS.MAP_GAMEBALANCE, new DatumRef(GAMELIST_TERMS.TYPE_GAMEBALANCE, $"{GameID}:STOCK"));
             Datum? rv = BuildGameBalanceDatum($"STOCK", "Stock", null, null, datumsAlreadyQueued);
@@ -683,19 +694,19 @@ public class GameListModule : IGameListModule
                 yield return rv;
         }
 
-        if (mapData?.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
+        if (mapData.map?.flags?.Contains(FlagAutoAllyTeams) ?? false)
         {
             mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:1:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", "Odds");
             mapDatum.AddObjectPath($"{GAMELIST_TERMS.MAP_TEAMS}:2:{GAMELIST_TERMS.MAP_TEAMS_X_NAME}", "Evens");
         }
 
         // we don't bother linking these mods to the map since they came from the session.game, not the map, their data just came in piggybacking on the map data
-        if (mapData?.mods != null && mapData.mods.Count > 0)
+        if (mapData.mods != null && mapData.mods.Count > 0)
         {
             foreach (var mod in mapData.mods)
             {
                 // skip stock
-                if (mod.Key == "0") continue;
+                if (mod.Key == StockModId) continue;
 
                 if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_MOD, $"{GameID}:{mod.Key}")))
                 {
@@ -706,7 +717,7 @@ public class GameListModule : IGameListModule
                         modData.Data[GAMELIST_TERMS.MOD_NAME] = modName;
 
                     if (mod.Value?.image != null)
-                        modData.Data[GAMELIST_TERMS.MOD_IMAGE] = $"{mapUrl.TrimEnd('/')}/{mod.Value.image}";
+                        modData.Data[GAMELIST_TERMS.MOD_IMAGE] = $"{mapUrl}/{mod.Value.image}";
 
                     if (UInt64.TryParse(mod.Key, out UInt64 modId) && modId > 0)
                         modData.Data[GAMELIST_TERMS.MOD_URL] = $"http://steamcommunity.com/sharedfiles/filedetails/?id={mod.Key}";
@@ -732,7 +743,7 @@ public class GameListModule : IGameListModule
         }
 
         //List<DatumRef> heroDatumList = new List<DatumRef>();
-        if (mapData?.vehicles != null)
+        if (mapData.vehicles != null)
         {
             foreach (var vehicle in mapData.vehicles)
             {
@@ -742,8 +753,8 @@ public class GameListModule : IGameListModule
                 if (datumsAlreadyQueued.Add(new DatumKey(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle.Key}")))
                 {
                     Datum heroData = new Datum(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle.Key}", new DataCache() {
-                    { GAMELIST_TERMS.HERO_NAME, vehicle.Value.name },
-                });
+                        { GAMELIST_TERMS.HERO_NAME, vehicle.Value.name },
+                    });
 
                     {
                         string faction = vehicle.Value.faction;
@@ -795,7 +806,7 @@ public class GameListModule : IGameListModule
             //mapDatum.AddObjectPath($"allowed_heroes", heroDatumList);
 
             List<DatumRef> heroDatumList = new List<DatumRef>();
-            if (mapData?.map?.vehicles != null)
+            if (mapData.map?.vehicles != null)
             {
                 foreach (var vehicle in mapData.map.vehicles)
                 {
@@ -806,11 +817,11 @@ public class GameListModule : IGameListModule
                 }
             }
 
-            bool session_teamUpdate = session.PlayerLimit.HasValue && (mapData?.map?.flags?.Contains("sbp_auto_ally_teams") ?? false);
-            bool session_syncUpdate = (mapData?.map?.bzcp_type_fix ?? mapData?.map?.bzcp_auto_type_fix ?? mapData?.map?.type) == "S" &&
+            bool session_teamUpdate = session.PlayerLimit.HasValue && (mapData.map?.flags?.Contains(FlagAutoAllyTeams) ?? false);
+            bool session_syncUpdate = (mapData.map?.bzcp_type_fix ?? mapData.map?.bzcp_auto_type_fix ?? mapData.map?.type) == "S" &&
                                       !(session.SyncJoin ?? false) &&
-                                      (mapData?.map?.flags?.Contains("sbp") ?? false);
-            bool? session_is_deathmatch = mapData?.map?.mission_dll switch
+                                      (mapData.map?.flags?.Contains(FlagSbp) ?? false);
+            bool? session_is_deathmatch = mapData.map?.mission_dll switch
             {
                 "MultSTMission" => false,
                 "MultDMMission" => true,
@@ -867,10 +878,10 @@ public class GameListModule : IGameListModule
 
             foreach (var dr in session.users.Values)
             {
-                string? vehicle = mapData?.map?.vehicles.Where(v => v.EndsWith($":{dr.Vehicle}")).FirstOrDefault();
+                string? vehicle = mapData.map?.vehicles.Where(v => v.EndsWith($":{dr.Vehicle}")).FirstOrDefault();
                 int playerTeam = dr.Team ?? -1;
                 Datum? player = null;
-                if (vehicle != null || (playerTeam > 0 && (mapData?.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)))
+                if (vehicle != null || (playerTeam > 0 && (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)))
                 {
                     player = new Datum(GAMELIST_TERMS.TYPE_PLAYER, $"{GameID}:{dr.id}");
 
@@ -883,21 +894,21 @@ public class GameListModule : IGameListModule
                         player[GAMELIST_TERMS.PLAYER_HERO] = new DatumRef(GAMELIST_TERMS.TYPE_HERO, $"{GameID}:{vehicle}");
                     }
 
-                    if (mapData?.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
+                    if (mapData.map?.flags?.Contains("sbp_auto_ally_teams") ?? false)
                     {
                         if (playerTeam >= 1 & playerTeam <= 15)
                         {
                             if (playerTeam % 2 == 1)
                             {
                                 player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_TEAM}:{GAMELIST_TERMS.PLAYER_TEAM_ID}", "1");
-                                if (playerTeam == 1 && (mapData.map.flags?.Contains("sbp_wingman_game") ?? false))
+                                if (playerTeam == 1 && (mapData.map.flags?.Contains(FlagWingmanGame) ?? false))
                                     player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_TEAM}:{GAMELIST_TERMS.PLAYER_TEAM_LEADER}", true);
                                 player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_TEAM}:{GAMELIST_TERMS.PLAYER_TEAM_INDEX}", (playerTeam - 1) / 2);
                             }
                             else if (playerTeam % 2 == 0)
                             {
                                 player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_TEAM}:{GAMELIST_TERMS.PLAYER_TEAM_ID}", "2");
-                                if (playerTeam == 2 && (mapData.map.flags?.Contains("sbp_wingman_game") ?? false))
+                                if (playerTeam == 2 && (mapData.map.flags?.Contains(FlagWingmanGame) ?? false))
                                     player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_TEAM}:{GAMELIST_TERMS.PLAYER_TEAM_LEADER}", true);
                                 player.AddObjectPath($"{GAMELIST_TERMS.PLAYER_TEAM}:{GAMELIST_TERMS.PLAYER_TEAM_INDEX}", (playerTeam - 1) / 2);
                             }
